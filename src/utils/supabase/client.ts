@@ -1,8 +1,23 @@
 import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    // Return a mock client to allow viewing dashboard without Supabase configured
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: { id: 'mock-user-id', email: 'developer@tracck.io' } }, error: null }),
+        getSession: async () => ({ data: { session: { user: { id: 'mock-user-id', email: 'developer@tracck.io' } } }, error: null }),
+        signInWithPassword: async () => ({ data: { user: { id: 'mock-user-id', email: 'developer@tracck.io' } }, error: null }),
+        signUp: async () => ({ data: { user: { id: 'mock-user-id', email: 'developer@tracck.io' } }, error: null }),
+        signOut: async () => ({ error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      },
+    } as any
+  }
+
+  return createBrowserClient(url, key)
 }
+

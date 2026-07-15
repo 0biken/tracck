@@ -235,7 +235,7 @@ Preferred Skills:
                 <div className="mt-4 pt-4 border-t border-hairline/40 flex items-center justify-between">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-mono text-neutral">COMPILING 3 BULLETS</span>
-                    <span className="text-[10px] text-[#1F6F4A]">Minimum requirements met (>= 3 bullets)</span>
+                    <span className="text-[10px] text-[#1F6F4A]">Minimum requirements met (&gt;= 3 bullets)</span>
                   </div>
                   <button
                     onClick={handleCompile}

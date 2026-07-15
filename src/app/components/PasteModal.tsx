@@ -118,7 +118,7 @@ export default function PasteModal({ platform, isOpen, onClose, onSuccess }: Pas
             className="text-neutral hover:text-ink cursor-pointer"
             disabled={isSubmitting}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="square">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -172,7 +172,7 @@ export default function PasteModal({ platform, isOpen, onClose, onSuccess }: Pas
               <div className="form-group">
                 <label>Screenshot Attachment</label>
                 <div className="border border-dashed border-hairline bg-paper p-8 text-center flex flex-col items-center justify-center gap-3">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="square" className="text-neutral">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" className="text-neutral">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <polyline points="21 15 16 10 5 21" />
