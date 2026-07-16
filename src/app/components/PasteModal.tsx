@@ -18,26 +18,23 @@ export default function PasteModal({ platform, isOpen, onClose, onSuccess }: Pas
   const [year, setYear] = React.useState('2026');
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [postCount, setPostCount] = React.useState(0);
+
 
   React.useEffect(() => {
     if (!isOpen) {
-      setTextValue('');
-      setScreenshotFile(null);
-      setAttested(false);
-      setIsSubmitting(false);
+      const timeout = setTimeout(() => {
+        setTextValue('');
+        setScreenshotFile(null);
+        setAttested(false);
+        setIsSubmitting(false);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [isOpen]);
 
-  React.useEffect(() => {
-    if (inputMode === 'text' && textValue.trim()) {
-      // Split by double blank lines (one or more empty lines with spacing)
-      const segments = textValue.split(/\n\s*\n/).filter(segment => segment.trim().length > 0);
-      setPostCount(segments.length);
-    } else {
-      setPostCount(textValue.trim() ? 1 : 0);
-    }
-  }, [textValue, inputMode]);
+  const postCount = inputMode === 'text' && textValue.trim()
+    ? textValue.split(/\n\s*\n/).filter(segment => segment.trim().length > 0).length
+    : (textValue.trim() ? 1 : 0);
 
   if (!isOpen) return null;
 
@@ -75,11 +72,11 @@ export default function PasteModal({ platform, isOpen, onClose, onSuccess }: Pas
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
       if (response.ok && data.success) {
-        onSuccess(data.ingested_count);
+        onSuccess(data.data.ingested_count);
       } else {
-        alert(data.error || 'Ingestion failed');
+        alert(data.error?.message || 'Ingestion failed');
       }
-    } catch (err) {
+    } catch {
       alert('Network request failed');
     } finally {
       setIsSubmitting(false);

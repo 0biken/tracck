@@ -1,24 +1,13 @@
-import { NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+import { requireAuth } from '@/lib/auth';
+import { ApiError, errorResponse, successResponse } from '@/lib/errors';
+import { createAdminClient } from '@/lib/supabase-admin';
+import { queues } from '../../../../../workers/queues';
+import FirecrawlApp from '@mendable/firecrawl-js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Strip HTML tags and normalise whitespace. */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-/** Split a blob of plain text into meaningful content segments.
+/** Split a blob of plain text or markdown into meaningful content segments.
  *  Heuristic: paragraphs separated by 2+ newlines, or sentences > 60 chars. */
 function extractSegments(text: string): string[] {
   // Try double-newline split first
@@ -45,66 +34,39 @@ function isValidUrl(raw: string): boolean {
 
 export async function POST(request: Request) {
   try {
+    const { user_id } = await requireAuth(request);
     const body = await request.json();
     const { url, ownership_attested } = body as { url?: string; ownership_attested?: boolean };
 
     // ── Validation ────────────────────────────────────────────────────────────
     if (!ownership_attested) {
-      return NextResponse.json(
-        { error: 'Ownership attestation is required before fetching.' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Ownership attestation is required before fetching.');
     }
 
     if (!url || !isValidUrl(url)) {
-      return NextResponse.json(
-        { error: 'A valid https:// URL is required.' },
-        { status: 400 }
-      );
+      throw new ApiError(400, 'VALIDATION_ERROR', 'A valid https:// URL is required.');
     }
 
-    // ── Fetch the page ────────────────────────────────────────────────────────
-    let html: string;
+    // ── Fetch the page via Firecrawl ──────────────────────────────────────────
+    if (!process.env.FIRECRAWL_API_KEY) {
+      throw new ApiError(500, 'INTERNAL_ERROR', 'Firecrawl API key is missing.');
+    }
+
+    const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+    
+    let scrapeResult;
     try {
-      const response = await fetch(url, {
-        headers: {
-          // Pose as a normal browser so most public portfolio sites respond
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-            '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        },
-        // Hard timeout via AbortController
-        signal: AbortSignal.timeout(12_000),
-      });
-
-      if (!response.ok) {
-        return NextResponse.json(
-          { error: `Remote server returned ${response.status} – make sure the page is publicly accessible.` },
-          { status: 502 }
-        );
-      }
-
-      html = await response.text();
-    } catch (fetchErr: any) {
-      const isTimeout = fetchErr?.name === 'TimeoutError' || fetchErr?.name === 'AbortError';
-      return NextResponse.json(
-        { error: isTimeout ? 'Request timed out (12 s). The page may be too slow or blocked.' : `Could not reach ${url}` },
-        { status: 502 }
-      );
+      scrapeResult = await app.scrapeUrl(url, { formats: ['markdown'] });
+    } catch (err: any) {
+      throw new ApiError(502, 'UPSTREAM_ERROR', `Failed to scrape via Firecrawl: ${err.message}`);
     }
 
-    // ── Extract meta information ──────────────────────────────────────────────
-    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const pageTitle = titleMatch ? stripHtml(titleMatch[1]) : new URL(url).hostname;
+    if (!scrapeResult) {
+       throw new ApiError(502, 'UPSTREAM_ERROR', `Firecrawl failed to scrape: No data returned`);
+    }
 
-    // Prefer <main>, <article>, or <body> content in that order
-    const mainMatch =
-      html.match(/<main[\s\S]*?>([\s\S]*?)<\/main>/i) ||
-      html.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i) ||
-      html.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i);
-
-    const rawText = mainMatch ? stripHtml(mainMatch[1]) : stripHtml(html);
+    const pageTitle = scrapeResult.metadata?.title || new URL(url).hostname;
+    const rawText = scrapeResult.markdown || '';
     const segments = extractSegments(rawText);
 
     // Cap at 40 segments so we don't flood the database
@@ -112,29 +74,48 @@ export async function POST(request: Request) {
 
     // ── Build raw_posts-compatible payload ────────────────────────────────────
     const posts = cappedSegments.map((text, idx) => ({
+      user_id,
       source_platform: 'portfolio_url',
-      source_method: 'url_fetch',
+      source_method: 'manual_paste', // mapped to satisfy DB constraint
       raw_text: text,
       source_url: url,
       ownership_attested: true,
       posted_at_is_approximate: true,
-      // We don't know dates so we leave it null – caller may fill
       fetched_at: new Date().toISOString(),
       segment_index: idx,
     }));
 
-    return NextResponse.json({
-      success: true,
+    if (posts.length > 0) {
+      const supabase = createAdminClient();
+      const { data: insertedPosts, error: insertError } = await supabase
+        .from('raw_posts')
+        .insert(posts)
+        .select('id');
+
+      if (insertError) {
+        console.error('Failed to insert URL fetched posts:', insertError);
+        throw new ApiError(500, 'DATABASE_ERROR', 'Failed to save posts to database.');
+      }
+      
+      if (insertedPosts) {
+        for (const post of insertedPosts) {
+          await queues.aiExtraction.add('claim-classification', {
+            rawPostId: post.id,
+          });
+        }
+      }
+    }
+
+    return successResponse({
       page_title: pageTitle,
       source_url: url,
       ingested_count: posts.length,
+      user_id,
       posts,
       fetched_at: new Date().toISOString(),
     });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || 'Internal Server Error' },
-      { status: 500 }
-    );
+    if (err instanceof ApiError) return errorResponse(err);
+    return errorResponse(new ApiError(500, 'INTERNAL_ERROR', err.message || 'Internal Server Error'));
   }
 }

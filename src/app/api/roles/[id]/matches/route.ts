@@ -1,56 +1,63 @@
-import { NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+import { requireAuth } from '@/lib/auth';
+import { ApiError, errorResponse, successResponse } from '@/lib/errors';
+import { createAdminClient } from '@/lib/supabase-admin';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user_id } = await requireAuth(request);
     const { id } = await params;
 
-    // Mock confirmed items mapped against this role's relevance scoring
-    const mockMatches = [
-      {
-        id: 'm1',
-        platform: 'GITHUB — 2026.03.11',
-        date: '2026.03.11',
-        claim: 'Shipped Next.js routing and supabase SSR integration',
-        detail: 'Implemented Supabase SSR authentication across sign-up, login, and session middleware for the Tracck platform.',
-        relevance_score: 0.92,
-        matched_skills: ['Next.js', 'Supabase', 'Authentication'],
-        recency_weight: 0.98,
-        semantic_match: 0.89,
-      },
-      {
-        id: 'm2',
-        platform: 'GITHUB — 2026.02.10',
-        date: '2026.02.10',
-        claim: 'Refactored database schema constraints and RLS policies',
-        detail: 'Wrote database migrations 001 through 009 covering users, raw_posts, accomplishments, and RLS tables.',
-        relevance_score: 0.84,
-        matched_skills: ['PostgreSQL', 'RLS policies'],
-        recency_weight: 0.91,
-        semantic_match: 0.81,
-      },
-      {
-        id: 'm3',
-        platform: 'LINKEDIN — 2026.02.28',
-        date: '2026.02.28',
-        claim: 'Designed complete custom components library',
-        detail: 'Created 32 components, layout grids, spacing units, and design token configurations matching corporate guidelines.',
-        relevance_score: 0.79,
-        matched_skills: ['React', 'Tailwind CSS'],
-        recency_weight: 0.94,
-        semantic_match: 0.75,
-      },
-    ];
+    const supabase = createAdminClient();
+    
+    // We join accomplishment_role_matches with accomplishments to get the full detail
+    const { data: dbMatches, error } = await supabase
+      .from('accomplishment_role_matches')
+      .select(`
+        *,
+        accomplishments (
+          id,
+          user_id,
+          bullet_text,
+          ats_keywords,
+          claim_category
+        )
+      `)
+      .eq('target_role_id', id)
+      .order('relevance_score', { ascending: false });
 
-    return NextResponse.json({
-      success: true,
+    if (error) {
+      console.error('Failed to fetch matches:', error);
+      throw new ApiError(500, 'DATABASE_ERROR', 'Failed to fetch relevance matches.');
+    }
+
+    // Filter to only include the user's own accomplishments (since admin bypasses RLS)
+    const validMatches = dbMatches?.filter((m: any) => m.accomplishments?.user_id === user_id) || [];
+
+    // Map to the shape expected by the frontend
+    const mappedMatches = validMatches.map((m: any) => ({
+      id: m.id,
+      platform: 'SYSTEM — ' + new Date(m.computed_at).toISOString().split('T')[0].replace(/-/g, '.'),
+      date: new Date(m.computed_at).toISOString().split('T')[0].replace(/-/g, '.'),
+      claim: m.accomplishments?.bullet_text || 'Unknown Claim',
+      detail: m.accomplishments?.bullet_text || '',
+      relevance_score: m.relevance_score,
+      matched_skills: m.accomplishments?.ats_keywords || [],
+      recency_weight: m.recency_weight || 0.5,
+      semantic_match: m.responsibility_theme_similarity || 0.5,
+    }));
+
+    return successResponse({
       role_id: id,
-      matches: mockMatches,
-      insufficient_content: false, // Check threshold constraint (matches.length < 3)
+      user_id,
+      matches: mappedMatches,
+      insufficient_content: mappedMatches.length < 3,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    if (err instanceof ApiError) return errorResponse(err);
+    return errorResponse(new ApiError(500, 'INTERNAL_ERROR', err.message || 'Internal Server Error'));
   }
 }

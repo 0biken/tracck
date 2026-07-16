@@ -1,40 +1,47 @@
-import { NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+import { requireAuth } from '@/lib/auth';
+import { ApiError, errorResponse, successResponse } from '@/lib/errors';
+import { createAdminClient } from '@/lib/supabase-admin';
+import { queues } from '../../../../workers/queues';
 
 export async function POST(request: Request) {
   try {
+    const { user_id } = await requireAuth(request);
     const body = await request.json();
     const { jd_text, role_tag } = body;
 
     const roleId = crypto.randomUUID();
 
-    // Mock parsed requirements from the Job Description
-    const parsedRole = {
+    const rawRole = {
       id: roleId,
+      user_id,
       jd_text: jd_text || null,
       role_tag: role_tag || 'developer',
-      seniority: jd_text ? 'senior' : 'entry_level',
-      required_skills: jd_text 
-        ? ['React', 'Next.js', 'TypeScript', 'Supabase', 'Authentication']
-        : ['React', 'TypeScript', 'CSS'],
-      preferred_skills: jd_text 
-        ? ['Tailwind CSS', 'PostgreSQL', 'RLS policies']
-        : ['Git', 'REST APIs'],
-      responsibility_themes: jd_text 
-        ? ['frontend component design', 'session storage integration', 'relational schema migration']
-        : ['frontend layout design'],
-      ats_keywords: jd_text
-        ? ['React', 'TypeScript', 'Next.js', 'Supabase', 'SQL']
-        : ['React', 'CSS'],
-      parsed_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
 
-    return NextResponse.json({
-      success: true,
+    const supabase = createAdminClient();
+    const { error: insertError } = await supabase
+      .from('target_roles')
+      .insert(rawRole);
+
+    if (insertError) {
+      console.error('Failed to insert target role:', insertError);
+      throw new ApiError(500, 'DATABASE_ERROR', 'Failed to save role to database.');
+    }
+
+    // Enqueue for JD parsing
+    await queues.aiExtraction.add('jd-parsing', {
+      targetRoleId: roleId,
+    });
+
+    return successResponse({
       role_id: roleId,
-      role: parsedRole,
+      user_id,
+      role: rawRole,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    if (err instanceof ApiError) return errorResponse(err);
+    return errorResponse(new ApiError(500, 'INTERNAL_ERROR', err.message || 'Internal Server Error'));
   }
 }

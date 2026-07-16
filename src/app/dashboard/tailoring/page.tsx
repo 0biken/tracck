@@ -3,6 +3,7 @@
 import React from 'react';
 
 interface ParsedJD {
+  id: string;
   role_tag: string;
   seniority: string;
   required_skills: string[];
@@ -61,20 +62,20 @@ Preferred Skills:
       const parseData = await parseResponse.json();
 
       if (parseResponse.ok && parseData.success) {
-        setParsedJd(parseData.role);
+        setParsedJd(parseData.data.role);
         
-        const matchesResponse = await fetch(`/api/roles/${parseData.role_id}/matches`);
+        const matchesResponse = await fetch(`/api/roles/${parseData.data.role_id}/matches`);
         const matchesData = await matchesResponse.json();
 
         if (matchesResponse.ok && matchesData.success) {
-          setMatches(matchesData.matches);
+          setMatches(matchesData.data.matches);
         } else {
-          alert(matchesData.error || 'Failed to fetch relevance matches');
+          alert(matchesData.error?.message || 'Failed to fetch relevance matches');
         }
       } else {
-        alert(parseData.error || 'Failed to parse Job Description');
+        alert(parseData.error?.message || 'Failed to parse Job Description');
       }
-    } catch (err) {
+    } catch {
       alert('Network request failed during parsing');
     } finally {
       setIsParsing(false);
@@ -98,10 +99,10 @@ Preferred Skills:
       if (response.ok && data.success) {
         setCompileStatus('complete');
       } else {
-        alert(data.error || 'Resume compilation failed');
+        alert(data.error?.message || 'Resume compilation failed');
         setCompileStatus(null);
       }
-    } catch (err) {
+    } catch {
       alert('Network request failed during compilation');
       setCompileStatus(null);
     } finally {

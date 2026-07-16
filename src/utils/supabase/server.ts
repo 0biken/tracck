@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 
 export async function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
   if (!url || !key) {
     // Return mock server client
@@ -15,6 +15,7 @@ export async function createClient() {
         signUp: async () => ({ data: { user: { id: 'mock-user-id', email: 'developer@tracck.io' } }, error: null }),
         signOut: async () => ({ error: null }),
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
   }
 

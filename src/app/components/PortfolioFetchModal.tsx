@@ -29,11 +29,14 @@ export default function PortfolioFetchModal({ isOpen, onClose, onSuccess }: Port
   // Reset when modal is closed
   React.useEffect(() => {
     if (!isOpen) {
-      setUrl('');
-      setAttested(false);
-      setStep('input');
-      setErrorMsg('');
-      setResult(null);
+      const timeout = setTimeout(() => {
+        setUrl('');
+        setAttested(false);
+        setStep('input');
+        setErrorMsg('');
+        setResult(null);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [isOpen]);
 
@@ -67,14 +70,14 @@ export default function PortfolioFetchModal({ isOpen, onClose, onSuccess }: Port
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setErrorMsg(data.error || 'Fetch failed. Please check the URL and try again.');
+        setErrorMsg(data.error?.message || 'Fetch failed. Please check the URL and try again.');
         setStep('error');
         return;
       }
 
-      setResult({ count: data.ingested_count, pageTitle: data.page_title, fetchedAt: data.fetched_at });
+      setResult({ count: data.data.ingested_count, pageTitle: data.data.page_title, fetchedAt: data.data.fetched_at });
       setStep('done');
-      onSuccess(data.ingested_count, data.page_title, data.fetched_at);
+      onSuccess(data.data.ingested_count, data.data.page_title, data.data.fetched_at);
     } catch {
       setErrorMsg('Network request failed. Please check your connection.');
       setStep('error');

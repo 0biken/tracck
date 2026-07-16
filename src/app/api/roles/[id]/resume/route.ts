@@ -1,21 +1,55 @@
-import { NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+import { requireAuth } from '@/lib/auth';
+import { ApiError, errorResponse, successResponse } from '@/lib/errors';
+import { createAdminClient } from '@/lib/supabase-admin';
+import { queues } from '../../../../../../workers/queues';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user_id } = await requireAuth(request);
     const { id } = await params;
 
-    // Simulate tailored resume generation payload
-    return NextResponse.json({
-      success: true,
-      resume_id: crypto.randomUUID(),
+    const resumeId = crypto.randomUUID();
+    const pdfUrl = `/exports/tailored_resume_${id}.pdf`;
+
+    const resumeData = {
+      id: resumeId,
+      user_id,
       target_role_id: id,
-      compiled_at: new Date().toISOString(),
-      pdf_url: `/exports/tailored_resume_${id}.pdf`,
+      resume_name: 'Tailored Resume', // Provide a default or dynamic name
+      pdf_export_url: null, // Will be set by the background worker
+      created_at: new Date().toISOString(),
+    };
+
+    const supabase = createAdminClient();
+    const { error: insertError } = await supabase
+      .from('resumes')
+      .insert(resumeData);
+
+    if (insertError) {
+      console.error('Failed to insert resume:', insertError);
+      throw new ApiError(500, 'DATABASE_ERROR', 'Failed to save resume to database.');
+    }
+
+    // Enqueue for resume building
+    await queues.resumeBuild.add('resume-build', {
+      targetRoleId: id,
+      resumeId,
+      userId: user_id
+    });
+
+    return successResponse({
+      resume_id: resumeId,
+      target_role_id: id,
+      user_id,
+      status: 'pending',
+      message: 'Resume build enqueued successfully'
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    if (err instanceof ApiError) return errorResponse(err);
+    return errorResponse(new ApiError(500, 'INTERNAL_ERROR', err.message || 'Internal Server Error'));
   }
 }
