@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: [
+    'ioredis',
+    'redis',
+    '@opentelemetry/instrumentation-ioredis',
+    '@opentelemetry/instrumentation-redis',
+  ],
 };
 
 export default nextConfig;
