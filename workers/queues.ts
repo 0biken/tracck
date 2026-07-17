@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 // Reuse a single Redis connection for all queues to prevent connection limits
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
+  lazyConnect: true, // Prevents eager connection during Vercel build
 });
 
 export const queues = {

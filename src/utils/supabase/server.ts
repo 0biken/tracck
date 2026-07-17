@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
+  // Call cookies() early so Next.js knows this relies on request data,
+  // which prevents fatal prerendering errors during Vercel builds
+  // when environment variables might not be fully populated yet.
+  const cookieStore = await cookies()
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
@@ -19,8 +24,8 @@ export async function createClient() {
     } as any
   }
 
-  const cookieStore = await cookies()
-
+  // cookieStore is already awaited at the top of the function
+  
   return createServerClient(
     url,
     key,
