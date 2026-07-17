@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { Job } from 'bullmq';
 import { createAdminClient } from '../../src/lib/supabase-admin';
-import { queues } from '../queues';
+import { inngest } from '../../src/inngest/client';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model = 'gemini-2.5-flash';
@@ -31,7 +30,7 @@ const classificationSchema: Schema = {
   required: ['category', 'confidence', 'claim_summary', 'specificity_signals', 'reasoning_brief']
 };
 
-export async function processClaimClassification(job: Job) {
+export async function processClaimClassification(job: { data: Record<string, any> }) {
   const { rawPostId } = job.data;
   
   const supabase = createAdminClient();
@@ -84,10 +83,13 @@ export async function processClaimClassification(job: Job) {
   if (result.category === 'direct_achievement' || result.category === 'participation_claim') {
     if (finalConfidence >= 0.5) {
       // It passes the bar. Enqueue to Stage 2: Bullet Generation
-      await queues.aiExtraction.add('bullet-generation', {
-        rawPostId,
-        classification: result,
-        finalConfidence
+      await inngest.send({
+        name: 'ai/bullet.generate',
+        data: {
+          rawPostId,
+          classification: result,
+          finalConfidence
+        }
       });
       
       // Update raw_post status

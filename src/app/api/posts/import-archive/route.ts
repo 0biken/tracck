@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 import { requireAuth } from '@/lib/auth';
 import { ApiError, errorResponse, successResponse } from '@/lib/errors';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { queues } from '../../../../../workers/queues';
+import { inngest } from '@/inngest/client';
 
 // ── CSV parser (minimal, handles quoted fields) ───────────────────────────────
 
@@ -234,8 +234,9 @@ export async function POST(request: Request) {
       
       if (insertedPosts) {
         for (const post of insertedPosts) {
-          await queues.aiExtraction.add('claim-classification', {
-            rawPostId: post.id,
+          await inngest.send({
+            name: 'ai/claim.classify',
+            data: { rawPostId: post.id }
           });
         }
       }

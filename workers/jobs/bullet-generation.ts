@@ -1,5 +1,4 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { Job } from 'bullmq';
 import { createAdminClient } from '../../src/lib/supabase-admin';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -18,7 +17,7 @@ const bulletSchema: Schema = {
   required: ['bullet_text', 'role_tag', 'ats_keywords']
 };
 
-export async function processBulletGeneration(job: Job) {
+export async function processBulletGeneration(job: { data: Record<string, any> }) {
   const { rawPostId, classification, finalConfidence } = job.data;
 
   const supabase = createAdminClient();

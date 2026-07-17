@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { Job } from 'bullmq';
 import { createAdminClient } from '../../src/lib/supabase-admin';
-import { queues } from '../queues';
+import { inngest } from '../../src/inngest/client';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model = 'gemini-2.5-flash';
@@ -34,7 +33,7 @@ const jdParsingSchema: Schema = {
   required: ['role_tag', 'seniority', 'required_skills', 'preferred_skills', 'responsibility_themes', 'keywords_for_ats']
 };
 
-export async function processJdParsing(job: Job) {
+export async function processJdParsing(job: { data: Record<string, any> }) {
   const { targetRoleId } = job.data;
 
   const supabase = createAdminClient();
@@ -51,8 +50,9 @@ export async function processJdParsing(job: Job) {
   // If no JD text is provided, it's just a generic role_tag selection
   if (!targetRole.jd_text) {
     // We can enqueue role-scoring immediately since there's nothing to parse
-    await queues.atsScore.add('role-scoring', {
-      targetRoleId
+    await inngest.send({
+      name: 'ai/role.score',
+      data: { targetRoleId }
     });
     return { skipped: true, reason: 'no jd_text' };
   }
@@ -95,8 +95,9 @@ export async function processJdParsing(job: Job) {
   }
 
   // Enqueue role-scoring job
-  await queues.atsScore.add('role-scoring', {
-    targetRoleId
+  await inngest.send({
+    name: 'ai/role.score',
+    data: { targetRoleId }
   });
 
   return result;

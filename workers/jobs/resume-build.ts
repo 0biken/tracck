@@ -1,7 +1,6 @@
-import { Job } from 'bullmq';
 import { createAdminClient } from '../../src/lib/supabase-admin';
 
-export async function processResumeBuild(job: Job) {
+export async function processResumeBuild(job: { data: Record<string, any> }) {
   const { targetRoleId, resumeId, userId: _userId } = job.data;
 
   const supabase = createAdminClient();

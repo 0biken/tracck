@@ -2,7 +2,7 @@
 import { requireAuth } from '@/lib/auth';
 import { ApiError, errorResponse, successResponse } from '@/lib/errors';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { queues } from '../../../../workers/queues';
+import { inngest } from '@/inngest/client';
 
 export async function POST(request: Request) {
   try {
@@ -31,8 +31,9 @@ export async function POST(request: Request) {
     }
 
     // Enqueue for JD parsing
-    await queues.aiExtraction.add('jd-parsing', {
-      targetRoleId: roleId,
+    await inngest.send({
+      name: 'ai/jd.parse',
+      data: { targetRoleId: roleId }
     });
 
     return successResponse({

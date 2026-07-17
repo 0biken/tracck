@@ -1,5 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-import { Job } from 'bullmq';
 import { createAdminClient } from '../../src/lib/supabase-admin';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -28,7 +27,7 @@ async function getEmbedding(text: string): Promise<number[]> {
   return response.embeddings?.[0]?.values || [];
 }
 
-export async function processRoleScoring(job: Job) {
+export async function processRoleScoring(job: { data: Record<string, any> }) {
   const { targetRoleId } = job.data;
 
   const supabase = createAdminClient();
