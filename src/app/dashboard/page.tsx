@@ -170,7 +170,7 @@ export default async function OverviewPage() {
           <div className="flex flex-col gap-4">
             {pendingHighlights.length === 0 ? (
               <div className="p-6 border border-hairline bg-paper-warm text-center text-neutral text-sm">
-                No pending highlights right now. You're all caught up!
+                No pending highlights right now. You&apos;re all caught up!
               </div>
             ) : (
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

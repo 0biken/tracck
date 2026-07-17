@@ -2,7 +2,7 @@
 import { requireAuth } from '@/lib/auth';
 import { ApiError, errorResponse, successResponse } from '@/lib/errors';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { queues } from '../../../../../../workers/queues';
+import { inngest } from '../../../../../inngest/client';
 
 export async function POST(
   request: Request,
@@ -35,10 +35,13 @@ export async function POST(
     }
 
     // Enqueue for resume building
-    await queues.resumeBuild.add('resume-build', {
-      targetRoleId: id,
-      resumeId,
-      userId: user_id
+    await inngest.send({
+      name: 'resume/build',
+      data: {
+        targetRoleId: id,
+        resumeId,
+        userId: user_id
+      }
     });
 
     return successResponse({

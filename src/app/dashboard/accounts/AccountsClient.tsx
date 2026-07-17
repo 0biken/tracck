@@ -65,7 +65,7 @@ export default function AccountsClient({ initialAccounts, fetchHistory }: Accoun
 
   const handleOAuthClick = (platformId: string) => {
     // Initiate OAuth flow
-    window.location.href = `/api/auth/oauth/start?platform=${platformId}`;
+    window.location.assign(`/api/auth/oauth/start?platform=${platformId}`);
   };
 
   const handleDisconnect = async (accountId: string, platformName: string) => {

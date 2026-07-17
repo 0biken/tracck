@@ -84,7 +84,7 @@ export default function QueueClient({ initialItems }: QueueClientProps) {
             claim: editingClaim, 
             detail: editingDetail, 
             isEditing: false, 
-            status: newStatus as any
+            status: newStatus as Accomplishment['status']
           } 
         : item
     ));
