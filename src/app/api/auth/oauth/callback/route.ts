@@ -57,7 +57,8 @@ export async function GET(request: Request) {
       const providerRefreshToken = session.provider_refresh_token;
 
       // Try to extract a useful username from the identity
-      const identity = user.identities?.find(id => id.provider === platform);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const identity = user.identities?.find((id: any) => id.provider === platform);
       const username = identity?.identity_data?.preferred_username || 
                        identity?.identity_data?.user_name || 
                        identity?.identity_data?.name ||

@@ -106,7 +106,8 @@ export default async function OverviewPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const syncsMap = new Map<string, any>();
   if (recentRawPosts) {
-    recentRawPosts.forEach(post => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recentRawPosts.forEach((post: any) => {
       const date = new Date(post.fetched_at);
       const timeKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
       const key = `${post.platform}-${post.source_method}-${timeKey}`;
@@ -172,7 +173,8 @@ export default async function OverviewPage() {
                 No pending highlights right now. You're all caught up!
               </div>
             ) : (
-              pendingHighlights.map((item) => (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              pendingHighlights.map((item: any) => (
                 <div key={item.id} className="p-6 bg-paper-warm border border-hairline flex flex-col gap-3">
                   <div className="flex justify-between items-center text-xs font-mono text-neutral">
                     <span>{item.platform}</span>
