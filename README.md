@@ -1,8 +1,8 @@
 # Tracck
 
-**Turn your public record into a resume — automatically.**
+**Turn your public record into a resume ï¿½ automatically.**
 
-Tracck is an automated professional accomplishment tracker and ATS-optimized resume generator. It ingests your activity from platforms like GitHub, X (Twitter), LinkedIn, Instagram, Figma, and Behance, runs it through a multi-stage AI pipeline to extract and verify genuine achievements, and builds beautiful, ready-to-download PDF and DOCX resumes — tailored to specific job descriptions.
+Tracck is an automated professional accomplishment tracker and ATS-optimized resume generator. It ingests your activity from platforms like GitHub, X (Twitter), LinkedIn, Instagram, Figma, and Behance, runs it through a multi-stage AI pipeline to extract and verify genuine achievements, and builds beautiful, ready-to-download PDF and DOCX resumes ï¿½ tailored to specific job descriptions.
 
 > Built for developers, designers, and professionals who ship constantly but never update their resume.
 
@@ -29,14 +29,14 @@ Tracck is an automated professional accomplishment tracker and ATS-optimized res
 
 ## Overview
 
-Most professionals build impressive track records across GitHub repos, LinkedIn posts, X threads, and design portfolios — but lose those wins to time because keeping a resume up to date is a chore.
+Most professionals build impressive track records across GitHub repos, LinkedIn posts, X threads, and design portfolios ï¿½ but lose those wins to time because keeping a resume up to date is a chore.
 
 Tracck solves this by acting as a continuous, automated professional ledger:
 
 1. **Ingest** raw content from connected platforms (OAuth) or via manual paste/file upload for platforms without viable APIs.
-2. **Classify** each piece of content with a multi-stage AI pipeline — filtering out future plans, other people''s posts, and vague sentiment to surface only real, first-person, past-tense accomplishments.
+2. **Classify** each piece of content with a multi-stage AI pipeline ï¿½ filtering out future plans, other people''s posts, and vague sentiment to surface only real, first-person, past-tense accomplishments.
 3. **Generate** ATS-optimized resume bullets with confidence scores, surfaced for user confirmation.
-4. **Build** a complete, versioned resume (PDF + DOCX) — with optional role-tailoring that scores and reorders bullets to match a specific job description.
+4. **Build** a complete, versioned resume (PDF + DOCX) ï¿½ with optional role-tailoring that scores and reorders bullets to match a specific job description.
 
 ---
 
@@ -47,7 +47,7 @@ Tracck solves this by acting as a continuous, automated professional ledger:
 | **Multi-platform Ingestion** | Pulls from GitHub, Figma via OAuth; LinkedIn, X, Instagram, Behance via manual paste or file upload |
 | **AI Claim Extraction** | Two-stage Gemini pipeline: signal detection (is this a real achievement?) then bullet generation |
 | **Claim Classification** | Distinguishes `direct_achievement`, `participation_claim`, `future_plan`, `third_party_share`, and `vague_sentiment` before generating any bullets |
-| **Confidence Scoring** | `model_confidence x source_trust_multiplier` — OAuth-sourced content scores higher than paste by design |
+| **Confidence Scoring** | `model_confidence x source_trust_multiplier` ï¿½ OAuth-sourced content scores higher than paste by design |
 | **Review Queue** | Every AI-generated bullet requires user confirmation before entering the resume ledger |
 | **Role Tailoring** | Parse a job description, score your confirmed accomplishments by relevance, and produce a tailored resume without inventing new content |
 | **ATS-Optimized Output** | PDF (Puppeteer) and DOCX (docx-js) with no tables, images, or special characters that break ATS parsers |
@@ -68,7 +68,7 @@ Tracck is split across three deployment targets:
 |  +----------------------------------------------------------+  |
 |  |  Vercel (Frontend + API)                                 |  |
 |  |  - Next.js App Router (SSR + RSC)                        |  |
-|  |  - API Routes — serverless functions                     |  |
+|  |  - API Routes ï¿½ serverless functions                     |  |
 |  |  - OAuth callbacks, session management                   |  |
 |  +-------------------------+--------------------------------+  |
 |                            |                                   |
@@ -81,7 +81,7 @@ Tracck is split across three deployment targets:
 |  +--------------------------------------------------------+    |
 |                                                               |
 |  +----------------------------------------------------------+  |
-|  |  Railway (Workers — always-on Node.js processes)        |  |
+|  |  Railway (Workers ï¿½ always-on Node.js processes)        |  |
 |  |  - social-fetch   - ai-extraction   - resume-build      |  |
 |  |  - notification   - ats-score                           |  |
 |  +----------------------------------------------------------+  |
@@ -119,7 +119,7 @@ Tracck is split across three deployment targets:
 | **AI Provider** | [Google Gemini API](https://aistudio.google.com/) (`gemini-flash-latest`) |
 | **Web Scraping** | [Firecrawl](https://firecrawl.dev/) |
 | **Email** | [Resend](https://resend.com/) |
-| **PDF Generation** | [Puppeteer](https://pptr.dev/) (runs on Railway — cannot run on Vercel serverless) |
+| **PDF Generation** | [Puppeteer](https://pptr.dev/) (runs on Railway ï¿½ cannot run on Vercel serverless) |
 | **DOCX Generation** | [docx-js](https://docx.js.org/) |
 | **Deployment** | Vercel (frontend), Railway (workers) |
 
@@ -148,7 +148,7 @@ Supabase DB Webhook (on INSERT to raw_posts)
   -> BullMQ: Enqueue ai-extraction (batches of 50)
        |
        v
-Worker: ai-extraction — Gemini Stage 1 (Claim Classification)
+Worker: ai-extraction ï¿½ Gemini Stage 1 (Claim Classification)
   -> Classify each post:
       direct_achievement    -> proceed to Stage 2
       participation_claim   -> proceed to Stage 2
@@ -157,7 +157,7 @@ Worker: ai-extraction — Gemini Stage 1 (Claim Classification)
       vague_sentiment       -> discard
        |
        v
-Worker: ai-extraction — Gemini Stage 2 (Bullet Generation)
+Worker: ai-extraction ï¿½ Gemini Stage 2 (Bullet Generation)
   -> Generate ATS-optimized resume bullet
   -> Compute confidence_score = model_confidence x source_trust_multiplier
   -> confidence >= 0.7 -> INSERT accomplishments (status: pending)
@@ -205,11 +205,11 @@ Worker: ats-score
 
 For platforms without viable OAuth, Tracck provides a first-class paste ingestion path:
 
-1. **Plain text paste** — textarea; one or more posts'' text
-2. **Bulk paste with delimiter** — multiple posts separated by `---`; each becomes its own `raw_posts` row
-3. **File upload** — LinkedIn data export (CSV/ZIP); parsed server-side
-4. **Source attestation** — ownership confirmation checkbox (replaces OAuth''s implicit guarantee)
-5. **Approximate date capture** — month/year prompt when no API-supplied timestamp exists
+1. **Plain text paste** ï¿½ textarea; one or more posts'' text
+2. **Bulk paste with delimiter** ï¿½ multiple posts separated by `---`; each becomes its own `raw_posts` row
+3. **File upload** ï¿½ LinkedIn data export (CSV/ZIP); parsed server-side
+4. **Source attestation** ï¿½ ownership confirmation checkbox (replaces OAuth''s implicit guarantee)
+5. **Approximate date capture** ï¿½ month/year prompt when no API-supplied timestamp exists
 
 > Screenshot/OCR ingestion (for Instagram, Behance) is scoped as a post-MVP feature.
 
@@ -229,15 +229,15 @@ Nine core migrations set up the production schema. Run via Supabase CLI or SQL E
 | `006_resumes.sql` | `resumes` | Versioned resume records with PDF/DOCX URLs and ATS score |
 | `007_skills.sql` | `skills` | Extracted and manually added skills per user |
 | `008_functions_and_triggers.sql` | Functions + Triggers | DB webhook trigger on `raw_posts` INSERT -> job queue |
-| `009_rls_policies.sql` | RLS Policies | Row-Level Security — users can only access their own rows |
+| `009_rls_policies.sql` | RLS Policies | Row-Level Security ï¿½ users can only access their own rows |
 
 All migration files are in [`docs/`](./docs/).
 
 ### Key Schema Notes
 
-- `raw_posts.source_method` — `CHECK (source_method IN (''oauth'', ''manual_paste'', ''file_upload''))` — used downstream to compute `source_trust_multiplier` in confidence scoring.
-- `accomplishments.status` — `pending` | `confirmed` | `rejected` | `low_confidence`
-- `connected_accounts.access_token` — AES-256-GCM encrypted at the application layer. Decryption key lives in Railway env only, never Supabase.
+- `raw_posts.source_method` ï¿½ `CHECK (source_method IN (''oauth'', ''manual_paste'', ''file_upload''))` ï¿½ used downstream to compute `source_trust_multiplier` in confidence scoring.
+- `accomplishments.status` ï¿½ `pending` | `confirmed` | `rejected` | `low_confidence`
+- `connected_accounts.access_token` ï¿½ AES-256-GCM encrypted at the application layer. Decryption key lives in Railway env only, never Supabase.
 
 ---
 
@@ -301,7 +301,7 @@ The app runs at `http://localhost:3000`.
 node workers/index.ts
 ```
 
-> Workers are always-on processes and must be deployed to Railway in production — they cannot run as serverless functions.
+> Workers are always-on processes and must be deployed to Railway in production ï¿½ they cannot run as serverless functions.
 
 ---
 
@@ -313,7 +313,7 @@ node workers/index.ts
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...          # Server-side only — bypasses RLS
+SUPABASE_SERVICE_ROLE_KEY=eyJ...          # Server-side only ï¿½ bypasses RLS
 
 # Upstash Redis
 UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
@@ -362,10 +362,11 @@ All routes require a Supabase JWT (`Authorization: Bearer <token>`). Full contra
 
 | Method | Route | Description |
 |---|---|---|
-| `POST` | `/api/accounts/connect` | Connect a platform via OAuth |
-| `GET` | `/api/accounts` | List connected accounts |
+| `GET` | `/api/auth/oauth/start` | Initiate OAuth flow for a platform |
+| `GET` | `/api/auth/oauth/callback` | Secure OAuth token exchange & storage |
+| `DELETE`| `/api/accounts/:id` | Disconnect an account |
 | `POST` | `/api/posts/paste` | Submit manual-paste content |
-| `POST` | `/api/posts/import-archive` | Upload LinkedIn CSV/ZIP export |
+| `POST` | `/api/posts/import-archive` | Upload platform ZIP exports |
 | `POST` | `/api/posts/fetch-url` | Fetch content from a portfolio URL |
 | `POST` | `/api/posts/scrape-profile` | Scrape a public social profile |
 | `GET` | `/api/accomplishments` | List accomplishments by status |
@@ -382,48 +383,48 @@ All routes require a Supabase JWT (`Authorization: Bearer <token>`). Full contra
 ```
 tracck/
 +-- src/
-¦   +-- app/
-¦   ¦   +-- api/
-¦   ¦   ¦   +-- posts/
-¦   ¦   ¦   ¦   +-- fetch-url/        # Firecrawl portfolio URL ingestion
-¦   ¦   ¦   ¦   +-- import-archive/   # LinkedIn CSV/ZIP import
-¦   ¦   ¦   ¦   +-- paste/            # Manual text paste ingestion
-¦   ¦   ¦   ¦   +-- scrape-profile/   # Public profile scraping
-¦   ¦   ¦   +-- roles/                # Role-tailoring endpoints
-¦   ¦   +-- auth/                     # Supabase OAuth callbacks
-¦   ¦   +-- components/
-¦   ¦   ¦   +-- PasteModal.tsx        # Manual paste UI
-¦   ¦   ¦   +-- PortfolioFetchModal.tsx
-¦   ¦   ¦   +-- ProfileScrapeModal.tsx
-¦   ¦   +-- dashboard/
-¦   ¦   ¦   +-- page.tsx              # Overview: stats, pending bullets, sync logs
-¦   ¦   ¦   +-- accounts/             # Connect / manage accounts
-¦   ¦   ¦   +-- queue/                # Accomplishment confirmation queue
-¦   ¦   ¦   +-- tailoring/            # Role-tailoring & JD upload
-¦   ¦   +-- login/
-¦   ¦   +-- signup/
-¦   +-- lib/
-¦   ¦   +-- scrapers/
-¦   ¦       +-- platform.ts           # Platform router
-¦   ¦       +-- firecrawl.ts          # Firecrawl integration
-¦   ¦       +-- extractors/
-¦   ¦           +-- linkedin.ts
-¦   ¦           +-- instagram.ts
-¦   ¦           +-- behance.ts
-¦   ¦           +-- generic.ts
-¦   +-- utils/
-¦       +-- supabase/
-¦           +-- server.ts             # Server-side Supabase client
+ï¿½   +-- app/
+ï¿½   ï¿½   +-- api/
+ï¿½   ï¿½   ï¿½   +-- posts/
+ï¿½   ï¿½   ï¿½   ï¿½   +-- fetch-url/        # Firecrawl portfolio URL ingestion
+ï¿½   ï¿½   ï¿½   ï¿½   +-- import-archive/   # LinkedIn CSV/ZIP import
+ï¿½   ï¿½   ï¿½   ï¿½   +-- paste/            # Manual text paste ingestion
+ï¿½   ï¿½   ï¿½   ï¿½   +-- scrape-profile/   # Public profile scraping
+ï¿½   ï¿½   ï¿½   +-- roles/                # Role-tailoring endpoints
+ï¿½   ï¿½   +-- auth/                     # Supabase OAuth callbacks
+ï¿½   ï¿½   +-- components/
+ï¿½   ï¿½   ï¿½   +-- PasteModal.tsx        # Manual paste UI
+ï¿½   ï¿½   ï¿½   +-- PortfolioFetchModal.tsx
+ï¿½   ï¿½   ï¿½   +-- ProfileScrapeModal.tsx
+ï¿½   ï¿½   +-- dashboard/
+ï¿½   ï¿½   ï¿½   +-- page.tsx              # Overview: stats, pending bullets, sync logs
+ï¿½   ï¿½   ï¿½   +-- accounts/             # Connect / manage accounts
+ï¿½   ï¿½   ï¿½   +-- queue/                # Accomplishment confirmation queue
+ï¿½   ï¿½   ï¿½   +-- tailoring/            # Role-tailoring & JD upload
+ï¿½   ï¿½   +-- login/
+ï¿½   ï¿½   +-- signup/
+ï¿½   +-- lib/
+ï¿½   ï¿½   +-- scrapers/
+ï¿½   ï¿½       +-- platform.ts           # Platform router
+ï¿½   ï¿½       +-- firecrawl.ts          # Firecrawl integration
+ï¿½   ï¿½       +-- extractors/
+ï¿½   ï¿½           +-- linkedin.ts
+ï¿½   ï¿½           +-- instagram.ts
+ï¿½   ï¿½           +-- behance.ts
+ï¿½   ï¿½           +-- generic.ts
+ï¿½   +-- utils/
+ï¿½       +-- supabase/
+ï¿½           +-- server.ts             # Server-side Supabase client
 +-- workers/
-¦   +-- index.ts                      # BullMQ worker bootstrap
+ï¿½   +-- index.ts                      # BullMQ worker bootstrap
 +-- docs/
-¦   +-- system-design.md
-¦   +-- api-design.md
-¦   +-- database-migrations.md
-¦   +-- env-secrets.md
-¦   +-- 001_users.sql
-¦   +-- ...
-¦   +-- 009_rls_policies.sql
+ï¿½   +-- system-design.md
+ï¿½   +-- api-design.md
+ï¿½   +-- database-migrations.md
+ï¿½   +-- env-secrets.md
+ï¿½   +-- 001_users.sql
+ï¿½   +-- ...
+ï¿½   +-- 009_rls_policies.sql
 +-- middleware.ts                      # Auth guard: redirects /dashboard to /login
 +-- next.config.ts
 +-- package.json
@@ -433,13 +434,13 @@ tracck/
 
 ## Security
 
-- **OAuth tokens** encrypted at rest with AES-256-GCM. Decryption key is in Railway env only — never stored in Supabase.
+- **OAuth tokens** encrypted at rest with AES-256-GCM. Decryption key is in Railway env only ï¿½ never stored in Supabase.
 - **Row-Level Security** on every table ensures users can only read and write their own data.
-- **No private social data stored** — only public post content fetched via public-scoped APIs.
+- **No private social data stored** ï¿½ only public post content fetched via public-scoped APIs.
 - **Signed URLs** for resume downloads (Supabase Storage, 1hr TTL).
 - **CORS** restricted to `tracck.io` origin on all API routes.
-- **Rate limiting** via Upstash Redis — 100 requests/min per user.
-- **CSRF prevention** — OAuth state tokens stored in Redis with a 10-minute TTL.
+- **Rate limiting** via Upstash Redis ï¿½ 100 requests/min per user.
+- **CSRF prevention** ï¿½ OAuth state tokens stored in Redis with a 10-minute TTL.
 
 ---
 
