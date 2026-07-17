@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "worker": "npx tsx workers/index.ts",
     "lint": "eslint"
   },
   "dependencies": {
