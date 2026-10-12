@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tracck design system</title>
+<meta name="description" content="Tokens, components, patterns, and rules for building Tracck.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..700&family=Instrument+Sans:wght@400..600&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem('tk-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --font-display:"Bricolage Grotesque",ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-sans:"Instrument Sans",ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --ease:cubic-bezier(.2,0,0,1);
+  --canvas: #F6F6F4;
+  --surface: #FFFFFF;
+  --sunken: #EDEEEA;
+  --line: #DFE0DA;
+  --line-input: #7D8478;
+  --ink: #131B2E;
+  --ink-muted: #4B5468;
+  --ink-subtle: #66708A;
+  --accent: #2447D6;
+  --accent-hover: #1B38AE;
+  --accent-press: #142C8A;
+  --accent-tint: #E6EBFD;
+  --accent-ink: #1B38AE;
+  --on-accent: #FFFFFF;
+  --mark: #FFE680;
+  --mark-edge: #D9B800;
+  --success: #137A4B;
+  --success-tint: #E2F4EA;
+  --success-ink: #0C5B36;
+  --warning: #9A5B00;
+  --warning-tint: #FFF1D0;
+  --warning-ink: #744200;
+  --danger: #B42318;
+  --danger-tint: #FCE7E5;
+  --danger-ink: #8A1A11;
+  --elev-float: 0 1px 2px rgba(19,27,46,.08), 0 6px 16px rgba(19,27,46,.10);
+  --elev-overlay: 0 16px 40px rgba(19,27,46,.20);
+  --scrim: rgba(19,27,46,.55);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --canvas: #0F1217;
+    --surface: #171B22;
+    --sunken: #1E232B;
+    --line: #2A303A;
+    --line-input: #7C8696;
+    --ink: #EEF1F6;
+    --ink-muted: #A3ACBD;
+    --ink-subtle: #7F889A;
+    --accent: #8AA2FF;
+    --accent-hover: #A3B6FF;
+    --accent-press: #BCC9FF;
+    --accent-tint: #1B2552;
+    --accent-ink: #B4C3FF;
+    --on-accent: #0A1030;
+    --mark: #5E4E00;
+    --mark-edge: #B89B00;
+    --success: #4CC98C;
+    --success-tint: #10281C;
+    --success-ink: #7EE0AE;
+    --warning: #F0B24A;
+    --warning-tint: #2C2208;
+    --warning-ink: #F6CB78;
+    --danger: #FF8F85;
+    --danger-tint: #3A1613;
+    --danger-ink: #FFB1AA;
+    --elev-float: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.35);
+    --elev-overlay: 0 16px 40px rgba(0,0,0,.55);
+    --scrim: rgba(0,0,0,.65);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --canvas: #0F1217;
+  --surface: #171B22;
+  --sunken: #1E232B;
+  --line: #2A303A;
+  --line-input: #7C8696;
+  --ink: #EEF1F6;
+  --ink-muted: #A3ACBD;
+  --ink-subtle: #7F889A;
+  --accent: #8AA2FF;
+  --accent-hover: #A3B6FF;
+  --accent-press: #BCC9FF;
+  --accent-tint: #1B2552;
+  --accent-ink: #B4C3FF;
+  --on-accent: #0A1030;
+  --mark: #5E4E00;
+  --mark-edge: #B89B00;
+  --success: #4CC98C;
+  --success-tint: #10281C;
+  --success-ink: #7EE0AE;
+  --warning: #F0B24A;
+  --warning-tint: #2C2208;
+  --warning-ink: #F6CB78;
+  --danger: #FF8F85;
+  --danger-tint: #3A1613;
+  --danger-ink: #FFB1AA;
+  --elev-float: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.35);
+  --elev-overlay: 0 16px 40px rgba(0,0,0,.55);
+  --scrim: rgba(0,0,0,.65);
+}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 76px);-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--canvas);color:var(--ink);font:400 15px/24px var(--font-sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+img,svg{max-width:100%}
+a{color:var(--accent);text-underline-offset:3px}
+a:hover{color:var(--accent-hover)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:12px;top:-60px;background:var(--surface);color:var(--ink);padding:10px 14px;border:1px solid var(--line-input);border-radius:8px;z-index:100}
+.skip:focus{top:calc(env(safe-area-inset-top,0px) + 8px)}
+.ic{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.ic.lg{width:20px;height:20px}
+.mono{font-family:var(--font-mono);font-size:13px;line-height:20px}
+code.mono,.tbl code{background:var(--sunken);border-radius:4px;padding:1px 5px}
+
+/* page chrome */
+.shell{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--canvas);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-direction:column;gap:8px}
+.topbar .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.topnav{display:flex;gap:2px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav a,.side nav a{display:block;white-space:nowrap;padding:6px 10px;border-radius:6px;color:var(--ink-muted);text-decoration:none;font-weight:500;font-size:14px}
+.topnav a:hover,.side nav a:hover{background:var(--sunken);color:var(--ink)}
+.topnav a[aria-current="true"],.side nav a[aria-current="true"]{background:var(--accent-tint);color:var(--accent-ink)}
+.brand{font:700 20px/24px var(--font-display);letter-spacing:-.02em;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.brand i{display:inline-block;width:18px;height:18px;border-radius:5px;background:var(--accent);position:relative}
+.brand i::after{content:"";position:absolute;left:4px;right:4px;bottom:4px;height:4px;border-radius:1px;background:var(--mark)}
+.side{display:none}
+@media (min-width:1024px){
+  .shell{grid-template-columns:248px minmax(0,1fr)}
+  .topbar{display:none}
+  .side{display:flex;flex-direction:column;gap:20px;position:sticky;top:env(safe-area-inset-top,0px);max-height:100vh;overflow:auto;padding:24px 16px;border-right:1px solid var(--line)}
+  .side nav{display:flex;flex-direction:column;gap:2px}
+}
+.main{width:100%;max-width:960px;padding:0 16px 96px;margin:0 auto}
+@media (min-width:768px){.main{padding:0 40px 120px}}
+.hero{padding:48px 0 40px}
+.hero h1{font:700 clamp(36px,7vw,60px)/1.02 var(--font-display);letter-spacing:-.03em;margin:0 0 16px;max-width:14ch}
+.lede{color:var(--ink-muted);font-size:17px;line-height:28px;max-width:62ch;margin:0 0 16px}
+.sec{padding:56px 0 8px;border-top:1px solid var(--line)}
+.sec h2{font:600 30px/36px var(--font-display);letter-spacing:-.02em;margin:0 0 12px}
+.sec h3{font:600 18px/26px var(--font-sans);margin:36px 0 8px}
+.sec h4{font:600 15px/22px var(--font-sans);margin:24px 0 6px}
+.sec p{margin:0 0 12px;max-width:68ch}
+.sec ul.plain{margin:0 0 12px;padding-left:20px;max-width:68ch}
+.sec ul.plain li{margin:4px 0}
+.muted{color:var(--ink-muted)}
+.spec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin:12px 0 20px}
+.spec.flush{padding:0;overflow:hidden}
+.spec .cap{display:block;font-size:13px;line-height:18px;color:var(--ink-muted);margin:0 0 12px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.rowwrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.grid2{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:720px){.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:12px 0 20px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;line-height:20px}
+.tbl th{text-align:left;font-weight:600;color:var(--ink-muted);padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--sunken)}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+pre.code{position:relative;background:var(--sunken);border:1px solid var(--line);border-radius:10px;padding:16px;margin:12px 0 20px;overflow-x:auto;font:400 13px/20px var(--font-mono);color:var(--ink)}
+pre.code code{background:none;padding:0}
+.copy{position:absolute;top:8px;right:8px}
+
+/* swatches */
+.sw-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:12px 0 20px}
+.sw{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.sw .chip{height:56px;border-bottom:1px solid var(--line)}
+.sw .meta{padding:8px 10px;font-size:13px;line-height:18px}
+.sw .meta b{display:block;font-weight:600}
+.sw .meta span{display:block;color:var(--ink-muted);font-family:var(--font-mono);font-size:12px;line-height:17px}
+.bar{height:12px;border-radius:3px;background:var(--accent)}
+
+/* components: buttons */
+.tk-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border:1px solid transparent;border-radius:8px;font:600 14px/20px var(--font-sans);cursor:pointer;text-decoration:none;transition:background-color .14s var(--ease),border-color .14s var(--ease),color .14s var(--ease);white-space:nowrap}
+.tk-btn.sm{min-height:32px;padding:0 12px;font-size:13px}
+.tk-btn.lg{min-height:48px;padding:0 20px;font-size:15px}
+@media (pointer:coarse){.tk-btn{min-height:44px}.tk-btn.sm{min-height:36px}}
+.tk-btn.primary{background:var(--accent);color:var(--on-accent)}
+.tk-btn.primary:hover{background:var(--accent-hover);color:var(--on-accent)}
+.tk-btn.primary:active{background:var(--accent-press)}
+.tk-btn.secondary{background:var(--surface);color:var(--ink);border-color:var(--line-input)}
+.tk-btn.secondary:hover{background:var(--sunken);color:var(--ink)}
+.tk-btn.ghost{background:transparent;color:var(--ink)}
+.tk-btn.ghost:hover{background:var(--sunken);color:var(--ink)}
+.tk-btn.danger{background:var(--surface);color:var(--danger-ink);border-color:var(--danger)}
+.tk-btn.danger:hover{background:var(--danger-tint);color:var(--danger-ink)}
+.tk-btn.danger-solid{background:var(--danger);color:var(--surface)}
+.tk-btn.danger-solid:hover{background:var(--danger-ink);color:var(--surface)}
+.tk-btn[disabled],.tk-btn[aria-disabled="true"]{background:var(--sunken);color:var(--ink-subtle);border-color:var(--line);cursor:not-allowed}
+.tk-btn[aria-busy="true"]{cursor:progress}
+.spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* fields */
+.tk-field{display:flex;flex-direction:column;gap:6px;max-width:420px}
+.tk-field label,.tk-label{font:600 14px/20px var(--font-sans)}
+.tk-help{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.tk-err{display:flex;gap:6px;align-items:flex-start;font-size:13px;line-height:18px;color:var(--danger-ink)}
+.tk-err .ic{margin-top:1px}
+.tk-input,.tk-select,.tk-textarea{width:100%;min-height:40px;padding:8px 12px;background:var(--surface);color:var(--ink);border:1px solid var(--line-input);border-radius:8px;font:400 16px/24px var(--font-sans)}
+.tk-textarea{min-height:104px;resize:vertical}
+.tk-input::placeholder,.tk-textarea::placeholder{color:var(--ink-subtle)}
+.tk-input:hover,.tk-textarea:hover,.tk-select:hover{border-color:var(--ink-muted)}
+.tk-input:focus-visible,.tk-textarea:focus-visible,.tk-select:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.tk-input[aria-invalid="true"]{border-color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger)}
+.tk-input[disabled]{background:var(--sunken);color:var(--ink-subtle);cursor:not-allowed}
+.tk-check{display:flex;gap:10px;align-items:flex-start;max-width:520px}
+.tk-check input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+.tk-drop{border:1.5px dashed var(--line-input);border-radius:12px;padding:24px;text-align:center;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:8px}
+.tk-drop strong{font-weight:600}
+
+/* badges, chips, meter */
+.tk-badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 7px;border-radius:999px;font:600 12px/16px var(--font-sans);white-space:nowrap;background:var(--sunken);color:var(--ink-muted);border:1px solid var(--line)}
+.tk-badge.accent{background:var(--accent-tint);color:var(--accent-ink);border-color:transparent}
+.tk-badge.success{background:var(--success-tint);color:var(--success-ink);border-color:transparent}
+.tk-badge.warning{background:var(--warning-tint);color:var(--warning-ink);border-color:transparent}
+.tk-badge.danger{background:var(--danger-tint);color:var(--danger-ink);border-color:transparent}
+.tk-chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:2px 10px;border-radius:6px;background:var(--sunken);border:1px solid var(--line);font-size:13px;line-height:18px;color:var(--ink)}
+.tk-chip.req{background:var(--accent-tint);border-color:transparent;color:var(--accent-ink);font-weight:600}
+.tk-chip.gap{background:var(--warning-tint);border-color:transparent;color:var(--warning-ink);font-weight:600}
+.tk-meter{display:inline-flex;align-items:center;gap:8px;font-size:12px;line-height:16px;color:var(--ink-muted);font-weight:500}
+.tk-meter .segs{display:inline-flex;gap:3px}
+.tk-meter .segs i{width:14px;height:6px;border-radius:2px;background:var(--line-input);opacity:.35}
+.tk-meter .segs i.on{background:var(--ink-muted);opacity:1}
+.tk-mark{background:var(--mark);box-shadow:inset 0 -2px 0 var(--mark-edge);color:var(--ink);padding:0 2px;border-radius:2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+
+/* alerts */
+.tk-alert{display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);align-items:flex-start}
+.tk-alert .ic{margin-top:2px}
+.tk-alert .body{flex:1;min-width:0}
+.tk-alert strong{display:block;font-weight:600}
+.tk-alert p{margin:2px 0 0;font-size:14px;line-height:21px;max-width:none;color:var(--ink-muted)}
+.tk-alert .acts{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.tk-alert.info{background:var(--accent-tint);border-color:transparent}.tk-alert.info>.ic{color:var(--accent-ink)}
+.tk-alert.success{background:var(--success-tint);border-color:transparent}.tk-alert.success>.ic{color:var(--success)}
+.tk-alert.warning{background:var(--warning-tint);border-color:transparent}.tk-alert.warning>.ic{color:var(--warning)}
+.tk-alert.danger{background:var(--danger-tint);border-color:transparent}.tk-alert.danger>.ic{color:var(--danger)}
+.tk-alert.info p,.tk-alert.success p,.tk-alert.warning p,.tk-alert.danger p{color:var(--ink)}
+
+/* cards, rows */
+.tk-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.tk-card .hd{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.tk-card .claim{font:500 17px/26px var(--font-sans);margin:0 0 12px;max-width:60ch}
+.tk-src{border-left:3px solid var(--line-input);padding:2px 0 2px 12px;margin:0 0 14px}
+.tk-src .from{display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink-muted);margin-bottom:4px}
+.tk-src blockquote{margin:0;font-size:14px;line-height:22px;max-width:62ch}
+.tk-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tk-list{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tk-li{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tk-li:last-child{border-bottom:0}
+.tk-li .tile{width:36px;height:36px;border-radius:8px;background:var(--sunken);display:grid;place-items:center;font:600 14px/1 var(--font-sans);color:var(--ink-muted);flex:none}
+.tk-li .txt{flex:1;min-width:180px}
+.tk-li .txt b{display:block;font-weight:600}
+.tk-li .txt span{display:block;font-size:13px;line-height:18px;color:var(--ink-muted)}
+
+/* segmented */
+.tk-seg{display:inline-flex;background:var(--sunken);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.tk-seg button{min-height:32px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);font:600 13px/18px var(--font-sans);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tk-seg button:hover{color:var(--ink)}
+.tk-seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line-input)}
+@media (pointer:coarse){.tk-seg button{min-height:40px}}
+
+/* job steps */
+.tk-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tk-steps li{display:flex;gap:12px;align-items:flex-start;padding:7px 0;color:var(--ink-subtle);font-size:14px;line-height:22px}
+.tk-steps li .dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-input);display:grid;place-items:center;flex:none;margin-top:1px;color:transparent;opacity:.6}
+.tk-steps li.done{color:var(--ink-muted)}
+.tk-steps li.done .dot{background:var(--success);border-color:var(--success);color:#fff;opacity:1}
+.tk-steps li.cur{color:var(--ink);font-weight:600}
+.tk-steps li.cur .dot{border-color:var(--accent);color:var(--accent);opacity:1}
+.tk-steps li .dot .ic{width:12px;height:12px;stroke-width:2.5}
+:root[data-theme="dark"] .tk-steps li.done .dot{color:#07140d}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tk-steps li.done .dot{color:#07140d}}
+.tk-prog{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden}
+.tk-prog i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .22s var(--ease)}
+
+/* dialog, skeleton, phone */
+.tk-dialog{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--elev-overlay);max-width:520px;margin:0 auto}
+.tk-dialog .dh{padding:18px 20px 4px}
+.tk-dialog .dh h4{margin:0;font:600 18px/26px var(--font-sans)}
+.tk-dialog .db{padding:8px 20px 16px;display:flex;flex-direction:column;gap:14px}
+.tk-dialog .df{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.tk-skel{background:var(--sunken);border-radius:6px;height:14px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.tk-skel{animation:none}}
+.tk-empty{text-align:center;padding:32px 20px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.tk-empty h4{margin:0;font:600 18px/26px var(--font-display);letter-spacing:-.01em}
+.tk-empty p{max-width:44ch;margin:0;color:var(--ink-muted)}
+.phone{width:min(100%,330px);margin:0 auto;border:1px solid var(--line-input);border-radius:24px;overflow:hidden;background:var(--canvas)}
+.phone .scr{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:150px}
+.tabbar{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--surface)}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 10px;font-size:12px;line-height:16px;font-weight:500;color:var(--ink-muted);text-decoration:none;position:relative}
+.tabbar a[aria-current="page"]{color:var(--accent-ink);font-weight:600}
+.tabbar a[aria-current="page"]::before{content:"";position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
+.tabbar .ct{position:absolute;top:4px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--on-accent);font-size:11px;line-height:18px;text-align:center;font-weight:700;padding:0 4px}
+.toast{display:inline-flex;gap:10px;align-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--line-input);padding:10px 14px;border-radius:10px;box-shadow:var(--elev-float);font-size:14px;line-height:20px}
+.toast .ic{color:var(--success)}
+/* resume document specimen: intentionally not themed, it mirrors exported output */
+.paper{background:#fff;color:#111;border:1px solid var(--line-input);border-radius:4px;padding:28px 32px;max-width:640px;margin:0 auto;font:400 13px/1.35 Arial,Helvetica,"Liberation Sans",sans-serif;overflow-wrap:anywhere}
+.paper h5{font:700 20px/1.2 Arial,Helvetica,"Liberation Sans",sans-serif;margin:0 0 2px}
+.paper .contact{margin:0 0 12px;color:#333}
+.paper h6{font:700 13px/1.3 Arial,Helvetica,"Liberation Sans",sans-serif;margin:12px 0 4px;padding-bottom:2px;border-bottom:1px solid #111}
+.paper p{margin:0 0 4px;max-width:none}
+.paper .role{display:flex;justify-content:space-between;gap:12px;font-weight:700}
+.paper ul{margin:2px 0 6px;padding-left:18px}
+.paper li{margin:1px 0}
+.tk-reco{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:720px){.tk-reco{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.donts li::marker{color:var(--danger)}
+.dos li::marker{color:var(--success)}
+@media print{.topbar,.side,.copy{display:none}.shell{display:block}}
+
+.claim[contenteditable="true"]{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+[hidden]{display:none!important}
+.side .tk-help{margin-top:auto}
+@media (max-width:1023px){.topbar .tk-seg button{min-height:30px;padding:0 9px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#principles">Skip to content</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-circle-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+<symbol id="i-circle-minus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
+<symbol id="i-circle-dashed" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-user-check" viewBox="0 0 24 24"><path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+<symbol id="i-briefcase" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
+<symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+</defs></svg>
+<div class="shell">
+  <div class="topbar">
+    <div class="row"><a class="brand" href="#top"><i aria-hidden="true"></i>Tracck</a><div class="tk-seg" role="group" aria-label="Preview theme"><button type="button" data-theme-set="system" aria-pressed="true">System</button><button type="button" data-theme-set="light" aria-pressed="false">Light</button><button type="button" data-theme-set="dark" aria-pressed="false">Dark</button></div></div>
+    <nav class="topnav" aria-label="Sections"><a href="#principles">Principles</a><a href="#color">Color</a><a href="#type">Typography</a><a href="#layout">Space and layout</a><a href="#tokens">Tokens</a><a href="#components">Components</a><a href="#patterns">Patterns</a><a href="#resume-doc">Resume document</a><a href="#content">Content and voice</a><a href="#a11y">Accessibility</a><a href="#checklist">Conformance checklist</a></nav>
+  </div>
+  <aside class="side">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Tracck</a>
+    <nav aria-label="Sections"><a href="#principles">Principles</a><a href="#color">Color</a><a href="#type">Typography</a><a href="#layout">Space and layout</a><a href="#tokens">Tokens</a><a href="#components">Components</a><a href="#patterns">Patterns</a><a href="#resume-doc">Resume document</a><a href="#content">Content and voice</a><a href="#a11y">Accessibility</a><a href="#checklist">Conformance checklist</a></nav>
+    <div><div class="tk-label" style="margin-bottom:6px;font-size:13px">Preview theme</div><div class="tk-seg" role="group" aria-label="Preview theme"><button type="button" data-theme-set="system" aria-pressed="true">System</button><button type="button" data-theme-set="light" aria-pressed="false">Light</button><button type="button" data-theme-set="dark" aria-pressed="false">Dark</button></div></div>
+    <div class="tk-help">Version 1.0<br>October 12, 2026</div>
+  </aside>
+  <main class="main" id="main">
+    
+<header class="hero" id="top">
+  <h1>Tracck design system</h1>
+  <p class="lede">Rules, tokens, and components for building Tracck screens. Tracck turns what people have already shipped into resumes they can trust, so the interface is built around one idea: every claim shows where it came from.</p>
+  <p class="muted" style="max-width:62ch">Version 1.0, October 12, 2026. Tokens, component rules, and the conformance checklist are normative. Screenshots and sample copy are illustrative. Status names match the enums in the Technical Architecture, Revision 2.</p>
+  <figure style="margin:28px 0 0;max-width:660px">
+    <div class="tk-card">
+      <div class="hd"><span class="tk-chip">Achievement</span><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-shield-check"/></svg>Verified from source</span></div>
+      <p class="claim">Built automated browser and API tests for the checkout flow.</p>
+      <div class="tk-src">
+        <div class="from"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-link"/></svg>GitHub README, checkout-service</div>
+        <blockquote>&hellip;before each release. <mark class="tk-mark">Added Playwright and API tests covering the checkout flow</mark> and run them in CI on every pull request.</blockquote>
+      </div>
+    </div>
+    <figcaption class="muted" style="margin-top:10px;font-size:14px;line-height:21px;max-width:62ch">The signature pattern. The claim is set in ink, the source it came from sits underneath in a quieter voice, and the highlighter marks the exact words that support the claim.</figcaption>
+  </figure>
+</header>
+    
+<section class="sec" id="principles">
+  <h2>Principles</h2>
+  <p class="lede">Five rules that settle most design arguments. Each one comes from a requirement in the architecture.</p>
+  <ol style="max-width:68ch;padding-left:22px;margin:0 0 12px"><li><b>Show where it came from.</b> Every claim carries its source and the passage that supports it, highlighted. A user should never wonder why a bullet is on their resume.</li><li><b>Never fake certainty.</b> Imported, suggested, and confirmed entries look different. A number we cannot find in a source is flagged for the user, not polished into the draft.</li><li><b>Long work is calm work.</b> Imports and builds run in the background. Show the real step from the server, say the user can leave, and email them when it is done. No fake progress bars.</li><li><b>Say what is missing.</b> Partial imports, unavailable sources, and gaps against a job description are stated plainly, with a next step.</li><li><b>Stay light on data.</b> Built for a 360px phone on a slow or metered connection: two web fonts, no required animation, skeletons for loading, small payloads.</li></ol>
+  <h3>Voice of the visual language</h3>
+  <p>Think of a document under review: dark ink on paper, a ballpoint pen for the one thing you should do next, and a highlighter for the passage that proves a point. Ink and paper carry almost everything. The pen marks the primary action and links. The highlighter is reserved for source excerpts, so when someone sees yellow they know it means evidence.</p>
+</section>
+    
+<section class="sec" id="color">
+  <h2>Color</h2>
+  <p class="lede">Neutral paper, dark ink, one accent, one highlighter. Every color is a semantic token that swaps between light and dark, so components never branch on theme. Use the theme control in the header to preview both.</p>
+  <h3>Surfaces and lines</h3><div class="sw-grid"><div class="sw"><div class="chip" style="background:var(--canvas)"></div><div class="meta"><b>Canvas</b><span>--canvas</span><span>Light #F6F6F4</span><span>Dark #0F1217</span></div></div><div class="sw"><div class="chip" style="background:var(--surface)"></div><div class="meta"><b>Surface</b><span>--surface</span><span>Light #FFFFFF</span><span>Dark #171B22</span></div></div><div class="sw"><div class="chip" style="background:var(--sunken)"></div><div class="meta"><b>Sunken</b><span>--sunken</span><span>Light #EDEEEA</span><span>Dark #1E232B</span></div></div><div class="sw"><div class="chip" style="background:var(--line)"></div><div class="meta"><b>Line</b><span>--line</span><span>Light #DFE0DA</span><span>Dark #2A303A</span></div></div><div class="sw"><div class="chip" style="background:var(--line-input)"></div><div class="meta"><b>Control border</b><span>--line-input</span><span>Light #7D8478</span><span>Dark #7C8696</span></div></div></div><h3>Ink</h3><div class="sw-grid"><div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="meta"><b>Ink</b><span>--ink</span><span>Light #131B2E</span><span>Dark #EEF1F6</span></div></div><div class="sw"><div class="chip" style="background:var(--ink-muted)"></div><div class="meta"><b>Ink muted</b><span>--ink-muted</span><span>Light #4B5468</span><span>Dark #A3ACBD</span></div></div><div class="sw"><div class="chip" style="background:var(--ink-subtle)"></div><div class="meta"><b>Ink subtle</b><span>--ink-subtle</span><span>Light #66708A</span><span>Dark #7F889A</span></div></div></div><h3>Ballpoint (accent)</h3><div class="sw-grid"><div class="sw"><div class="chip" style="background:var(--accent)"></div><div class="meta"><b>Accent</b><span>--accent</span><span>Light #2447D6</span><span>Dark #8AA2FF</span></div></div><div class="sw"><div class="chip" style="background:var(--accent-hover)"></div><div class="meta"><b>Accent hover</b><span>--accent-hover</span><span>Light #1B38AE</span><span>Dark #A3B6FF</span></div></div><div class="sw"><div class="chip" style="background:var(--accent-press)"></div><div class="meta"><b>Accent pressed</b><span>--accent-press</span><span>Light #142C8A</span><span>Dark #BCC9FF</span></div></div><div class="sw"><div class="chip" style="background:var(--accent-tint)"></div><div class="meta"><b>Accent tint</b><span>--accent-tint</span><span>Light #E6EBFD</span><span>Dark #1B2552</span></div></div><div class="sw"><div class="chip" style="background:var(--accent-ink)"></div><div class="meta"><b>Accent ink</b><span>--accent-ink</span><span>Light #1B38AE</span><span>Dark #B4C3FF</span></div></div><div class="sw"><div class="chip" style="background:var(--on-accent)"></div><div class="meta"><b>On accent</b><span>--on-accent</span><span>Light #FFFFFF</span><span>Dark #0A1030</span></div></div></div><h3>Highlighter</h3><div class="sw-grid"><div class="sw"><div class="chip" style="background:var(--mark)"></div><div class="meta"><b>Highlighter</b><span>--mark</span><span>Light #FFE680</span><span>Dark #5E4E00</span></div></div><div class="sw"><div class="chip" style="background:var(--mark-edge)"></div><div class="meta"><b>Highlighter edge</b><span>--mark-edge</span><span>Light #D9B800</span><span>Dark #B89B00</span></div></div></div><h3>Status</h3><div class="sw-grid"><div class="sw"><div class="chip" style="background:var(--success)"></div><div class="meta"><b>Success</b><span>--success</span><span>Light #137A4B</span><span>Dark #4CC98C</span></div></div><div class="sw"><div class="chip" style="background:var(--success-tint)"></div><div class="meta"><b>Success tint</b><span>--success-tint</span><span>Light #E2F4EA</span><span>Dark #10281C</span></div></div><div class="sw"><div class="chip" style="background:var(--success-ink)"></div><div class="meta"><b>Success ink</b><span>--success-ink</span><span>Light #0C5B36</span><span>Dark #7EE0AE</span></div></div><div class="sw"><div class="chip" style="background:var(--warning)"></div><div class="meta"><b>Warning</b><span>--warning</span><span>Light #9A5B00</span><span>Dark #F0B24A</span></div></div><div class="sw"><div class="chip" style="background:var(--warning-tint)"></div><div class="meta"><b>Warning tint</b><span>--warning-tint</span><span>Light #FFF1D0</span><span>Dark #2C2208</span></div></div><div class="sw"><div class="chip" style="background:var(--warning-ink)"></div><div class="meta"><b>Warning ink</b><span>--warning-ink</span><span>Light #744200</span><span>Dark #F6CB78</span></div></div><div class="sw"><div class="chip" style="background:var(--danger)"></div><div class="meta"><b>Danger</b><span>--danger</span><span>Light #B42318</span><span>Dark #FF8F85</span></div></div><div class="sw"><div class="chip" style="background:var(--danger-tint)"></div><div class="meta"><b>Danger tint</b><span>--danger-tint</span><span>Light #FCE7E5</span><span>Dark #3A1613</span></div></div><div class="sw"><div class="chip" style="background:var(--danger-ink)"></div><div class="meta"><b>Danger ink</b><span>--danger-ink</span><span>Light #8A1A11</span><span>Dark #FFB1AA</span></div></div></div>
+  <h3>Rules</h3>
+  <ul class="plain">
+    <li>Ink and paper carry about nine tenths of any screen. Use Ballpoint for the single primary action in a view, for links, and for the focus ring.</li>
+    <li>Highlighter marks source excerpts that support a claim. It is never a button, a banner, or decoration.</li>
+    <li>Status colors express status only. Pair every status color with an icon and a text label, so nothing relies on color alone.</li>
+    <li>Rejected entries are neutral, not red. Rejecting is a decision the user made, not an error.</li>
+    <li>No gradients as decoration, and no raw hex values in components. Reference tokens.</li>
+  </ul>
+  <h3>Contrast</h3>
+  <p>Ratios computed from the token values using the WCAG relative luminance formula. Text needs 4.5:1, interface boundaries and icons need 3:1.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Pair</th><th scope="col">Light</th><th scope="col">Dark</th><th scope="col">Minimum</th><th scope="col">Result</th></tr></thead><tbody><tr><td><b>Body text</b><br><span class="muted">Default text on cards and fields</span></td><td><span class="num">17.2:1</span></td><td><span class="num">15.2:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Body text on page</b><br><span class="muted">Default text on the page background</span></td><td><span class="num">15.9:1</span></td><td><span class="num">16.6:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Muted text</b><br><span class="muted">Secondary text, table headers, captions</span></td><td><span class="num">7.6:1</span></td><td><span class="num">7.6:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Helper and placeholder text</b><br><span class="muted">Use on surface or canvas only, never on sunken</span></td><td><span class="num">4.9:1</span></td><td><span class="num">4.8:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Links</b><br><span class="muted">Inline links and text buttons</span></td><td><span class="num">7.1:1</span></td><td><span class="num">7.1:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Primary button label</b><br><span class="muted">Label on the accent fill</span></td><td><span class="num">7.1:1</span></td><td><span class="num">7.7:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Selected state</b><br><span class="muted">Active nav item, info alert</span></td><td><span class="num">7.9:1</span></td><td><span class="num">8.5:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Highlighted excerpt</b><br><span class="muted">Text inside the highlighter</span></td><td><span class="num">13.8:1</span></td><td><span class="num">7.2:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Success badge</b><br><span class="muted">Verified, ready, synced</span></td><td><span class="num">7.2:1</span></td><td><span class="num">9.8:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Warning badge</b><br><span class="muted">Partial, retrying, needs input</span></td><td><span class="num">7.4:1</span></td><td><span class="num">10.3:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Danger badge</b><br><span class="muted">Failed, destructive</span></td><td><span class="num">7.9:1</span></td><td><span class="num">9.3:1</span></td><td><span class="num">4.5:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Control border</b><br><span class="muted">Inputs, secondary buttons, checkboxes</span></td><td><span class="num">3.9:1</span></td><td><span class="num">4.7:1</span></td><td><span class="num">3:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Focus ring</b><br><span class="muted">Keyboard focus outline</span></td><td><span class="num">6.6:1</span></td><td><span class="num">7.8:1</span></td><td><span class="num">3:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr><tr><td><b>Status icons</b><br><span class="muted">Icon only, always paired with text</span></td><td><span class="num">5.4:1</span></td><td><span class="num">8.3:1</span></td><td><span class="num">3:1</span></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Pass</span></td></tr></tbody></table></div>
+</section>
+    
+<section class="sec" id="type">
+  <h2>Typography</h2>
+  <p class="lede">Two typefaces with clearly different jobs. Bricolage Grotesque gives headings a confident, slightly quirky voice. Instrument Sans keeps dense interface text calm and readable. Code and IDs use the system monospace, so no third font is downloaded.</p>
+  <div class="spec">
+    <div style="font:700 44px/46px var(--font-display);letter-spacing:-.03em">Every claim has a source</div>
+    <div style="font:600 28px/34px var(--font-display);letter-spacing:-.02em;margin-top:12px">Review what we found in your GitHub</div>
+    <div style="font:600 18px/26px var(--font-sans);margin-top:12px">Matching your evidence to the role</div>
+    <div style="font:400 15px/24px var(--font-sans);margin-top:6px;max-width:62ch">We read your repositories, README files, and uploaded CV, then suggest entries for your record. Nothing reaches a resume until you confirm it.</div>
+    <div style="font:400 13px/18px var(--font-sans);margin-top:6px;color:var(--ink-muted)">Imported 38 entries from 12 repositories.</div>
+    <div class="mono" style="margin-top:8px">job_8f3a21 &middot; evidence ev_123</div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Style</th><th scope="col">Font</th><th scope="col">Size and line height</th><th scope="col">Weight</th><th scope="col">Tracking</th><th scope="col">Use</th></tr></thead><tbody><tr><td><b>Display</b></td><td>Bricolage Grotesque</td><td><span class="num">36/38, from 768px 56/58</span></td><td>700</td><td>-0.03em</td><td>Page hero only</td></tr><tr><td><b>Heading 1</b></td><td>Bricolage Grotesque</td><td><span class="num">28/34, from 768px 32/38</span></td><td>600</td><td>-0.02em</td><td>Page title</td></tr><tr><td><b>Heading 2</b></td><td>Bricolage Grotesque</td><td><span class="num">22/28, from 768px 24/30</span></td><td>600</td><td>-0.015em</td><td>Section title</td></tr><tr><td><b>Heading 3</b></td><td>Instrument Sans</td><td><span class="num">18/26</span></td><td>600</td><td>0</td><td>Card, dialog, and list titles</td></tr><tr><td><b>Body large</b></td><td>Instrument Sans</td><td><span class="num">17/26</span></td><td>500</td><td>0</td><td>Claim text inside entry cards</td></tr><tr><td><b>Body</b></td><td>Instrument Sans</td><td><span class="num">15/24</span></td><td>400</td><td>0</td><td>Default text</td></tr><tr><td><b>Label</b></td><td>Instrument Sans</td><td><span class="num">14/20</span></td><td>600</td><td>0</td><td>Field labels, buttons, table headers</td></tr><tr><td><b>Small</b></td><td>Instrument Sans</td><td><span class="num">13/18</span></td><td>400</td><td>0</td><td>Help text, source lines</td></tr><tr><td><b>Caption</b></td><td>Instrument Sans</td><td><span class="num">12/16</span></td><td>500</td><td>0</td><td>Badges and meters. Nothing smaller than 12.</td></tr><tr><td><b>Mono</b></td><td>System monospace</td><td><span class="num">13/20</span></td><td>400</td><td>0</td><td>IDs, job IDs, code</td></tr></tbody></table></div>
+  <h3>Rules</h3>
+  <ul class="plain">
+    <li>Sentence case everywhere. No all-caps labels and no tracked-out eyebrows.</li>
+    <li>Keep prose to 60 to 70 characters per line. Cards and dialogs set their own max width.</li>
+    <li>Form inputs are 16px so mobile browsers do not zoom on focus.</li>
+    <li>Use tabular numerals (<code class="mono">font-variant-numeric: tabular-nums</code>) in tables and anywhere numbers line up.</li>
+    <li>Load only Bricolage Grotesque 600 and 700 and Instrument Sans 400, 500, and 600, with <code class="mono">font-display: swap</code>. Fallback stacks are system fonts.</li>
+  </ul>
+</section>
+    
+<section class="sec" id="layout">
+  <h2>Space and layout</h2>
+  <p class="lede">A 4px base unit that matches Tailwind's default spacing scale, so utilities like <code class="mono">p-4</code> and <code class="mono">gap-3</code> already agree with this document.</p>
+  <h3>Spacing</h3>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th scope="col">Step</th><th scope="col">Size</th><th scope="col">Sample</th></tr></thead><tbody><tr><td><code class="mono">1</code></td><td class="num">4px</td><td><div class="bar" style="width:8px"></div></td></tr><tr><td><code class="mono">2</code></td><td class="num">8px</td><td><div class="bar" style="width:16px"></div></td></tr><tr><td><code class="mono">3</code></td><td class="num">12px</td><td><div class="bar" style="width:24px"></div></td></tr><tr><td><code class="mono">4</code></td><td class="num">16px</td><td><div class="bar" style="width:32px"></div></td></tr><tr><td><code class="mono">5</code></td><td class="num">20px</td><td><div class="bar" style="width:40px"></div></td></tr><tr><td><code class="mono">6</code></td><td class="num">24px</td><td><div class="bar" style="width:48px"></div></td></tr><tr><td><code class="mono">8</code></td><td class="num">32px</td><td><div class="bar" style="width:64px"></div></td></tr><tr><td><code class="mono">10</code></td><td class="num">40px</td><td><div class="bar" style="width:80px"></div></td></tr><tr><td><code class="mono">12</code></td><td class="num">48px</td><td><div class="bar" style="width:96px"></div></td></tr><tr><td><code class="mono">16</code></td><td class="num">64px</td><td><div class="bar" style="width:128px"></div></td></tr></tbody></table></div>
+  <ul class="plain">
+    <li>Inside controls: 8 to 16px. Between related items: 8 to 12px. Between groups in a card: 16 to 24px. Between page sections: 32 to 48px.</li>
+    <li>Page gutters are 16px on phones and 40px from 768px up. Content max width is 1120px in the app and 960px on documentation pages.</li>
+  </ul>
+  <h3>Breakpoints</h3>
+  <p>Design at 360px first, then check 768px and 1024px. These are Tailwind's defaults.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Name</th><th scope="col">From</th><th scope="col">Layout change</th></tr></thead><tbody><tr><td>Base</td><td>0</td><td>Single column. Bottom tab bar with five items. Dialogs become full-height sheets.</td></tr><tr><td><code class="mono">md</code></td><td>768px</td><td>Two-column grids for cards and forms. Tables stop stacking. Gutters widen.</td></tr><tr><td><code class="mono">lg</code></td><td>1024px</td><td>Left sidebar (240px) replaces the tab bar. Dialogs are centered.</td></tr><tr><td><code class="mono">xl</code></td><td>1280px</td><td>Content stays at 1120px max width; extra space is margin, not wider lines.</td></tr></tbody></table></div>
+  <h3>Radius</h3>
+  <p>Radius follows hierarchy, so a chip does not look like a dialog. Avoid one radius on everything.</p>
+  <div class="spec"><div class="rowwrap" style="gap:20px;align-items:flex-end">
+    <div><div style="width:56px;height:40px;background:var(--sunken);border:1px solid var(--line-input);border-radius:4px"></div><div class="tk-help">4px, inline marks and small chips</div></div>
+    <div><div style="width:56px;height:40px;background:var(--sunken);border:1px solid var(--line-input);border-radius:8px"></div><div class="tk-help">8px, controls</div></div>
+    <div><div style="width:56px;height:40px;background:var(--sunken);border:1px solid var(--line-input);border-radius:12px"></div><div class="tk-help">12px, cards and lists</div></div>
+    <div><div style="width:56px;height:40px;background:var(--sunken);border:1px solid var(--line-input);border-radius:16px"></div><div class="tk-help">16px, dialogs and sheets</div></div>
+    <div><div style="width:56px;height:24px;background:var(--sunken);border:1px solid var(--line-input);border-radius:999px"></div><div class="tk-help">Full, badges and avatars</div></div>
+  </div></div>
+  <h3>Elevation</h3>
+  <p>Cards are flat: a surface fill and a hairline border. Shadows are only for things that float above the page.</p>
+  <div class="spec"><div class="rowwrap" style="gap:24px">
+    <div style="width:150px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px"><b>Flat</b><div class="tk-help">Cards, lists, tables</div></div>
+    <div style="width:150px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--elev-float)"><b>Float</b><div class="tk-help">Menus, popovers, toasts</div></div>
+    <div style="width:150px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--elev-overlay)"><b>Overlay</b><div class="tk-help">Dialogs and sheets</div></div>
+  </div></div>
+  <h3>Motion</h3>
+  <p>Motion answers an action or reports a change. There are no entrance animations, and nothing moves just to catch attention.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Token</th><th scope="col">Duration</th><th scope="col">Use</th></tr></thead><tbody><tr><td><code class="mono">instant</code></td><td>90ms</td><td>Press feedback</td></tr><tr><td><code class="mono">fast</code></td><td>140ms</td><td>Hover, focus, color changes</td></tr><tr><td><code class="mono">base</code></td><td>220ms</td><td>Disclosure, progress, toast in and out</td></tr><tr><td><code class="mono">slow</code></td><td>360ms</td><td>Sheets and dialogs opening. Maximum for any transition.</td></tr></tbody></table></div>
+  <p>Easing is <code class="mono">cubic-bezier(.2, 0, 0, 1)</code>. With <code class="mono">prefers-reduced-motion</code>, remove transitions and spinners rotate no more: state is still carried by the icon and label.</p>
+  <h3>Icons and layering</h3>
+  <ul class="plain">
+    <li>Icons come from Lucide, drawn at a 1.75px stroke, sized 16px inline and 20px for standalone. Icons never carry meaning alone.</li>
+    <li>Z-index scale: base 0, sticky 10, menu 20, banner 30, overlay 40, dialog 50, toast 60.</li>
+  </ul>
+</section>
+    
+<section class="sec" id="tokens">
+  <h2>Tokens</h2>
+  <p class="lede">The code behind everything above. Components reference tokens, never hex values, so one change here updates every screen and both themes.</p>
+  <h3>CSS variables</h3>
+  <p>Light is the default. The system theme applies unless a user explicitly picks Light, and an explicit Dark choice always wins. Store the choice in <code class="mono">data-theme</code> on the <code class="mono">html</code> element.</p>
+  <pre class="code"><button class="tk-btn ghost sm copy" type="button" data-copy aria-label="Copy code"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-copy"/></svg> Copy</button><code>/* src/styles/tokens.css */
+:root {
+  color-scheme: light;
+  --canvas: #F6F6F4;
+  --surface: #FFFFFF;
+  --sunken: #EDEEEA;
+  --line: #DFE0DA;
+  --line-input: #7D8478;
+  --ink: #131B2E;
+  --ink-muted: #4B5468;
+  --ink-subtle: #66708A;
+  --accent: #2447D6;
+  --accent-hover: #1B38AE;
+  --accent-press: #142C8A;
+  --accent-tint: #E6EBFD;
+  --accent-ink: #1B38AE;
+  --on-accent: #FFFFFF;
+  --mark: #FFE680;
+  --mark-edge: #D9B800;
+  --success: #137A4B;
+  --success-tint: #E2F4EA;
+  --success-ink: #0C5B36;
+  --warning: #9A5B00;
+  --warning-tint: #FFF1D0;
+  --warning-ink: #744200;
+  --danger: #B42318;
+  --danger-tint: #FCE7E5;
+  --danger-ink: #8A1A11;
+  --elev-float: 0 1px 2px rgba(19,27,46,.08), 0 6px 16px rgba(19,27,46,.10);
+  --elev-overlay: 0 16px 40px rgba(19,27,46,.20);
+  --scrim: rgba(19,27,46,.55);
+}
+
+/* Follow the system unless the user chose Light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #0F1217;
+    --surface: #171B22;
+    --sunken: #1E232B;
+    --line: #2A303A;
+    --line-input: #7C8696;
+    --ink: #EEF1F6;
+    --ink-muted: #A3ACBD;
+    --ink-subtle: #7F889A;
+    --accent: #8AA2FF;
+    --accent-hover: #A3B6FF;
+    --accent-press: #BCC9FF;
+    --accent-tint: #1B2552;
+    --accent-ink: #B4C3FF;
+    --on-accent: #0A1030;
+    --mark: #5E4E00;
+    --mark-edge: #B89B00;
+    --success: #4CC98C;
+    --success-tint: #10281C;
+    --success-ink: #7EE0AE;
+    --warning: #F0B24A;
+    --warning-tint: #2C2208;
+    --warning-ink: #F6CB78;
+    --danger: #FF8F85;
+    --danger-tint: #3A1613;
+    --danger-ink: #FFB1AA;
+    --elev-float: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.35);
+    --elev-overlay: 0 16px 40px rgba(0,0,0,.55);
+    --scrim: rgba(0,0,0,.65);
+  }
+}
+
+/* Explicit Dark choice */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0F1217;
+  --surface: #171B22;
+  --sunken: #1E232B;
+  --line: #2A303A;
+  --line-input: #7C8696;
+  --ink: #EEF1F6;
+  --ink-muted: #A3ACBD;
+  --ink-subtle: #7F889A;
+  --accent: #8AA2FF;
+  --accent-hover: #A3B6FF;
+  --accent-press: #BCC9FF;
+  --accent-tint: #1B2552;
+  --accent-ink: #B4C3FF;
+  --on-accent: #0A1030;
+  --mark: #5E4E00;
+  --mark-edge: #B89B00;
+  --success: #4CC98C;
+  --success-tint: #10281C;
+  --success-ink: #7EE0AE;
+  --warning: #F0B24A;
+  --warning-tint: #2C2208;
+  --warning-ink: #F6CB78;
+  --danger: #FF8F85;
+  --danger-tint: #3A1613;
+  --danger-ink: #FFB1AA;
+  --elev-float: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.35);
+  --elev-overlay: 0 16px 40px rgba(0,0,0,.55);
+  --scrim: rgba(0,0,0,.65);
+}</code></pre>
+  <h3>Tailwind v4 mapping</h3>
+  <p>Utilities such as <code class="mono">bg-surface</code>, <code class="mono">text-ink-muted</code>, and <code class="mono">border-line-input</code> come from the mapping below. Components do not use the <code class="mono">dark:</code> prefix, because the variables already change with the theme.</p>
+  <pre class="code"><button class="tk-btn ghost sm copy" type="button" data-copy aria-label="Copy code"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-copy"/></svg> Copy</button><code>/* src/app/globals.css (Tailwind v4) */
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-input: var(--line-input);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-press: var(--accent-press);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-mark: var(--mark);
+  --color-mark-edge: var(--mark-edge);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-success-ink: var(--success-ink);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-ink: var(--warning-ink);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-ink: var(--danger-ink);
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-float: var(--elev-float);
+  --shadow-overlay: var(--elev-overlay);
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+}
+
+body { @apply bg-canvas text-ink font-sans text-[15px] leading-6; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }</code></pre>
+  <h3>Fonts in Next.js</h3>
+  <pre class="code"><button class="tk-btn ghost sm copy" type="button" data-copy aria-label="Copy code"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-copy"/></svg> Copy</button><code>// src/app/layout.tsx
+import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"], weight: ["600", "700"],
+  variable: "--font-bricolage", display: "swap",
+});
+const instrument = Instrument_Sans({
+  subsets: ["latin"], weight: ["400", "500", "600"],
+  variable: "--font-instrument", display: "swap",
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    &lt;html lang="en" className={`${bricolage.variable} ${instrument.variable}`}&gt;
+      &lt;body&gt;{children}&lt;/body&gt;
+    &lt;/html&gt;
+  );
+}</code></pre>
+  <h3>Class recipe example</h3>
+  <pre class="code"><button class="tk-btn ghost sm copy" type="button" data-copy aria-label="Copy code"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-copy"/></svg> Copy</button><code>// Primary button recipe (Tailwind classes, tokens only)
+const base =
+  "inline-flex items-center justify-center gap-2 min-h-10 px-4 rounded-md border border-transparent " +
+  "text-sm font-semibold transition-colors duration-150 ease-standard " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
+  "disabled:bg-sunken disabled:text-ink-subtle disabled:cursor-not-allowed pointer-coarse:min-h-11";
+
+const variants = {
+  primary:   "bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-press",
+  secondary: "bg-surface text-ink border-line-input hover:bg-sunken",
+  ghost:     "bg-transparent text-ink hover:bg-sunken",
+  danger:    "bg-surface text-danger-ink border-danger hover:bg-danger-tint",
+};</code></pre>
+</section>
+    
+<section class="sec" id="components">
+  <h2>Components</h2>
+  <p class="lede">Each component lists its variants, states, and rules. Every component must handle default, hover, focus, disabled, loading, and error where they apply, in both themes.</p>
+  
+  <h3>Button</h3>
+  <p>One primary button per view. Labels are verbs that say exactly what happens, and they keep the same name through the whole flow: the Confirm button leads to a toast that says "Entry confirmed".</p>
+  <div class="spec">
+    <span class="cap">Variants</span>
+    <div class="rowwrap"><button type="button" class="tk-btn primary" >Confirm entry</button><button type="button" class="tk-btn secondary" >Edit</button><button type="button" class="tk-btn ghost" >Skip for now</button><button type="button" class="tk-btn danger" >Disconnect GitHub</button><button type="button" class="tk-btn danger-solid" >Delete account data</button></div>
+    <span class="cap" style="margin-top:20px">Sizes: small is for dense desktop areas only. Large is for the main call to action on a phone.</span>
+    <div class="rowwrap"><button type="button" class="tk-btn secondary sm" >Small</button><button type="button" class="tk-btn secondary" >Default</button><button type="button" class="tk-btn primary lg" >Large</button></div>
+    <span class="cap" style="margin-top:20px">States</span>
+    <div class="rowwrap">
+      <button type="button" class="tk-btn primary" disabled><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Confirm entry</button>
+      <button type="button" class="tk-btn primary" aria-busy="true" aria-disabled="true"><svg class="ic spin" aria-hidden="true" focusable="false"><use href="#i-loader"/></svg>Starting build</button>
+      <button type="button" class="tk-btn secondary" id="focus-demo">Tab here to see focus</button>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Rule</th><th scope="col">Detail</th></tr></thead><tbody><tr><td>Height</td><td>32px small, 40px default, 48px large. On touch devices the default grows to 44px and small to 36px.</td></tr><tr><td>Loading</td><td>Keep the label, add a spinner, set <code class="mono">aria-busy</code>, and ignore repeat clicks. Never replace the label with only a spinner.</td></tr><tr><td>Disabled</td><td>Use only when an action is impossible. If the reason is not obvious, leave the button enabled and explain the problem after click, or add help text next to it.</td></tr><tr><td>Destructive</td><td>Danger outline for the trigger, solid danger for the final confirmation inside a dialog.</td></tr><tr><td>Icons</td><td>Optional leading icon. Icon-only buttons need an accessible name and a 40px minimum target.</td></tr></tbody></table></div>
+  
+  <h3>Fields</h3>
+  <p>Labels sit above fields and are always visible. Placeholders show an example, never the label. Errors say what is wrong and how to fix it, and appear below the field.</p>
+  <div class="spec">
+    <div class="grid2">
+      <div class="stack">
+        <div class="tk-field"><label for="f1">Job title</label><input id="f1" class="tk-input" value="Software Engineer in Test" autocomplete="off"><span class="tk-help">As written in the job description.</span></div>
+        <div class="tk-field"><label for="f2">Pasted posts</label><input id="f2" class="tk-input" aria-invalid="true" aria-describedby="f2e" placeholder="Paste one or more posts"><span class="tk-err" id="f2e"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-x"/></svg>Paste at least one post. Separate several posts with a line containing three dashes.</span></div>
+        <div class="tk-field"><label for="f3">Company (optional)</label><input id="f3" class="tk-input" disabled placeholder="Locked while the job description is parsing"></div>
+      </div>
+      <div class="stack">
+        <div class="tk-field"><label for="f4">What should this resume emphasize? (optional)</label><textarea id="f4" class="tk-textarea" placeholder="Example: lead with my test automation and CI work"></textarea><span class="tk-help">We only use facts from your record. This changes emphasis, not the facts.</span></div>
+        <label class="tk-check"><input type="checkbox"><span>I own this content, or I have permission to use it on my resume.</span></label>
+      </div>
+    </div>
+    <div class="tk-drop" style="margin-top:20px"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-upload"/></svg><strong>Upload your CV</strong><span class="tk-help">PDF or DOCX. Drag a file here or choose one.</span><button type="button" class="tk-btn secondary sm" >Choose file</button></div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Rule</th><th scope="col">Detail</th></tr></thead><tbody><tr><td>Size</td><td>Inputs are 40px tall with 16px text. Textareas start at about 4 lines and grow.</td></tr><tr><td>Border</td><td>Control borders use <code class="mono">--line-input</code>, which meets 3:1 against the surface. Never use the lighter <code class="mono">--line</code> on a control.</td></tr><tr><td>Errors</td><td>Set <code class="mono">aria-invalid</code>, link the message with <code class="mono">aria-describedby</code>, and show an icon plus text. Validate on blur and on submit, not on every keystroke.</td></tr><tr><td>Attestation</td><td>Pasted content needs an ownership checkbox before upload. It is a real label with a 20px control, and the whole row is clickable.</td></tr><tr><td>Uploads</td><td>Show accepted types up front. File size limits come from the API, so read them from the response rather than hard-coding a number.</td></tr></tbody></table></div>
+  
+  <h3>Status badge</h3>
+  <p>Badges turn the status enums from the architecture into one visual language. Each has an icon, a short label, and a tone. The label is what screen readers read, and the tone alone never carries the meaning. Every state also needs a next action somewhere nearby: Reconnect, Retry, Review.</p>
+  <h4>Source connection</h4>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">State</th><th scope="col">Badge</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code class="mono">not_connected</code></td><td><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-dashed"/></svg>Not connected</span></td><td>Source is available but nothing has been imported.</td></tr><tr><td><code class="mono">connected</code></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-link"/></svg>Connected</span></td><td>Authorized. No import has run yet.</td></tr><tr><td><code class="mono">sync_queued</code></td><td><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-clock"/></svg>Queued</span></td><td>Waiting for a worker to pick it up.</td></tr><tr><td><code class="mono">syncing</code></td><td><span class="tk-badge accent"><svg class="ic spin" aria-hidden="true" focusable="false"><use href="#i-loader"/></svg>Syncing</span></td><td>Import is running in the background.</td></tr><tr><td><code class="mono">synced</code></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Synced</span></td><td>Last import finished with no issues.</td></tr><tr><td><code class="mono">partial</code></td><td><span class="tk-badge warning"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-alert"/></svg>Partly imported</span></td><td>Usable data came in, but a field or section was unavailable.</td></tr><tr><td><code class="mono">needs_reauth</code></td><td><span class="tk-badge warning"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg>Reconnect needed</span></td><td>Authorization expired or was revoked. Imported entries stay.</td></tr><tr><td><code class="mono">error</code></td><td><span class="tk-badge danger"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-x"/></svg>Import failed</span></td><td>Nothing new was imported. Offer retry.</td></tr></tbody></table></div>
+  <h4>Entry verification</h4>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">State</th><th scope="col">Badge</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code class="mono">unreviewed</code></td><td><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-dashed"/></svg>Needs review</span></td><td>Suggested from a source. Not on any resume until confirmed.</td></tr><tr><td><code class="mono">user_confirmed</code></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-user-check"/></svg>Confirmed by you</span></td><td>The user confirmed or corrected this entry.</td></tr><tr><td><code class="mono">source_verified</code></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-shield-check"/></svg>Verified from source</span></td><td>A source record directly supports it.</td></tr><tr><td><code class="mono">rejected</code></td><td><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-minus"/></svg>Rejected</span></td><td>The user removed it. Hidden from generation.</td></tr></tbody></table></div>
+  <h4>Background job</h4>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">State</th><th scope="col">Badge</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code class="mono">queued</code></td><td><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-clock"/></svg>Queued</span></td><td>Saved and waiting to start.</td></tr><tr><td><code class="mono">running</code></td><td><span class="tk-badge accent"><svg class="ic spin" aria-hidden="true" focusable="false"><use href="#i-loader"/></svg>Working</span></td><td>A worker is on it. Show the current step.</td></tr><tr><td><code class="mono">retry_wait</code></td><td><span class="tk-badge warning"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg>Retrying shortly</span></td><td>A temporary problem. It will retry on its own.</td></tr><tr><td><code class="mono">succeeded</code></td><td><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Ready</span></td><td>Result is saved and available.</td></tr><tr><td><code class="mono">failed</code></td><td><span class="tk-badge danger"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-x"/></svg>Failed</span></td><td>Stopped for good. Offer retry when eligible.</td></tr><tr><td><code class="mono">cancelled</code></td><td><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-minus"/></svg>Cancelled</span></td><td>Stopped at the user's request.</td></tr><tr><td><code class="mono">needs_user_action</code></td><td><span class="tk-badge warning"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-alert"/></svg>Needs your input</span></td><td>Waiting on a reconnect or missing detail.</td></tr></tbody></table></div>
+  <h4>Suggestion strength</h4>
+  <p>The model's confidence score is a ranking hint, not proof. Show it as a quiet three-step meter labeled "strength", never as a percentage, and never in place of the verification badge.</p>
+  <div class="spec"><div class="rowwrap" style="gap:24px">
+    <span class="tk-meter"><span class="segs"><i class="on"></i><i></i><i></i></span>Low strength</span>
+    <span class="tk-meter"><span class="segs"><i class="on"></i><i class="on"></i><i></i></span>Medium strength</span>
+    <span class="tk-meter"><span class="segs"><i class="on"></i><i class="on"></i><i class="on"></i></span>High strength</span>
+  </div></div>
+  
+  <h3>Alert</h3>
+  <p>Inline, tied to the thing it describes. A title says what happened, one sentence says what it means, and an action says what to do. Errors never apologize and are never vague.</p>
+  <div class="spec"><div class="stack">
+    <div class="tk-alert info" role="status"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div class="body"><strong>Importing in the background</strong><p>You can leave this page. We will email you when your GitHub import finishes.</p></div></div>
+    <div class="tk-alert success" role="status"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-circle-check"/></svg><div class="body"><strong>Resume ready</strong><p>Your resume for Software Engineer in Test has been built and checked.</p><div class="acts"><button type="button" class="tk-btn secondary sm" >Open resume</button></div></div></div>
+    <div class="tk-alert warning" role="status"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><div class="body"><strong>Some of your CV could not be read</strong><p>We imported part of it. Check your record, or upload a different file.</p><div class="acts"><button type="button" class="tk-btn secondary sm" >Review imported entries</button><button type="button" class="tk-btn ghost sm" >Upload another file</button></div></div></div>
+    <div class="tk-alert warning" role="status"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><div class="body"><strong>Reconnect GitHub to keep syncing</strong><p>Your imported entries are safe. Syncing is paused until you reconnect.</p><div class="acts"><button type="button" class="tk-btn primary sm" >Reconnect GitHub</button></div></div></div>
+    <div class="tk-alert danger" role="alert"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-circle-x"/></svg><div class="body"><strong>We could not import your portfolio</strong><p>The page blocked automated access. Paste its text instead.</p><div class="acts"><button type="button" class="tk-btn secondary sm" >Paste text</button></div></div></div>
+  </div></div>
+  <ul class="plain">
+    <li>Use <code class="mono">role="status"</code> for updates and <code class="mono">role="alert"</code> only for failures that need immediate attention.</li>
+    <li>Page-wide banners are reserved for account-level problems such as an expired connection. Everything else stays inline.</li>
+  </ul>
+  
+  <h3>Segmented control</h3>
+  <p>Switches between views of the same list, such as filtering the review queue. Use it for 2 to 4 options. It is not navigation.</p>
+  <div class="spec"><div class="tk-seg" role="group" aria-label="Filter entries">
+    <button type="button" aria-pressed="true">Needs review 12</button><button type="button" aria-pressed="false">Confirmed</button><button type="button" aria-pressed="false">Rejected</button>
+  </div></div>
+  <h3>Dialog</h3>
+  <p>Used for short, focused tasks like pasting posts or fetching a portfolio. It opens centered at 1024px and up and as a full-height sheet below that. The title names the task, the primary action sits at the right of the footer, and Escape always closes it.</p>
+  <div class="spec" style="background:var(--sunken)">
+    <div class="tk-dialog" role="group" aria-label="Dialog example">
+      <div class="dh"><h4>Paste your posts</h4></div>
+      <div class="db">
+        <div class="tk-field" style="max-width:none"><label for="d1">Posts</label><textarea id="d1" class="tk-textarea" placeholder="Paste one post, or several separated by a line with three dashes"></textarea></div>
+        <div class="tk-field" style="max-width:220px"><label for="d2">Approximate date</label><input id="d2" class="tk-input" placeholder="Month and year"></div>
+        <label class="tk-check"><input type="checkbox"><span>I own this content, or I have permission to use it on my resume.</span></label>
+      </div>
+      <div class="df"><button type="button" class="tk-btn ghost" >Cancel</button><button type="button" class="tk-btn primary" >Add posts</button></div>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Rule</th><th scope="col">Detail</th></tr></thead><tbody><tr><td>Focus</td><td>Move focus to the first field when it opens, trap focus inside, and return it to the trigger when it closes.</td></tr><tr><td>Semantics</td><td>Use the native <code class="mono">dialog</code> element or <code class="mono">role="dialog"</code> with <code class="mono">aria-modal</code> and <code class="mono">aria-labelledby</code>.</td></tr><tr><td>Sizes</td><td>Small 400px, medium 560px, large 720px. Content scrolls inside; the footer stays in view.</td></tr><tr><td>Backdrop</td><td>Uses the scrim token. Clicking it closes only dialogs without unsaved input.</td></tr></tbody></table></div>
+  <h3>Toast</h3>
+  <p>Confirms a user action that has no visible result elsewhere. It repeats the action's verb, stays for 6 seconds, pauses on hover and focus, and offers Undo for anything reversible. Never use a toast for an error the user must act on.</p>
+  <div class="spec"><div class="toast" role="status"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-check"/></svg>Entry confirmed<button type="button" class="tk-btn ghost sm" >Undo</button></div></div>
+  <h3>Loading and empty states</h3>
+  <p>Page loads use skeletons that match the final layout, so nothing jumps. Spinners are for actions already in progress. An empty screen explains what belongs here and offers the next step.</p>
+  <div class="grid2">
+    <div class="tk-card" aria-hidden="true"><div class="tk-skel" style="width:30%"></div><div class="tk-skel" style="width:90%;height:18px;margin-top:14px"></div><div class="tk-skel" style="width:70%;height:18px;margin-top:8px"></div><div class="tk-skel" style="width:100%;height:48px;margin-top:16px"></div></div>
+    <div class="tk-card tk-empty"><h4>Nothing to review</h4><p>New entries from your sources show up here. Connect a source or upload your CV to get started.</p><button type="button" class="tk-btn primary sm" >Add a source</button></div>
+  </div>
+</section>
+    
+<section class="sec" id="patterns">
+  <h2>Patterns</h2>
+  <p class="lede">How the components combine into the screens that matter most. Each pattern is drawn from the flows in the architecture.</p>
+
+  <h3>Entry review card</h3>
+  <p>The core review screen. Show the claim, its source, and the exact supporting passage. Offer Confirm, Edit, and Reject, and make each reversible. If a claim contains a number that no source supports, block confirmation until the user fixes it or removes the number.</p>
+  <div class="spec"><div class="grid2">
+    <div class="tk-card" id="entry-demo" style="grid-column:1/-1;max-width:640px">
+      <div class="hd"><span class="rowwrap" style="gap:8px"><span class="tk-chip">Achievement</span><span id="entry-badge"><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-dashed"/></svg>Needs review</span></span></span><span class="tk-meter"><span class="segs"><i class="on"></i><i class="on"></i><i></i></span>Medium strength</span></div>
+      <p class="claim">Maintained the continuous integration pipeline for the checkout service.</p>
+      <div class="tk-src"><div class="from"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-link"/></svg>GitHub, checkout-service workflow file</div><blockquote>&hellip;<mark class="tk-mark">updated the CI workflow to run on every pull request</mark> and cached dependencies between runs.</blockquote></div>
+      <div class="tk-actions" id="entry-actions"><button type="button" class="tk-btn primary" data-entry="confirm">Confirm entry</button><button type="button" class="tk-btn secondary" data-entry="edit">Edit</button><button type="button" class="tk-btn ghost" data-entry="reject">Reject</button></div>
+      <div class="tk-actions" id="entry-undo" hidden><button type="button" class="tk-btn ghost sm" data-entry="undo"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg>Undo</button></div>
+      <div id="entry-live" class="sr" role="status"></div>
+    </div>
+    <div style="grid-column:1/-1;max-width:640px">
+      <div class="tk-alert warning" role="status"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><div class="body"><strong>This claim includes a number we could not find in your sources</strong><p>Variant: a draft bullet says the tests "cut release time by 40%". Confirm is blocked until the user adds a source for the number or removes it.</p><div class="acts"><button type="button" class="tk-btn secondary sm" >Remove the number</button><button type="button" class="tk-btn ghost sm" >Add a source</button></div></div></div>
+    </div>
+  </div></div>
+
+  <h3>Source list</h3>
+  <p>Sources are shown only if they work. If a provider does not offer the data, hide the option and offer the alternative, such as a CV upload or an exported archive, rather than showing a connect button that cannot succeed. Email is never a source.</p>
+  <div class="spec flush"><div class="tk-list">
+    <div class="tk-li"><span class="tile" aria-hidden="true">G</span><div class="txt"><b>GitHub</b><span>Repositories, README files, and languages you allow</span></div><span class="tk-badge success"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Synced</span><button type="button" class="tk-btn secondary sm" >Sync now</button></div>
+    <div class="tk-li"><span class="tile" aria-hidden="true">P</span><div class="txt"><b>Portfolio site</b><span>Public pages only</span></div><span class="tk-badge accent"><svg class="ic spin" aria-hidden="true" focusable="false"><use href="#i-loader"/></svg>Syncing</span><button type="button" class="tk-btn ghost sm" >Cancel</button></div>
+    <div class="tk-li"><span class="tile" aria-hidden="true">C</span><div class="txt"><b>CV upload</b><span>2 of 4 sections could be read</span></div><span class="tk-badge warning"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-alert"/></svg>Partly imported</span><button type="button" class="tk-btn secondary sm" >Review</button></div>
+    <div class="tk-li"><span class="tile" aria-hidden="true">L</span><div class="txt"><b>LinkedIn data export</b><span>Upload the archive you download from LinkedIn</span></div><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-circle-dashed"/></svg>Not connected</span><button type="button" class="tk-btn secondary sm" >Upload export</button></div>
+  </div></div>
+
+  <h3>Job progress</h3>
+  <p>Anything slower than a moment becomes a job. Show the real step reported by the server, not a timer, and tell the user they can leave. Announce step changes to screen readers, not every percent. Use Replay to see the sequence.</p>
+  <div class="spec"><div class="tk-card" id="job-demo" style="max-width:520px">
+    <div class="hd"><div><b>Resume for Software Engineer in Test</b><div class="mono muted">job_8f3a21</div></div><span id="job-badge"><span class="tk-badge accent"><svg class="ic spin" aria-hidden="true" focusable="false"><use href="#i-loader"/></svg>Working</span></span></div>
+    <div class="tk-prog" role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i style="width:0%"></i></div>
+    <ol class="tk-steps" id="job-steps" style="margin-top:10px"></ol>
+    <p class="tk-help" style="margin:6px 0 12px;max-width:none">You can leave this page. We will email you when it is ready.</p>
+    <div class="tk-actions"><button type="button" class="tk-btn secondary sm" id="job-replay">Replay</button><button type="button" class="tk-btn ghost sm" >Cancel build</button></div>
+    <div class="sr" role="status" id="job-live"></div>
+  </div></div>
+
+  <h3>Role, coverage, and focus</h3>
+  <p>Before a build, show how well the user's record covers the job, and be honest about gaps. The user can pin entries that must appear and describe what to lead with. Focus steers emphasis. It never authorizes a claim without a source.</p>
+  <div class="spec"><div class="tk-card" style="max-width:640px">
+    <div class="hd"><b style="font-size:17px">Software Engineer in Test</b><span class="tk-badge"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-file"/></svg>Parsed from your job description</span></div>
+    <div class="tk-help" style="margin-bottom:8px">3 of 4 required skills have evidence</div>
+    <div class="tk-prog" role="progressbar" aria-label="Required skills covered" aria-valuemin="0" aria-valuemax="4" aria-valuenow="3"><i style="width:75%"></i></div>
+    <div class="rowwrap" style="gap:8px;margin:14px 0">
+      <span class="tk-chip req"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Test automation</span><span class="tk-chip req"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>API testing</span><span class="tk-chip req"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>CI/CD</span>
+      <span class="tk-chip gap"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-alert"/></svg>Contract testing, no evidence yet</span>
+      <span class="tk-chip">Performance testing (preferred)</span>
+    </div>
+    <div class="tk-field" style="max-width:none"><label for="r1">What should this resume emphasize? (optional)</label><textarea id="r1" class="tk-textarea" placeholder="Example: lead with my test automation and CI work"></textarea></div>
+    <div class="rowwrap" style="gap:8px;margin-top:12px"><span class="tk-label" style="font-size:13px">Pinned</span><span class="tk-chip"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-pin"/></svg>Checkout test suite</span><button type="button" class="tk-btn ghost sm" >Add experience for the gap</button></div>
+    <div class="tk-actions" style="margin-top:16px"><button type="button" class="tk-btn primary" >Build resume</button></div>
+  </div></div>
+
+  <h3>Resume versions</h3>
+  <p>Every build and every edit creates a new version. Rows work at every width. Use a table only for dense admin data.</p>
+  <div class="spec flush"><div class="tk-list">
+    <div class="tk-li"><div class="txt"><b>Version 3 <span class="tk-badge accent"><svg class="ic " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Current</span></b><span>Software Engineer in Test, edited by you</span></div><button type="button" class="tk-btn secondary sm" >Open</button><button type="button" class="tk-btn ghost sm" >Export</button></div>
+    <div class="tk-li"><div class="txt"><b>Version 2</b><span>Software Engineer in Test, built by Tracck</span></div><button type="button" class="tk-btn secondary sm" >Open</button><button type="button" class="tk-btn ghost sm" >Restore</button></div>
+    <div class="tk-li"><div class="txt"><b>Version 1</b><span>Imported from your CV</span></div><button type="button" class="tk-btn secondary sm" >Open</button><button type="button" class="tk-btn ghost sm" >Restore</button></div>
+  </div></div>
+
+  <h3>App shell</h3>
+  <p>Five destinations in the same order everywhere: Overview, Sources, Review, Roles, Resumes. Below 1024px they live in a bottom tab bar, and from 1024px up in a 240px left sidebar. Review shows a count of entries waiting. The routes keep their current paths and only the labels change for users: <code class="mono">/dashboard</code>, <code class="mono">/dashboard/accounts</code>, <code class="mono">/dashboard/queue</code>, <code class="mono">/dashboard/tailoring</code>, and a new resumes route.</p>
+  <div class="spec" style="background:var(--sunken)"><div class="phone">
+    <div class="scr"><div class="tk-skel" style="width:40%;height:20px"></div><div class="tk-skel" style="width:100%;height:56px"></div><div class="tk-skel" style="width:100%;height:56px"></div></div>
+    <nav class="tabbar" aria-label="Example tab bar">
+      <a href="#patterns" aria-current="page"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-home"/></svg>Overview</a>
+      <a href="#patterns"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-link"/></svg>Sources</a>
+      <a href="#patterns"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-list-checks"/></svg>Review<span class="ct">12</span></a>
+      <a href="#patterns"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-briefcase"/></svg>Roles</a>
+      <a href="#patterns"><svg class="ic lg" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>Resumes</a>
+    </nav>
+  </div></div>
+
+  <h3>Onboarding</h3>
+  <p>This is a real sequence, so it is numbered. Users can leave and come back at any step, and no restricted integration is ever required.</p>
+  <ol style="max-width:68ch;padding-left:22px">
+    <li><b>Explain and ask for consent.</b> Say what Tracck will import and why, before anything is requested from a provider.</li>
+    <li><b>Add sources.</b> Connect, upload, or skip each one. A CV upload alone is enough to continue.</li>
+    <li><b>Let it run in the background.</b> Imports start immediately and progress is visible. The user can move on without waiting.</li>
+    <li><b>Review what we found.</b> Confirm, edit, or reject entries. Partial results are fine.</li>
+    <li><b>Pick a role.</b> Paste a job description or choose a general profile, then build.</li>
+  </ol>
+</section>
+    
+<section class="sec" id="resume-doc">
+  <h2>Resume document</h2>
+  <p class="lede">The exported resume is a different product from the app. It has its own plain style, built so applicant tracking systems can read it. It does not use UI tokens, and it renders on white in both themes.</p>
+  <div class="spec" style="background:var(--sunken)"><div class="paper" role="img" aria-label="Sample resume layout">
+    <h5>Sample Candidate</h5>
+    <p class="contact">City, Country | sample@example.com | github.com/sample</p>
+    <h6>Summary</h6>
+    <p>QA engineer focused on automated testing for web applications and APIs.</p>
+    <h6>Experience</h6>
+    <p class="role"><span>QA Engineer, Example Company</span><span>Mar 2025 - May 2025</span></p>
+    <ul><li>Built automated browser and API tests for the checkout flow.</li><li>Ran the tests in CI on every pull request.</li></ul>
+    <h6>Skills</h6>
+    <p>Playwright, API testing, continuous integration</p>
+    <h6>Education</h6>
+    <p>B.Sc. Computer Science, Example University</p>
+  </div></div>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Property</th><th scope="col">Rule</th></tr></thead><tbody><tr><td>Layout</td><td>Single column. No tables, text boxes, columns, images, icons, or content in headers and footers.</td></tr><tr><td>Page</td><td>A4 by default with a Letter option, stored as <code class="mono">layout_key</code>. Margins of about 18mm.</td></tr><tr><td>Type</td><td>Arial, Calibri, or an equivalent standard font. Name 18 to 20pt bold, section headings 11 to 12pt bold, body 10 to 11pt. Black text on white.</td></tr><tr><td>Headings</td><td>Standard names that parsers expect: Summary, Experience, Projects, Skills, Education, Certifications. Reverse chronological order.</td></tr><tr><td>Characters</td><td>Plain bullets and a hyphen in date ranges. No decorative symbols or special glyphs.</td></tr><tr><td>Links</td><td>Written out as visible text, not hidden behind labels.</td></tr><tr><td>Content</td><td>Every factual bullet traces to an entry in the record. Nothing appears on the page that the user has not confirmed.</td></tr><tr><td>Formats</td><td>PDF and DOCX are rendered from the same structured content, so they never disagree.</td></tr></tbody></table></div>
+</section>
+    
+<section class="sec" id="content">
+  <h2>Content and voice</h2>
+  <p class="lede">Words are part of the interface. Write from the user's side, name things by what they mean to a person, and say exactly what will happen.</p>
+  <h3>Principles</h3>
+  <ul class="plain">
+    <li>Plain verbs, active voice, sentence case, no exclamation marks, no filler.</li>
+    <li>Say what happened, then what to do. Errors do not apologize and are never vague.</li>
+    <li>Keep one name for an action through the whole flow: Confirm entry, then "Entry confirmed".</li>
+    <li>Show numbers only when a source backs them. Prefer "3 of 4 required skills have evidence" to a made-up match score.</li>
+    <li>Do not promise outcomes. Say the resume is built to be readable by applicant tracking systems, not that it will pass them.</li>
+    <li>Describe states in time the user understands: "You can leave this page", not "Job enqueued".</li>
+  </ul>
+  <div class="tk-reco" style="margin:12px 0 20px">
+    <div class="tk-card"><b>Write</b><ul class="plain dos" style="margin-top:8px">
+      <li>Confirm entry</li><li>We could not read your CV. Upload a PDF or DOCX.</li><li>Verifying every claim has a source</li><li>Upload your LinkedIn data export</li></ul></div>
+    <div class="tk-card"><b>Avoid</b><ul class="plain donts" style="margin-top:8px">
+      <li>Submit</li><li>Oops! Something went wrong.</li><li>Processing&hellip;</li><li>Connect LinkedIn, when the connection cannot import what we promise</li></ul></div>
+  </div>
+  <h3>Glossary</h3>
+  <p>The interface uses the words in the first column. The data model keeps its own names, and this table keeps the two in step.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Say</th><th scope="col">Means</th><th scope="col">System term</th><th scope="col">Avoid</th></tr></thead><tbody><tr><td><b>Source</b></td><td>A place Tracck reads from: GitHub, a CV, a portfolio</td><td><code class="mono">source_connections</code>, <code class="mono">source_items</code></td><td>provider, integration, connection</td></tr><tr><td><b>Entry</b></td><td>One claim in your record, with the sources behind it</td><td><code class="mono">candidate_evidence</code></td><td>evidence, claim, accomplishment</td></tr><tr><td><b>Record</b></td><td>All the entries you have confirmed</td><td>Confirmed <code class="mono">candidate_evidence</code></td><td>profile, ledger, graph</td></tr><tr><td><b>Source excerpt</b></td><td>The passage that supports an entry</td><td><code class="mono">evidence_sources.support_excerpt</code></td><td>snippet, citation</td></tr><tr><td><b>Role</b></td><td>A job you are aiming for</td><td><code class="mono">target_opportunities</code></td><td>opportunity, JD</td></tr><tr><td><b>Build</b></td><td>Creating a resume for a role</td><td><code class="mono">resume_generation</code> job</td><td>generate, run, pipeline</td></tr><tr><td><b>Version</b></td><td>A saved state of a resume</td><td><code class="mono">resume_versions</code></td><td>revision, snapshot</td></tr><tr><td><b>Review</b></td><td>Confirm, edit, or reject entries</td><td><code class="mono">verification_status</code> update</td><td>triage, approve</td></tr></tbody></table></div>
+  <h3>Job step labels</h3>
+  <p>Each persisted step name from the architecture has one user-facing label, so the progress list never shows internal names.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Step</th><th scope="col">Label</th></tr></thead><tbody><tr><td><code class="mono">download_source</code></td><td>Fetching your records</td></tr><tr><td><code class="mono">parse_cv</code></td><td>Reading your CV</td></tr><tr><td><code class="mono">normalize</code></td><td>Organizing what we found</td></tr><tr><td><code class="mono">embed</code></td><td>Indexing your entries</td></tr><tr><td><code class="mono">retrieve</code></td><td>Matching entries to the role</td></tr><tr><td><code class="mono">draft</code></td><td>Drafting your resume</td></tr><tr><td><code class="mono">critique</code></td><td>Checking quality</td></tr><tr><td><code class="mono">revise</code></td><td>Improving the draft</td></tr><tr><td><code class="mono">validate</code></td><td>Verifying every claim has a source</td></tr><tr><td><code class="mono">export</code></td><td>Preparing PDF and Word files</td></tr><tr><td><code class="mono">notify</code></td><td>Done. Sending your email.</td></tr></tbody></table></div>
+  <h3>Error patterns</h3>
+  <p>Examples of the pattern: a short title, one sentence of explanation, one action. Final codes live in the API contract.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Code</th><th scope="col">Title</th><th scope="col">Body</th><th scope="col">Action</th></tr></thead><tbody><tr><td><code class="mono">SOURCE_REAUTH_REQUIRED</code></td><td>Reconnect GitHub to keep syncing</td><td>Your imported entries are safe. Syncing is paused until you reconnect.</td><td>Reconnect GitHub</td></tr><tr><td><code class="mono">IMPORT_RATE_LIMITED</code></td><td>GitHub is limiting requests</td><td>We will retry automatically and email you if it keeps failing.</td><td>View import</td></tr><tr><td><code class="mono">UNSUPPORTED_FILE_TYPE</code></td><td>We cannot read that file type</td><td>Upload your CV as a PDF or DOCX.</td><td>Choose file</td></tr><tr><td><code class="mono">NO_ENTRIES_FOR_ROLE</code></td><td>We need a little more from you</td><td>Your record has no entries that match this job yet. Add experience or connect another source.</td><td>Add experience</td></tr><tr><td><code class="mono">BUILD_FAILED</code></td><td>We could not finish your resume</td><td>Your record is unchanged. Try again, and contact support if it keeps happening.</td><td>Try again</td></tr></tbody></table></div>
+</section>
+    
+<section class="sec" id="a11y">
+  <h2>Accessibility</h2>
+  <p class="lede">The target is WCAG 2.2 level AA. Most of it is built into the tokens and components, and the rest is enforced by the checklist.</p>
+  <div class="tbl-wrap"><table class="tbl "><thead><tr><th scope="col">Area</th><th scope="col">Requirement</th></tr></thead><tbody><tr><td>Contrast</td><td>Text 4.5:1, large text and interface boundaries 3:1, in both themes. The contrast table in Color is the reference.</td></tr><tr><td>Keyboard</td><td>Everything works without a mouse, in a logical order. Focus is always visible: a 2px accent outline with a 2px offset.</td></tr><tr><td>Target size</td><td>24px is the minimum. Buttons and fields are 40px, and 44px on touch devices.</td></tr><tr><td>Not by color alone</td><td>Every status has an icon and text. Charts and meters carry a text label.</td></tr><tr><td>Live updates</td><td>Job progress uses <code class="mono">role="status"</code> and announces step changes only. Failures that need action use <code class="mono">role="alert"</code>. Server-sent events must not announce every update.</td></tr><tr><td>Dialogs</td><td>Focus moves in, stays trapped, and returns to the trigger. Escape closes. Background content is inert.</td></tr><tr><td>Forms</td><td>Visible labels, errors linked with <code class="mono">aria-describedby</code>, a summary of errors at the top after a failed submit, and no placeholder-only labels.</td></tr><tr><td>Motion</td><td>Respect <code class="mono">prefers-reduced-motion</code>. Nothing essential depends on animation, and nothing flashes.</td></tr><tr><td>Zoom and reflow</td><td>Usable at 200% zoom and at 320px width without horizontal scrolling, apart from tables and code blocks.</td></tr><tr><td>Documents</td><td>The resume preview is real text, not an image, and the exported PDF keeps a text layer.</td></tr><tr><td>Language</td><td>Set <code class="mono">lang</code> on the page and on any text in another language. Use plain wording; people read this interface in a second language, too.</td></tr></tbody></table></div>
+</section>
+    
+<section class="sec" id="checklist">
+  <h2>Conformance checklist</h2>
+  <p class="lede">Use this on every pull request that touches the interface. A change that fails an item is not done.</p>
+  <div class="spec">
+    <div class="rowwrap" style="justify-content:space-between;margin-bottom:4px"><span class="tk-label">Pull request review</span><span class="tk-badge" id="chk-count" role="status">0 of 20 checked</span></div>
+    <h4>Tokens and themes</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Uses tokens only. No hex, rgb, or named colors in component styles.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Looks correct in Light, Dark, and System, with no <code class="mono">dark:</code> prefixes.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Radius, spacing, and elevation come from the scales in this document.</span></label></div><h4>States</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Default, hover, focus-visible, active, disabled, loading, and error exist wherever they apply.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Loading uses skeletons for page loads and a labeled spinner for actions in progress.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Empty, partial, and failed states are designed, not left to the default.</span></label></div><h4>Async behavior</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Long work is a job. The UI shows the persisted step and never waits on a single request.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>A user can leave the page and return to find the status and result.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Status badges use the shared mapping. No new colors or labels per screen.</span></label></div><h4>Evidence and honesty</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Every claim shown on a resume or in review can reach its source and excerpt.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Unsupported numbers are flagged or removed, never silently kept.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Sources that cannot work are hidden, with an alternative offered. Email is never listed as a source.</span></label></div><h4>Accessibility</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Works with keyboard only, with visible focus and a sensible order.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Status is never color-only, and live regions announce step changes, not every update.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Dialogs trap focus and restore it. Contrast meets the table in Color.</span></label></div><h4>Responsive and performance</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Checked at 360px, 768px, and 1024px, with no horizontal page scroll.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Touch targets are at least 44px on touch devices.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Only the two documented fonts load. Layout does not shift as content arrives.</span></label></div><h4>Content</h4><div class="stack" style="gap:8px"><label class="tk-check"><input type="checkbox" data-chk><span>Sentence case, plain verbs, and the glossary terms. Errors say what happened and what to do.</span></label><label class="tk-check"><input type="checkbox" data-chk><span>Action names stay the same from button to confirmation.</span></label></div>
+  </div>
+  <h3>Patterns that fail review</h3>
+  <ul class="plain donts">
+    <li>A spinner that waits on a single request for generation or import.</li>
+    <li>A progress bar driven by a timer instead of server state.</li>
+    <li>An email provider, or any integration that cannot import data, shown in a list of sources.</li>
+    <li>A claim, number, or skill on a resume with no entry behind it.</li>
+    <li>A model confidence score shown as a percentage or as proof.</li>
+    <li>Hex values or arbitrary pixel values in components, or a <code class="mono">dark:</code> variant to patch over a missing token.</li>
+    <li>Status shown by color alone, or a dialog without focus management.</li>
+    <li>Gradients, glows, or entrance animations added for decoration.</li>
+  </ul>
+  <h3>Keeping this document true</h3>
+  <p>Update this document in the same pull request as any change to tokens or components. If the codebase already differs from it, list each difference in a short audit file beside the token or component that should replace it, and fix them in small steps.</p>
+</section>
+  </main>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  function badge(tone,icon,text,spin){return '<span class="tk-badge'+(tone?' '+tone:'')+'"><svg class="ic'+(spin?' spin':'')+'" aria-hidden="true" focusable="false"><use href="#i-'+icon+'"/></svg>'+text+'</span>';}
+  /* theme */
+  function paint(m){document.querySelectorAll('[data-theme-set]').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-theme-set')===m?'true':'false');});}
+  function setTheme(m){
+    if(m==='light'||m==='dark'){root.setAttribute('data-theme',m);}else{root.removeAttribute('data-theme');m='system';}
+    try{if(m==='system'){localStorage.removeItem('tk-theme');}else{localStorage.setItem('tk-theme',m);}}catch(e){}
+    paint(m);
+  }
+  var saved='system';try{saved=localStorage.getItem('tk-theme')||'system';}catch(e){}
+  paint(saved);
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-theme-set]');if(b){setTheme(b.getAttribute('data-theme-set'));}});
+  /* copy */
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-copy]');if(!b)return;
+    var txt=b.parentNode.querySelector('code').textContent;var orig=b.innerHTML;
+    function flash(t){b.innerHTML=orig.replace('Copy',t);setTimeout(function(){b.innerHTML=orig;},1600);}
+    function fallback(){try{var r=document.createRange();r.selectNodeContents(b.parentNode.querySelector('code'));var s=window.getSelection();s.removeAllRanges();s.addRange(r);var ok=document.execCommand('copy');s.removeAllRanges();flash(ok?'Copied':'Select and copy');}catch(err){flash('Select and copy');}}
+    try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){flash('Copied');},fallback);}else{fallback();}}catch(err){fallback();}
+  });
+  /* scrollspy */
+  var links=document.querySelectorAll('.topnav a,.side nav a');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){var id=en.target.id;links.forEach(function(a){a.setAttribute('aria-current',a.getAttribute('href')==='#'+id?'true':'false');});}});},{rootMargin:'-15% 0px -75% 0px'});
+    document.querySelectorAll('.sec').forEach(function(s){io.observe(s);});
+  }
+  /* entry demo */
+  var ed=document.getElementById('entry-demo');
+  if(ed){
+    var eb=document.getElementById('entry-badge'),ea=document.getElementById('entry-actions'),eu=document.getElementById('entry-undo'),el=document.getElementById('entry-live'),claim=ed.querySelector('.claim');
+    var editing=false;
+    function setState(s){
+      if(s==='confirm'){eb.innerHTML=badge('success','user-check','Confirmed by you');ea.hidden=true;eu.hidden=false;el.textContent='Entry confirmed';}
+      else if(s==='reject'){eb.innerHTML=badge('','circle-minus','Rejected');ea.hidden=true;eu.hidden=false;el.textContent='Entry rejected';}
+      else{eb.innerHTML=badge('','circle-dashed','Needs review');ea.hidden=false;eu.hidden=true;el.textContent='Entry restored to review';}
+    }
+    ed.addEventListener('click',function(e){
+      var b=e.target.closest('[data-entry]');if(!b)return;var a=b.getAttribute('data-entry');
+      if(a==='edit'){editing=!editing;if(editing){claim.setAttribute('contenteditable','true');claim.setAttribute('role','textbox');claim.setAttribute('aria-label','Edit entry text');claim.focus();b.textContent='Done editing';}else{claim.removeAttribute('contenteditable');claim.removeAttribute('role');claim.removeAttribute('aria-label');b.textContent='Edit';}return;}
+      setState(a==='undo'?'reset':a);
+      if(a==='undo'){var first=ea.querySelector('button');if(first)first.focus();}
+    });
+  }
+  /* job demo */
+  var jd=document.getElementById('job-demo');
+  if(jd){
+    var steps=[['retrieve','Matching entries to the role'],['draft','Drafting your resume'],['critique','Checking quality'],['revise','Improving the draft'],['validate','Verifying every claim has a source'],['export','Preparing PDF and Word files']];
+    var list=document.getElementById('job-steps'),bar=jd.querySelector('.tk-prog'),fill=bar.querySelector('i'),jb=document.getElementById('job-badge'),live=document.getElementById('job-live'),timer=null;
+    function render(done,announce){
+      var h='';steps.forEach(function(s,i){
+        var cls=i<done?'done':(i===done?'cur':'');
+        var icon=i<done?'<svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>':(i===done?'<svg class="ic spin" aria-hidden="true"><use href="#i-loader"/></svg>':'');
+        h+='<li class="'+cls+'"'+(i===done?' aria-current="step"':'')+'><span class="dot">'+icon+'</span><span>'+s[1]+'</span></li>';
+      });
+      list.innerHTML=h;
+      var pct=Math.round(done/steps.length*100);fill.style.width=pct+'%';bar.setAttribute('aria-valuenow',pct);
+      if(done>=steps.length){jb.innerHTML=badge('success','check','Ready');if(announce)live.textContent='Resume ready';}
+      else{jb.innerHTML=badge('accent','loader','Working',true);if(announce)live.textContent=steps[done][1];}
+    }
+    render(2,false);
+    document.getElementById('job-replay').addEventListener('click',function(){
+      if(timer)clearInterval(timer);var n=0;render(0,true);
+      timer=setInterval(function(){n++;render(n,true);if(n>=steps.length){clearInterval(timer);timer=null;}},1000);
+    });
+  }
+  /* checklist count */
+  var boxes=document.querySelectorAll('[data-chk]'),cnt=document.getElementById('chk-count');
+  function tally(){var n=0;boxes.forEach(function(b){if(b.checked)n++;});if(cnt)cnt.textContent=n+' of '+boxes.length+' checked';}
+  boxes.forEach(function(b){b.addEventListener('change',tally);});
+})();
+</script>
+</body>
+</html>

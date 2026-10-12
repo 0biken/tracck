@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "services", "**/*.test.ts", "packages/core/src/testing.ts", "packages/core/src/bullmq.ts", "vitest.config.mts"]
 }

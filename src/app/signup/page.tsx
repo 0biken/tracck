@@ -1,58 +1,81 @@
 import Link from 'next/link'
 import { signup } from '../auth/actions'
+import { AuthShell } from '@/components/auth-shell'
+import { Alert } from '@/components/ui/alert'
+import { Button, buttonClass } from '@/components/ui/button'
+import { TextField } from '@/components/ui/field'
+import { authErrorMessage } from '@/lib/auth-errors'
 
-export default function SignupPage() {
+export const metadata = { title: 'Create account | Tracck' }
+
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; sent?: string }>
+}) {
+  const params = await searchParams
+  const error = authErrorMessage(params.error)
+
+  if (params.sent) {
+    return (
+      <AuthShell title="Check your email" lede="One more step before you can sign in.">
+        <Alert tone="info" title="We sent you a confirmation link">
+          Open the link in that email to confirm your address, then sign in.
+        </Alert>
+        <Link href="/login" className={buttonClass('secondary', 'lg', 'w-full')}>
+          Go to sign in
+        </Link>
+      </AuthShell>
+    )
+  }
+
   return (
-    <main className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Create an Account</h1>
-          <p>Start tracking your accomplishments today.</p>
-        </div>
-        
-        <form className="auth-form" action={signup}>
-          <div className="form-group">
-            <label htmlFor="name">Full Name</label>
-            <input 
-              id="name" 
-              name="name" 
-              type="text" 
-              placeholder="Jane Doe" 
-              required 
-            />
-          </div>
+    <AuthShell
+      title="Create account"
+      lede="Build resumes from work you can show, with a source behind every claim."
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link href="/login" className="font-semibold text-accent-ink underline">
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      {error && (
+        <Alert tone="danger" title={error.title}>
+          {error.body}
+        </Alert>
+      )}
 
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder="you@example.com" 
-              required 
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input 
-              id="password" 
-              name="password" 
-              type="password" 
-              placeholder="••••••••" 
-              required 
-            />
-          </div>
-          
-          <button type="submit" className="auth-button">
-            Create Account
-          </button>
-        </form>
-        
-        <div className="auth-footer">
-          Already have an account? <Link href="/login">Sign in</Link>
-        </div>
-      </div>
-    </main>
+      <form action={signup} className="flex flex-col gap-4">
+        <TextField
+          id="name"
+          label="Full name"
+          type="text"
+          autoComplete="name"
+          help="As you want it to appear on your resume."
+          required
+        />
+        <TextField
+          id="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          required
+        />
+        <TextField
+          id="password"
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          required
+        />
+        <Button type="submit" size="lg" className="mt-2 w-full">
+          Create account
+        </Button>
+      </form>
+    </AuthShell>
   )
 }

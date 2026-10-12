@@ -1,83 +1,84 @@
+# Tracck
 
-# 🎯 Tracck
+Tracck builds resumes from work a person can show. It keeps a record of entries drawn from their sources, and every claim on a resume traces back to an entry and the passage that supports it.
 
-Tracck is an automated professional accomplishment tracker and ATS-optimized resume generator. It automatically syncs your activity across platforms like GitHub, X (Twitter), LinkedIn, and Figma, uses AI to extract meaningful achievements, and builds beautiful, ready-to-download resumes.
+**Status: early build.** Sign-in, the app shell and the background-job foundation exist. Importing sources, the AI engine and resume export are not built yet. See the [gap analysis](./docs/architecture/GAP_ANALYSIS.md) for exactly what is done.
 
----
+## What is in the repository
 
-## 🚀 Features
+| Path | What it is |
+|---|---|
+| `src/` | Next.js 16 frontend: sign-in, signup, and the app shell (Overview, Sources, Review, Roles, Resumes) |
+| `services/api/` | HTTPS API (Fastify). Verifies Supabase tokens, creates jobs, serves job status and a server-sent event stream |
+| `services/worker/` | Background worker (BullMQ). Runs jobs, retries with backoff, recovers lost jobs |
+| `packages/core/` | Code shared by all three: job states, the PostgreSQL job store, queue contract, labels, error codes |
+| `supabase/migrations/` | Database schema and row-level security |
+| `docs/` | Architecture, design system, audit and gap analysis |
 
-- **Automated Social Sync**: Pulls data from external developer and social platforms on a recurring schedule.
-- **AI-Powered Extraction**: Leverages **Google Gemini (`gemini-flash-latest`)** to filter the noise, detect genuine professional signals, and craft quantified resume bullets.
-- **ATS-Optimized Resumes**: Programmatically builds and scores resumes in both PDF and DOCX formats.
-- **Email Notifications**: Keep users in the loop when new achievements are detected using Resend.
-- **Fully Decoupled Architecture**: Fast Next.js frontend with heavy processing offloaded to isolated background workers.
+PostgreSQL is the source of truth for job state. Redis only carries job IDs between the API and the worker.
 
----
+## Documentation
 
-## 🏗️ Architecture
+- [Technical Architecture v2](./docs/architecture/Tracck_Technical_Architecture_v2.md): the target architecture and phased plan.
+- [Design system](./docs/design/tracck-design-system.html): tokens, components, patterns and the review checklist.
+- [Gap analysis](./docs/architecture/GAP_ANALYSIS.md): what is built, what is open, what is blocked.
+- [Implementation audit](./docs/architecture/IMPLEMENTATION_AUDIT.md): the Phase 0 audit of the starting point.
+- [`docs/archive/v1/`](./docs/archive/v1/): the superseded first design.
 
-Tracck is split into three main deployment targets to ensure high performance and scalability:
+## Local setup
 
-1. **Frontend & API (Vercel)**
-   - Next.js 14 App Router.
-   - Handles OAuth, session management, and exposes standard REST API routes.
-2. **Background Workers (Railway)**
-   - Node.js 20 processes using **BullMQ** & **Upstash Redis**.
-   - Handles asynchronous scraping, Gemini AI processing, and PDF/DOCX document generation.
-3. **Database & Auth (Supabase)**
-   - Managed PostgreSQL 15 database.
-   - Supabase Auth integration.
-   - Row-Level Security (RLS) and real-time database webhooks to enqueue jobs automatically.
+Requires Node.js 20 or later.
 
----
+```bash
+npm install
+```
 
-## 🛠️ Tech Stack
+```bash
+cp .env.example .env.local
+```
 
-- **Framework**: [Next.js 14](https://nextjs.org/)
-- **Database & Auth**: [Supabase](https://supabase.com/)
-- **Job Queues**: [BullMQ](https://docs.bullmq.io/) + [Upstash Redis](https://upstash.com/)
-- **AI Provider**: [Google Gemini API](https://aistudio.google.com/)
-- **Emails**: [Resend](https://resend.com/)
-- **Document Generation**: [Puppeteer](https://pptr.dev/) (PDF) + [docx-js](https://docx.js.org/) (DOCX)
+Fill in `.env.local`. The frontend needs the two `NEXT_PUBLIC_SUPABASE_*` values to sign in. Without them the sign-in page loads and explains what is missing.
 
----
+Apply the files in `supabase/migrations/` to your Supabase project in order, with the Supabase CLI or the SQL editor.
 
-## 📚 Documentation Reference
+Run the frontend:
 
-Detailed documentation can be found in the repository:
+```bash
+npm run dev
+```
 
-- [`system-design.md`](./system-design.md): In-depth system architecture and data flow diagrams.
-- [`api-design.md`](./api-design.md): REST API contracts, error codes, and rate limiting.
-- [`database-migrations.md`](./database-migrations.md): Core PostgreSQL schema, RLS policies, and triggers.
-- [`env-secrets.md`](./env-secrets.md): Comprehensive list of environment variables and rotation policies.
+Run the API and the worker, each in its own terminal. Both need `DATABASE_URL` and `REDIS_URL` in their environment:
 
----
+```bash
+npm run dev:api
+```
 
-## 💻 Local Setup
+```bash
+npm run dev:worker
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/0biken/traack.git
-   cd traack
-   ```
+To check the job path end to end, set `ENABLE_DIAGNOSTIC_JOBS=true` for the API and `NEXT_PUBLIC_API_URL` for the frontend. The Overview page then shows a "Start test job" button in development.
 
-2. **Configure Environment Variables:**
-   Copy `.env.example` to `.env.local` and fill in the required keys. See `env-secrets.md` for specific details on acquiring keys for Gemini, Supabase, and OAuth providers.
-   ```bash
-   cp .env.example .env.local
-   ```
+## Checks
 
-3. **Set up the Database:**
-   Run the 9 migration scripts located in the documentation (or via Supabase CLI) to set up your tables, webhooks, and RLS policies.
+```bash
+npm run lint
+```
 
-4. **Install Dependencies and Run:**
-   *(Note: Codebase scaffolding in progress)*
-   ```bash
-   npm install
-   npm run dev
-   ```
+```bash
+npm run typecheck
+```
 
-## 📄 License
+```bash
+npm test
+```
+
+```bash
+npm run build
+```
+
+The tests need no database or Redis. They run the real migrations against an in-process PostgreSQL.
+
+## License
 
 MIT License.

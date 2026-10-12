@@ -1,7 +1,30 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isSupabaseConfigured } from './config'
+
+function isPublicPath(pathname: string) {
+  return (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/auth')
+  )
+}
+
+function redirectToLogin(request: NextRequest) {
+  const url = request.nextUrl.clone()
+  url.pathname = '/login'
+  url.search = ''
+  return NextResponse.redirect(url)
+}
 
 export async function updateSession(request: NextRequest) {
+  // Without Supabase credentials nobody can be signed in, so only the public pages load.
+  if (!isSupabaseConfigured()) {
+    return isPublicPath(request.nextUrl.pathname)
+      ? NextResponse.next({ request })
+      : redirectToLogin(request)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -15,7 +38,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -35,16 +58,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/signup') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
+    return redirectToLogin(request)
   }
 
   return supabaseResponse

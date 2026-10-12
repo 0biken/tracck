@@ -1,47 +1,59 @@
 import Link from 'next/link'
 import { login } from '../auth/actions'
+import { AuthShell } from '@/components/auth-shell'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { TextField } from '@/components/ui/field'
+import { authErrorMessage } from '@/lib/auth-errors'
 
-export default function LoginPage() {
+export const metadata = { title: 'Sign in | Tracck' }
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const error = authErrorMessage((await searchParams).error)
+
   return (
-    <main className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in to your Tracck account to continue.</p>
-        </div>
-        
-        <form className="auth-form" action={login}>
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder="you@example.com" 
-              required 
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input 
-              id="password" 
-              name="password" 
-              type="password" 
-              placeholder="••••••••" 
-              required 
-            />
-          </div>
-          
-          <button type="submit" className="auth-button">
-            Sign In
-          </button>
-        </form>
-        
-        <div className="auth-footer">
-          Don't have an account? <Link href="/signup">Sign up</Link>
-        </div>
-      </div>
-    </main>
+    <AuthShell
+      title="Sign in"
+      lede="Pick up where you left off."
+      footer={
+        <>
+          New to Tracck?{' '}
+          <Link href="/signup" className="font-semibold text-accent-ink underline">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      {error && (
+        <Alert tone="danger" title={error.title}>
+          {error.body}
+        </Alert>
+      )}
+
+      <form action={login} className="flex flex-col gap-4">
+        <TextField
+          id="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          required
+        />
+        <TextField
+          id="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
+        <Button type="submit" size="lg" className="mt-2 w-full">
+          Sign in
+        </Button>
+      </form>
+    </AuthShell>
   )
 }
