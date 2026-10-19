@@ -1,0 +1,84 @@
+/* Tracck design tokens. Source: the Tracck design system (Light "paper" and Dark "ink").
+   Light is the default. The system theme applies unless the user picked Light,
+   and an explicit Dark choice always wins (data-theme on <html>).
+
+   Colour roles, not hues: `signal` is the one accent (verified, ready, hover),
+   `ink` is the primary action, `danger` is for destructive and failed states. */
+:root {
+  color-scheme: light;
+  --canvas: #F7F5F0;
+  --sunken: #F1EEE6;
+  --sunken-2: #E8E3D8;
+  --ink: #141310;
+  --ink-muted: #5C5647;
+  --line: #D6D0C4;
+  --line-strong: #B9B19D;
+  --line-input: #8A8371;
+  --signal: #1F6F4A;
+  --on-signal: #F7F5F0;
+  --signal-tint: #E3EFE8;
+  --danger: #C4432E;
+  --on-danger: #F7F5F0;
+  --danger-ink: #A63A26;
+  --danger-tint: #F6E1DC;
+  --inverse: #141310;
+  --on-inverse: #F7F5F0;
+  --inverse-muted: #B3AB98;
+  --inverse-line: #3A372F;
+  --signal-on-inverse: #3FA872;
+  --scrim: rgba(20, 19, 16, .72);
+}
+
+/* Follow the system unless the user chose Light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #141310;
+    --sunken: #1E1C18;
+    --sunken-2: #2A2720;
+    --ink: #F7F5F0;
+    --ink-muted: #B3AB98;
+    --line: #3A372F;
+    --line-strong: #55513F;
+    --line-input: #8A8371;
+    --signal: #3FA872;
+    --on-signal: #141310;
+    --signal-tint: #1B2C23;
+    --danger: #E2765F;
+    --on-danger: #141310;
+    --danger-ink: #E2765F;
+    --danger-tint: #3A211C;
+    --inverse: #F7F5F0;
+    --on-inverse: #141310;
+    --inverse-muted: #5C5647;
+    --inverse-line: #D6D0C4;
+    --signal-on-inverse: #1F6F4A;
+    --scrim: rgba(0, 0, 0, .72);
+  }
+}
+
+/* Explicit Dark choice */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #141310;
+  --sunken: #1E1C18;
+  --sunken-2: #2A2720;
+  --ink: #F7F5F0;
+  --ink-muted: #B3AB98;
+  --line: #3A372F;
+  --line-strong: #55513F;
+  --line-input: #8A8371;
+  --signal: #3FA872;
+  --on-signal: #141310;
+  --signal-tint: #1B2C23;
+  --danger: #E2765F;
+  --on-danger: #141310;
+  --danger-ink: #E2765F;
+  --danger-tint: #3A211C;
+  --inverse: #F7F5F0;
+  --on-inverse: #141310;
+  --inverse-muted: #5C5647;
+  --inverse-line: #D6D0C4;
+  --signal-on-inverse: #1F6F4A;
+  --scrim: rgba(0, 0, 0, .72);
+}

@@ -1,0 +1,151 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-sunken: var(--sunken);
+  --color-sunken-2: var(--sunken-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-input: var(--line-input);
+  --color-signal: var(--signal);
+  --color-on-signal: var(--on-signal);
+  --color-signal-tint: var(--signal-tint);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-tint: var(--danger-tint);
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-inverse-muted: var(--inverse-muted);
+  --color-inverse-line: var(--inverse-line);
+  --color-signal-on-inverse: var(--signal-on-inverse);
+  --color-scrim: var(--scrim);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), SFMono-Regular, Consolas, monospace;
+
+  /* Buttons and tags are 4px, fields and cards 2px. Nothing in this system is round. */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+}
+
+/* In the base layer so utilities (like a button's text colour) always win. */
+@layer base {
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
+  }
+
+  a { color: inherit; }
+}
+
+/* Type scale. Sizes that are large on desktop shrink on phones; the scale and
+   ratios stay the same (Fraunces for the claim, Archivo to explain, JetBrains
+   Mono for anything that is data). */
+@utility t-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(52px, 9vw, 96px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+@utility t-h1 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(38px, 5.2vw, 58px);
+  line-height: 1.07;
+  letter-spacing: -0.03em;
+}
+@utility t-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(30px, 3.6vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+@utility t-h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: -0.01em;
+}
+@utility t-claim {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 30px;
+  letter-spacing: -0.005em;
+}
+@utility t-body {
+  font-size: 18px;
+  line-height: 28px;
+}
+@utility t-body-sm {
+  font-size: 15px;
+  line-height: 22px;
+}
+@utility t-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+@utility t-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+@utility t-mono {
+  font-family: var(--font-mono);
+}
+@utility t-colhead {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Export PDF prints only the resume page, in black on white. */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-width: none;
+    border: 0;
+    padding: 0;
+    outline: 0;
+  }
+  .print-area [data-flag], .print-area [data-selected] {
+    background: none !important;
+    outline: 0 !important;
+  }
+  .print-area [data-flag-label] { display: none; }
+  @page { size: A4; margin: 16mm; }
+}

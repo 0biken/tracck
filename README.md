@@ -8,12 +8,14 @@ Tracck builds resumes from work a person can show. It keeps a record of entries 
 
 | Path | What it is |
 |---|---|
-| `src/` | Next.js 16 frontend: sign-in, signup, and the app shell (Overview, Sources, Review, Roles, Resumes) |
-| `services/api/` | HTTPS API (Fastify). Verifies Supabase tokens, creates jobs, serves job status and a server-sent event stream |
-| `services/worker/` | Background worker (BullMQ). Runs jobs, retries with backoff, recovers lost jobs |
-| `packages/core/` | Code shared by all three: job states, the PostgreSQL job store, queue contract, labels, error codes |
+| `frontend/` | Next.js 16 app: marketing and pricing, sign-in and signup, onboarding, the product screens (Home, Resumes and the editor, Career Graph, Evidence library, Sources, CV feedback, Settings) and the organisation API screens. Product screens run on sample data in `src/lib/mock/` until the API has endpoints for them |
+| `backend/` | HTTPS API (Fastify). Verifies Supabase tokens, creates jobs, serves job status and a server-sent event stream |
+| `workers/` | Background workers (BullMQ). Run jobs, retry with backoff, recover lost jobs |
+| `shared/` | Source-only code used by all three: job states, the PostgreSQL job store, queue contract, labels, error codes |
 | `supabase/migrations/` | Database schema and row-level security |
 | `docs/` | Architecture, design system, audit and gap analysis |
+
+The frontend, backend and workers are separate apps. Each has its own `package.json`, lockfile and `node_modules`, and none of them depends on a root install. `shared/` is linked into each one as a local dependency (`"@tracck/shared": "file:../shared"`). It has no `node_modules` of its own: each app compiles it, and its tests run in `workers/`.
 
 PostgreSQL is the source of truth for job state. Redis only carries job IDs between the API and the worker.
 
@@ -27,43 +29,45 @@ PostgreSQL is the source of truth for job state. Redis only carries job IDs betw
 
 ## Local setup
 
-Requires Node.js 20 or later.
+Requires Node.js 22.12 or later (the test runner needs it; the frontend alone runs on 20.9+).
+
+Install each app on its own:
 
 ```bash
-npm install
+cd frontend && npm install
 ```
 
 ```bash
-cp .env.example .env.local
+cd backend && npm install
 ```
 
-Fill in `.env.local`. The frontend needs the two `NEXT_PUBLIC_SUPABASE_*` values to sign in. Without them the sign-in page loads and explains what is missing.
+```bash
+cd workers && npm install
+```
+
+Each app has its own `.env.example`. Copy it next to itself and fill it in: `frontend/.env.local`, `backend/.env`, `workers/.env`. The frontend needs the two `NEXT_PUBLIC_SUPABASE_*` values to sign in. Without them the sign-in page loads and explains what is missing. The backend and workers both need `DATABASE_URL` and `REDIS_URL`.
 
 Apply the files in `supabase/migrations/` to your Supabase project in order, with the Supabase CLI or the SQL editor.
 
-Run the frontend:
+Run each app in its own terminal:
 
 ```bash
-npm run dev
-```
-
-Run the API and the worker, each in its own terminal. Both need `DATABASE_URL` and `REDIS_URL` in their environment:
-
-```bash
-npm run dev:api
+cd frontend && npm run dev
 ```
 
 ```bash
-npm run dev:worker
+cd backend && npm run dev
 ```
 
-To check the job path end to end, set `ENABLE_DIAGNOSTIC_JOBS=true` for the API and `NEXT_PUBLIC_API_URL` for the frontend. The Overview page then shows a "Start test job" button in development.
+```bash
+cd workers && npm run dev
+```
+
+To check the job path end to end, set `ENABLE_DIAGNOSTIC_JOBS=true` for the backend and `NEXT_PUBLIC_API_URL` for the frontend. The Overview page then shows a "Start test job" button in development.
 
 ## Checks
 
-```bash
-npm run lint
-```
+Run these inside each app folder. `backend` and `workers` have `typecheck` and `test`; `frontend` has `lint`, `typecheck` and `build`.
 
 ```bash
 npm run typecheck
@@ -71,10 +75,6 @@ npm run typecheck
 
 ```bash
 npm test
-```
-
-```bash
-npm run build
 ```
 
 The tests need no database or Redis. They run the real migrations against an in-process PostgreSQL.
