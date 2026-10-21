@@ -5,7 +5,7 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { ApiError } from '@tracck/shared';
 
-export type VerifyToken = (token: string) => Promise<{ userId: string }>;
+export type VerifyToken = (token: string) => Promise<{ userId: string; email?: string | null }>;
 
 export function createTokenVerifier(options: { supabaseUrl: string; jwtSecret?: string }): VerifyToken {
   const issuer = `${options.supabaseUrl.replace(/\/$/, '')}/auth/v1`;
@@ -19,7 +19,7 @@ export function createTokenVerifier(options: { supabaseUrl: string; jwtSecret?: 
         ? jwtVerify(token, key, { issuer, audience: 'authenticated' })
         : jwtVerify(token, key, { issuer, audience: 'authenticated', algorithms: ['HS256'] }));
       if (!payload.sub) throw new Error('Token has no subject');
-      return { userId: payload.sub };
+      return { userId: payload.sub, email: typeof payload.email === 'string' ? payload.email : null };
     } catch {
       throw new ApiError(401, 'UNAUTHORIZED', 'Sign in to continue.');
     }

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 
 /** The request as the API sees it: with an ID, and the user once they are signed in. */
-export type ApiRequest = Request & { id: string; userId?: string };
+export type ApiRequest = Request & { id: string; userId?: string; userEmail?: string | null };
 
 /**
  * Gives every request an ID. It doubles as the correlation ID in error envelopes

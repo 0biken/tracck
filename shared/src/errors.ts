@@ -12,6 +12,16 @@ export const ERROR_CODES = [
   'INTERNAL_ERROR',
   'WORKER_LOST',
   'UNSUPPORTED_JOB_TYPE',
+  // Product API
+  'FORBIDDEN',
+  'PLAN_LIMIT_REACHED',
+  'CONSENT_REQUIRED',
+  'VERSION_CONFLICT',
+  'NOT_CONFIGURED',
+  'UNSUPPORTED_FILE_TYPE',
+  'FILE_TOO_LARGE',
+  'PAYMENT_FAILED',
+  'INVALID_SIGNATURE',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

@@ -3,7 +3,9 @@ import type { Redis } from 'ioredis';
 import pg from 'pg';
 import { JobStore, jobEventsChannel } from '@tracck/shared';
 import type { ApiEnv } from '../config/env';
+import { createDb } from '../db';
 import {
+  DB,
   ENV,
   JOB_EVENTS,
   JOB_QUEUE,
@@ -12,10 +14,12 @@ import {
   PG_POOL,
   PUBLISHER_REDIS,
   QUEUE_REDIS,
+  RATE_LIMITER,
   SUBSCRIBER_REDIS,
 } from '../tokens';
 import { BullJobQueue, createRedis } from './bullmq';
 import { createRedisJobEvents } from './job-events';
+import { createRedisRateLimiter } from './rate-limiter';
 
 /** Closes every connection when the app stops, after the job worker has finished its jobs. */
 @Injectable()
@@ -51,9 +55,11 @@ class ConnectionsShutdown implements OnApplicationShutdown {
       inject: [ENV],
       useFactory: (env: ApiEnv) => new pg.Pool({ connectionString: env.DATABASE_URL }),
     },
+    { provide: DB, inject: [PG_POOL], useFactory: (pool: pg.Pool) => createDb(pool) },
     { provide: QUEUE_REDIS, inject: [ENV], useFactory: (env: ApiEnv) => createRedis(env.REDIS_URL) },
     { provide: SUBSCRIBER_REDIS, inject: [ENV], useFactory: (env: ApiEnv) => createRedis(env.REDIS_URL) },
     { provide: PUBLISHER_REDIS, inject: [ENV], useFactory: (env: ApiEnv) => createRedis(env.REDIS_URL) },
+    { provide: RATE_LIMITER, inject: [QUEUE_REDIS], useFactory: (redis: Redis) => createRedisRateLimiter(redis) },
     { provide: JOB_STORE, inject: [PG_POOL], useFactory: (pool: pg.Pool) => new JobStore(pool) },
     { provide: JOB_QUEUE, inject: [QUEUE_REDIS], useFactory: (redis: Redis) => new BullJobQueue(redis) },
     { provide: JOB_EVENTS, inject: [SUBSCRIBER_REDIS], useFactory: (redis: Redis) => createRedisJobEvents(redis) },
@@ -66,6 +72,6 @@ class ConnectionsShutdown implements OnApplicationShutdown {
     },
     ConnectionsShutdown,
   ],
-  exports: [JOB_STORE, JOB_QUEUE, JOB_EVENTS, NOTIFY_JOB],
+  exports: [DB, JOB_STORE, JOB_QUEUE, JOB_EVENTS, NOTIFY_JOB, RATE_LIMITER],
 })
 export class ConnectionsModule {}

@@ -11,6 +11,11 @@ export const JOB_TYPES = [
   'source_sync',
   'cleanup',
   'diagnostic',
+  'data_export',
+  'account_deletion',
+  'email_send',
+  'webhook_delivery',
+  'weekly_digest',
 ] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 

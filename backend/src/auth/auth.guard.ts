@@ -14,8 +14,9 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<ApiRequest>();
-    const { userId } = await this.verifyToken(bearerToken(request.headers.authorization));
+    const { userId, email } = await this.verifyToken(bearerToken(request.headers.authorization));
     request.userId = userId;
+    request.userEmail = email ?? null;
     return true;
   }
 }

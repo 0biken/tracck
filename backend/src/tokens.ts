@@ -5,6 +5,8 @@
 export const ENV = Symbol('ENV');
 
 export const PG_POOL = Symbol('PG_POOL');
+/** Typed queries (Drizzle) over the same pool the job store uses. */
+export const DB = Symbol('DB');
 export const QUEUE_REDIS = Symbol('QUEUE_REDIS');
 export const SUBSCRIBER_REDIS = Symbol('SUBSCRIBER_REDIS');
 export const PUBLISHER_REDIS = Symbol('PUBLISHER_REDIS');
@@ -19,3 +21,11 @@ export const JOB_HANDLERS = Symbol('JOB_HANDLERS');
 export const STREAM_POLL_MS = Symbol('STREAM_POLL_MS');
 
 export const VERIFY_TOKEN = Symbol('VERIFY_TOKEN');
+/** Counts calls per key in a time window, shared across instances. */
+export const RATE_LIMITER = Symbol('RATE_LIMITER');
+
+/** Integration clients. Each throws NOT_CONFIGURED when its settings are missing. */
+export const STORAGE = Symbol('STORAGE');
+export const EMAIL = Symbol('EMAIL');
+export const AI_ENGINE = Symbol('AI_ENGINE');
+export const CLOCK = Symbol('CLOCK');

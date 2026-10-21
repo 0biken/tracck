@@ -1,84 +1,26 @@
-import 'reflect-metadata';
-import { Global, Module, type INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ApiError, JobStore } from '@tracck/shared';
-import { AppModule } from './app.module';
-import { configureApp } from './app.setup';
-import type { ApiEnv } from './config/env';
-import { ConnectionsModule } from './connections/connections.module';
-import { ENV, JOB_EVENTS, JOB_QUEUE, JOB_STORE, NOTIFY_JOB, STREAM_POLL_MS, VERIFY_TOKEN } from './tokens';
-import { FakeJobQueue, createTestDatabase, createTestUser, type PGlite } from './testing';
+import type { JobStore } from '@tracck/shared';
+import { createTestApp, type TestApp } from './test/harness';
+import type { FakeJobQueue } from './testing';
 
-let db: PGlite;
+let ctx: TestApp;
 let store: JobStore;
 let queue: FakeJobQueue;
-let app: INestApplication;
 let userId: string;
 let otherUserId: string;
 
-/** In-memory stand-ins for PostgreSQL and Redis, in place of the real connections module. */
-function fakeConnections() {
-  const providers = [
-    { provide: JOB_STORE, useValue: store },
-    { provide: JOB_QUEUE, useValue: queue },
-    { provide: JOB_EVENTS, useValue: { subscribe: () => () => {} } },
-    { provide: NOTIFY_JOB, useValue: async () => {} },
-  ];
-  @Global()
-  @Module({ providers, exports: providers.map((provider) => provider.provide) })
-  class FakeConnectionsModule {}
-  return FakeConnectionsModule;
-}
-
-async function createApp(options: { enableDiagnosticJobs: boolean }) {
-  const env: ApiEnv = {
-    PORT: 0,
-    DATABASE_URL: 'unused',
-    REDIS_URL: 'unused',
-    SUPABASE_URL: 'https://example.supabase.co',
-    APP_ORIGIN: 'http://localhost:3000',
-    ENABLE_DIAGNOSTIC_JOBS: options.enableDiagnosticJobs ? 'true' : 'false',
-    RUN_JOB_WORKER: 'false',
-    WORKER_CONCURRENCY: 1,
-    RECONCILE_INTERVAL_SECONDS: 30,
-  };
-
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideModule(ConnectionsModule)
-    .useModule(fakeConnections())
-    .overrideProvider(ENV)
-    .useValue(env)
-    // Tokens in these tests are simply "token-<userId>".
-    .overrideProvider(VERIFY_TOKEN)
-    .useValue(async (token: string) => {
-      if (!token.startsWith('token-')) throw new ApiError(401, 'UNAUTHORIZED', 'Sign in to continue.');
-      return { userId: token.slice('token-'.length) };
-    })
-    .overrideProvider(STREAM_POLL_MS)
-    .useValue(50)
-    .compile();
-
-  const created = moduleRef.createNestApplication();
-  configureApp(created, { appOrigin: env.APP_ORIGIN });
-  await created.init();
-  return created;
-}
-
 beforeAll(async () => {
-  db = await createTestDatabase();
-  store = new JobStore(db);
-  queue = new FakeJobQueue();
-  userId = await createTestUser(db);
-  otherUserId = await createTestUser(db);
-  app = await createApp({ enableDiagnosticJobs: true });
+  ctx = await createTestApp();
+  store = ctx.store;
+  queue = ctx.queue;
+  userId = await ctx.newUser();
+  otherUserId = await ctx.newUser();
 });
 
-afterAll(() => app.close());
+afterAll(() => ctx.close());
 
-const http = () => request(app.getHttpServer());
-const as = (id: string) => ({ authorization: `Bearer token-${id}` });
+const http = () => ctx.http();
+const as = (id: string) => ctx.as(id);
 
 const createJob = (headers: Record<string, string>, payload: object = { stepDelayMs: 0 }) =>
   http().post('/v1/diagnostic-jobs').set(headers).send(payload);
@@ -242,10 +184,12 @@ describe('API', () => {
   });
 
   it('does not expose the diagnostic route unless it is enabled', async () => {
-    const closed = await createApp({ enableDiagnosticJobs: false });
-    const response = await request(closed.getHttpServer())
+    const closed = await createTestApp({ env: { ENABLE_DIAGNOSTIC_JOBS: 'false' } });
+    const user = await closed.newUser();
+    const response = await closed
+      .http()
       .post('/v1/diagnostic-jobs')
-      .set({ ...as(userId), 'idempotency-key': crypto.randomUUID() })
+      .set({ ...closed.as(user), 'idempotency-key': crypto.randomUUID() })
       .send({});
     expect(response.status).toBe(404);
     await closed.close();
