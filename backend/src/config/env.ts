@@ -1,0 +1,30 @@
+import { z } from 'zod';
+
+const schema = z.object({
+  PORT: z.coerce.number().int().default(4000),
+  DATABASE_URL: z.string().min(1),
+  REDIS_URL: z.string().min(1),
+  SUPABASE_URL: z.url(),
+  /** Only for projects still on the legacy shared JWT secret. Leave unset to verify with the project's public keys. */
+  SUPABASE_JWT_SECRET: z.string().min(1).optional(),
+  /** The frontend origin allowed to call this API. */
+  APP_ORIGIN: z.url(),
+  ENABLE_DIAGNOSTIC_JOBS: z.enum(['true', 'false']).default('false'),
+  /** Run background jobs in this process. Set to false for an API-only instance. */
+  RUN_JOB_WORKER: z.enum(['true', 'false']).default('true'),
+  /** How many background jobs this process runs at once. */
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(4),
+  /** How often to recover jobs that lost their queue entry or went silent. */
+  RECONCILE_INTERVAL_SECONDS: z.coerce.number().int().min(5).default(30),
+});
+
+export type ApiEnv = z.infer<typeof schema>;
+
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
+  const parsed = schema.safeParse(source);
+  if (!parsed.success) {
+    const names = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
+    throw new Error(`Missing or invalid environment variables: ${names}. See .env.example.`);
+  }
+  return parsed.data;
+}

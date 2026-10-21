@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Source-only code shared by the frontend, backend and workers: job states, the PostgreSQL job store, queue contract, labels, error codes. No dependencies and no install of its own; each app compiles and tests it.",
+  "description": "Source-only code shared by the frontend and backend: job states, the PostgreSQL job store, queue contract, labels, error codes. No dependencies and no install of its own; each app compiles and tests it.",
   "exports": {
     ".": "./src/index.ts"
   }
