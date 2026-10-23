@@ -97,6 +97,11 @@ describe('writing and reading a resume', () => {
     resumeId = first.body.resumeId;
     jobId = first.body.jobId;
 
+    const before = await used(tolu);
+    const unknown = await send('post', '/v1/resumes', { jobDescription: JOB, length: 'one_page', templateId: 'nope' }, tolu, key());
+    expect(unknown.status).toBe(422);
+    expect(await used(tolu)).toBe(before);
+
     const again = await send('post', '/v1/resumes', { jobDescription: JOB, company: 'Paystack', focus: 'payments', length: 'one_page' }, tolu, idempotency);
     expect(again.status).toBe(202);
     expect(again.body).toMatchObject({ resumeId, jobId });
@@ -115,6 +120,8 @@ describe('writing and reading a resume', () => {
     const { body } = await get(`/v1/resumes/${resumeId}`);
     expect(body).toMatchObject({ status: 'draft', version: 1, engine: 'placeholder', jobId: null, length: 'one_page', job: { focus: 'payments' } });
     expect(body.content.header).toEqual({ name: 'Tolu Adebayo', contact: `${tolu}@example.com · Lagos, Nigeria` });
+    expect(body.content).toMatchObject({ templateId: 'classic-red', person: { name: 'Tolu Adebayo', location: 'Lagos, Nigeria' } });
+    expect(body.content.layout).toMatchObject({ templateId: 'classic-red' });
 
     const bullets = body.content.sections.flatMap((s: { groups?: { bullets: { id: string; text: string; evidence: string[] }[] }[] }) => (s.groups ?? []).flatMap((g) => g.bullets));
     expect(bullets.length).toBeGreaterThan(0);

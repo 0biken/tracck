@@ -3,7 +3,7 @@
 // through this one interface, so the engine can be designed later without
 // touching the rest of the API. Today the only implementation is a placeholder.
 
-import type { CvReviewView, MatchReport, ResumeContent, ResumeLength, RoleId, SourceProvider } from '@tracck/shared';
+import type { CvReviewView, MatchReport, PersonDetails, ResumeContent, ResumeLength, RoleId, SourceProvider } from '@tracck/shared';
 
 /** One piece of source material to read: a repository, a page, a CV, pasted text. */
 export interface SourceDocument {
@@ -60,6 +60,7 @@ export interface EvidenceCandidate {
   title: string;
   claimText: string;
   skills: string[];
+  topics: string[];
   projectKey: string | null;
   source: 'GITHUB' | 'CV' | 'LINKEDIN' | 'PORTFOLIO' | 'X' | 'MANUAL';
   where: string | null;
@@ -70,11 +71,14 @@ export interface EvidenceCandidate {
 export interface GenerateInput {
   /** For cost records. Not sent to the model. */
   userId?: string;
-  person: { name: string; contact: string };
+  person: PersonDetails;
   job: JobReading & { title: string; company: string | null; description: string };
   focus: string | null;
+  /** What the person asked for, in their words. Guides the choices; never adds facts. */
+  instructions: string | null;
   length: ResumeLength;
   roleId: RoleId | null;
+  templateId: string;
   evidence: EvidenceCandidate[];
 }
 

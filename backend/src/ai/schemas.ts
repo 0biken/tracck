@@ -74,7 +74,7 @@ export const draftSchema = z.object({
 });
 export type DraftOutput = z.infer<typeof draftSchema>;
 
-export const FINDING_KINDS = ['unsupported', 'irrelevant', 'weak', 'vague', 'role_rule', 'repetition', 'missing_requirement'] as const;
+export const FINDING_KINDS = ['unsupported', 'irrelevant', 'weak', 'vague', 'tone', 'role_rule', 'repetition', 'missing_requirement'] as const;
 
 export const critiqueSchema = z.object({
   verdict: z.enum(['pass', 'revise']),
@@ -90,6 +90,15 @@ export const critiqueSchema = z.object({
   uncoveredRequirements: z.array(z.string()).describe('Required skills the evidence could support but the resume does not show.'),
 });
 export type Critique = z.infer<typeof critiqueSchema>;
+
+/** The formatter's choices. Anything it names that the resume does not have is dropped. */
+export const layoutChoiceSchema = z.object({
+  experienceGroupIds: z.array(z.string()).max(30),
+  educationGroupIds: z.array(z.string()).max(10),
+  skills: z.array(z.string()).max(10),
+  strengths: z.array(z.string()).max(6),
+});
+export type LayoutChoice = z.infer<typeof layoutChoiceSchema>;
 
 export const cvReviewSchema = z.object({
   stats: z.array(z.object({ n: z.number(), label: z.string() })).max(4),

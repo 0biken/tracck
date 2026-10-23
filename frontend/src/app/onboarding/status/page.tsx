@@ -15,7 +15,7 @@ export default async function OnboardStatusPage({
   return (
     <>
       <div className="flex max-w-190 flex-col gap-3">
-        <Eyebrow>Step 3 of 3</Eyebrow>
+        <Eyebrow>Step 4 of 4</Eyebrow>
         <h1 className="t-h1 m-0 text-balance">Building your record.</h1>
       </div>
       <CollectionStatus initial={sources} email={me.email ?? ''} />

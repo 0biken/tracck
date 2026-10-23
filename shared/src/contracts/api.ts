@@ -25,6 +25,11 @@ export interface MeView {
   name: string | null;
   headline: string | null;
   location: string | null;
+  phone: string | null;
+  address: string | null;
+  /** ISO date, YYYY-MM-DD. */
+  dateOfBirth: string | null;
+  nationality: string | null;
   roles: RoleId[];
   primaryRole: RoleId | null;
   plan: PlanId;
@@ -39,6 +44,10 @@ export interface UpdateMeRequest {
   name?: string;
   headline?: string | null;
   location?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  dateOfBirth?: string | null;
+  nationality?: string | null;
   roles?: RoleId[];
 }
 
@@ -242,6 +251,7 @@ export interface Bullet {
 }
 
 export interface ResumeGroup {
+  id: string;
   title?: string;
   year?: string;
   bullets: Bullet[];
@@ -251,10 +261,49 @@ export type ResumeSection =
   | { id: string; heading: string; kind: 'text'; text: string }
   | { id: string; heading: string; kind: 'groups'; groups: ResumeGroup[] };
 
+/** Personal details the person gave us. Only the ones they filled in are shown. */
+export interface PersonDetails {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  address: string | null;
+  dateOfBirth: string | null;
+  nationality: string | null;
+}
+
+export interface SkillRating {
+  name: string;
+  /** 1 to 5, from how many evidence entries use the skill. */
+  level: number;
+}
+
+/** How the classic-red template lays out the sections. Ids point into the sections above. */
+export interface ClassicRedLayout {
+  templateId: 'classic-red';
+  experienceGroupIds: string[];
+  educationGroupIds: string[];
+  skills: SkillRating[];
+  strengths: string[];
+}
+
 export interface ResumeContent {
   header: { name: string; contact: string };
+  person: PersonDetails;
+  /** Which template renders this resume, and its layout. */
+  templateId: string;
+  layout: ClassicRedLayout | null;
   sections: ResumeSection[];
   evidenceRefs: Record<string, EvidenceRef>;
+}
+
+export interface TemplateView {
+  id: string;
+  name: string;
+  description: string;
+  /** Path on this API for the preview image. */
+  previewUrl: string;
+  isDefault: boolean;
 }
 
 export interface Requirement {
@@ -312,6 +361,10 @@ export interface CreateResumeRequest {
   focus?: string;
   length: ResumeLength;
   roleId?: RoleId;
+  /** Template to render with; the default when left out. */
+  templateId?: string;
+  /** Anything specific the person wants on the CV, in their words. */
+  instructions?: string;
   /** Source providers to draw on; empty means all ready sources. */
   sources?: SourceProvider[];
 }

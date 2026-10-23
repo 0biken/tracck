@@ -15,6 +15,7 @@ import type {
   CreateEvidenceRequest,
   CreateKeyRequest,
   CreateResumeRequest,
+  TemplateView,
   CreateResumeResponse,
   CreatedKeyResponse,
   CvReviewView,
@@ -122,6 +123,10 @@ export function createApi(call: Transport) {
     cvReview: {
       latest: () => get<CvReviewView | null>('/v1/cv-reviews/latest'),
       request: () => post<{ jobId: string }>('/v1/cv-reviews'),
+    },
+
+    templates: {
+      list: () => get<{ templates: TemplateView[] }>('/v1/templates'),
     },
 
     resumes: {

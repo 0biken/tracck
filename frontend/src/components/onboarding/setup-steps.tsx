@@ -4,8 +4,9 @@ import { usePathname } from 'next/navigation'
 
 const steps = [
   { href: '/onboarding/role', label: '01 ROLE' },
-  { href: '/onboarding/sources', label: '02 SOURCES' },
-  { href: '/onboarding/status', label: '03 STATUS' },
+  { href: '/onboarding/details', label: '02 DETAILS' },
+  { href: '/onboarding/sources', label: '03 SOURCES' },
+  { href: '/onboarding/status', label: '04 STATUS' },
 ]
 
 export function SetupSteps() {

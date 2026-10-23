@@ -14,6 +14,7 @@ import {
   type MatchReport,
   type Page,
   type ParseJobResponse,
+  type PersonDetails,
   type ResumeContent,
   type ResumeDetailView,
   type ResumeStatus,
@@ -22,11 +23,13 @@ import {
   type RoleId,
 } from '@tracck/shared';
 import type { AiEngine } from '../ai/ai-engine';
+import { contactLine } from '../ai/layout';
 import { AuditService } from '../core/audit.service';
 import { EntitlementsService } from '../core/entitlements.service';
 import { JobDispatcher } from '../core/job-dispatcher.service';
 import type { Database } from '../db';
-import { generationRuns, resumeDocuments, resumeVersions, targetOpportunities, userPolicyConsents } from '../db/schema';
+import { generationRuns, profiles, resumeDocuments, resumeVersions, targetOpportunities, userPolicyConsents } from '../db/schema';
+import { DEFAULT_TEMPLATE, getTemplate } from '../templates/registry';
 import type { ObjectStorage } from '../storage/storage';
 import { AI_ENGINE, DB, STORAGE } from '../tokens';
 import { buildMatch, cloneContent, findBullet, groupAt, plainText } from './content';
@@ -154,10 +157,17 @@ export class ResumesService {
   }
 
   private async insertResume(userId: string, email: string | null, resumeId: string, input: CreateResumeRequest, extraFocus: Record<string, unknown> = {}) {
-    const [profile] = rowsOf<{ location: string | null }>(
-      await this.db.execute(sql`select location from public.profiles where id = ${userId}`),
-    );
-    const contact = [email, profile?.location].filter(Boolean).join(' · ');
+    const [profile] = await this.db.select().from(profiles).where(eq(profiles.id, userId));
+    const person: PersonDetails = {
+      name: profile?.displayName ?? 'Your name',
+      email,
+      phone: profile?.phone ?? null,
+      location: profile?.location ?? null,
+      address: profile?.address ?? null,
+      dateOfBirth: profile?.dateOfBirth ?? null,
+      nationality: profile?.nationality ?? null,
+    };
+    const template = getTemplate(input.templateId ?? DEFAULT_TEMPLATE.id);
 
     await this.db.transaction(async (tx) => {
       const [opportunity] = await tx
@@ -188,7 +198,14 @@ export class ResumesService {
         userId,
         targetOpportunityId: opportunity.id,
         resumeDocumentId: resumeId,
-        userFocusJson: { focus: input.focus?.trim() || null, contact, ...extraFocus },
+        userFocusJson: {
+          focus: input.focus?.trim() || null,
+          instructions: input.instructions?.trim() || null,
+          templateId: template.id,
+          person,
+          contact: contactLine(person),
+          ...extraFocus,
+        },
       });
     });
   }

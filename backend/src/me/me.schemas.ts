@@ -7,6 +7,10 @@ export const updateMeSchema = z.strictObject({
   name: z.string().trim().min(1).max(120).optional(),
   headline: z.string().trim().max(200).nullable().optional(),
   location: z.string().trim().max(120).nullable().optional(),
+  phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/).nullable().optional(),
+  address: z.string().trim().max(200).nullable().optional(),
+  dateOfBirth: z.iso.date().nullable().optional(),
+  nationality: z.string().trim().max(60).nullable().optional(),
   roles: roles.optional(),
 });
 

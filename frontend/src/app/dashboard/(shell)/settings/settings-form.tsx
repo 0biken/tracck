@@ -71,6 +71,10 @@ export function SettingsForm({
   const router = useRouter()
   const [name, setName] = useState(me.name ?? '')
   const [location, setLocation] = useState(me.location ?? '')
+  const [phone, setPhone] = useState(me.phone ?? '')
+  const [address, setAddress] = useState(me.address ?? '')
+  const [dateOfBirth, setDateOfBirth] = useState(me.dateOfBirth ?? '')
+  const [nationality, setNationality] = useState(me.nationality ?? '')
   const [prefs, setPrefs] = useState<Preferences>(me.preferences)
   const [orgs, setOrgs] = useState(consents.granted)
   const [confirm, setConfirm] = useState<Confirm>(null)
@@ -86,8 +90,15 @@ export function SettingsForm({
   async function saveAccount() {
     setSaving(true)
     try {
-      await api.me.update({ name: name.trim() || undefined, location: location.trim() || null })
-      say('Saved. Your name and location now appear on new resumes.')
+      await api.me.update({
+        name: name.trim() || undefined,
+        location: location.trim() || null,
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        dateOfBirth: dateOfBirth || null,
+        nationality: nationality.trim() || null,
+      })
+      say('Saved. Your details now appear on new resumes.')
       router.refresh()
     } catch (failure) {
       fail(failure)
@@ -210,6 +221,11 @@ export function SettingsForm({
               autoComplete="email"
             />
             <TextField id="location" label="Location" value={location} onChange={(event) => setLocation(event.target.value)} autoComplete="address-level2" />
+            <TextField id="phone" label="Phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" />
+            <TextField id="address" label="Street address" value={address} onChange={(event) => setAddress(event.target.value)} autoComplete="street-address" />
+            <TextField id="dateOfBirth" label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} />
+            <TextField id="nationality" label="Nationality" value={nationality} onChange={(event) => setNationality(event.target.value)} />
+
             <div className="flex flex-col gap-1.5">
               <span className="t-label">Roles</span>
               <div className="flex min-h-11 flex-wrap items-center gap-1.5">

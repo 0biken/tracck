@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ApiError, type Bullet, type CvReviewView, type EvidenceRef, type ResumeContent, type ResumeGroup, type RoleId } from '@tracck/shared';
+import { ApiError, type Bullet, type CvReviewView, type EvidenceRef, type ResumeContent, type ResumeGroup, type ResumeSection, type RoleId } from '@tracck/shared';
 import type {
   AiEngine,
   EvidenceCandidate,
@@ -10,6 +10,7 @@ import type {
   ResumeDraft,
   SourceDocument,
 } from './ai-engine';
+import { contactLine, defaultLayout, skillUses } from './layout';
 import { findSkills, guessRole } from './lexicon';
 
 const MAX_CLAIM = 600;
@@ -122,7 +123,12 @@ export class PlaceholderEngine implements AiEngine {
     let count = 0;
     for (const entry of chosen) {
       const key = entry.projectKey ?? 'other';
-      const group = groups.get(key) ?? { title: entry.projectKey ? (entry.where ?? entry.projectKey) : 'Other work', year: entry.date?.slice(0, 4), bullets: [] };
+      const group: ResumeGroup = groups.get(key) ?? {
+        id: `g${groups.size + 1}`,
+        title: entry.projectKey ? (entry.where ?? entry.projectKey) : 'Other work',
+        year: entry.date?.slice(0, 4),
+        bullets: [],
+      };
       if (group.bullets.length >= 3) continue;
       count += 1;
       evidenceRefs[entry.id] = { id: entry.id, source: entry.source, where: entry.where, date: entry.date, original: entry.claimText };
@@ -135,12 +141,16 @@ export class PlaceholderEngine implements AiEngine {
     const skills = [...new Set(chosen.flatMap((entry) => entry.skills))].sort((a, b) => Number(wanted.has(b.toLowerCase())) - Number(wanted.has(a.toLowerCase()))).slice(0, 14);
     const have = new Set(chosen.flatMap((entry) => entry.skills.map((skill) => skill.toLowerCase())));
 
+    const sections: ResumeSection[] = [
+      { id: 's-experience', heading: 'Experience and projects', kind: 'groups', groups: [...groups.values()] },
+      ...(skills.length ? [{ id: 's-skills', heading: 'Skills', kind: 'text' as const, text: skills.join(', ') }] : []),
+    ];
     const content: ResumeContent = {
-      header: input.person,
-      sections: [
-        { id: 's-experience', heading: 'Experience and projects', kind: 'groups', groups: [...groups.values()] },
-        ...(skills.length ? [{ id: 's-skills', heading: 'Skills', kind: 'text' as const, text: skills.join(', ') }] : []),
-      ],
+      header: { name: input.person.name, contact: contactLine(input.person) },
+      person: input.person,
+      templateId: input.templateId,
+      layout: defaultLayout(sections, skillUses(chosen)),
+      sections,
       evidenceRefs,
     };
     return {

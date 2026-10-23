@@ -33,6 +33,15 @@ describe('profile', () => {
     });
   });
 
+  it('stores the contact details a CV needs, and rejects a phone number that is not a number', async () => {
+    const saved = await send('patch', '/v1/me', { phone: '+234 801 234 5678', address: '12 Marina, Lagos', dateOfBirth: '1996-04-02', nationality: 'Nigerian' });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toMatchObject({ phone: '+234 801 234 5678', address: '12 Marina, Lagos', dateOfBirth: '1996-04-02', nationality: 'Nigerian' });
+
+    const invalid = await send('patch', '/v1/me', { phone: 'call me' });
+    expect(invalid.status).toBe(400);
+  });
+
   it('updates name, location and roles, and the first role becomes the primary one', async () => {
     const { status, body } = await send('patch', '/v1/me', {
       name: 'Tolu A.',

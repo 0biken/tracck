@@ -12,6 +12,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ApiError,
   type Bullet,
+  type ClassicRedLayout,
   type CvReviewView,
   type ResumeContent,
   type ResumeGroup,
@@ -20,14 +21,19 @@ import {
 } from '@tracck/shared';
 import type { ApiEnv } from '../config/env';
 import { ENV, LLM_CLIENT } from '../tokens';
+import type { TemplateDefinition } from '../templates/template';
+import { getTemplate } from '../templates/registry';
 import type { AiEngine, DraftReview, EvidenceCandidate, ExtractedEvidence, GenerateInput, JobReading, ResumeDraft, SourceDocument } from './ai-engine';
-import { ExampleStore, renderExamples } from './examples';
+import { type ExampleSet, ExampleStore, renderExamples } from './examples';
 import type { LlmClient } from './llm';
+import { contactLine, defaultLayout, layoutFrom, skillUses, traitsOf, type SkillUse } from './layout';
 import { PlaceholderEngine } from './placeholder-engine';
 import {
   criticPrompt,
   criticSystem,
   extractSystem,
+  formatterPrompt,
+  formatterSystem,
   jobSystem,
   lengthLimit,
   renderDraft,
@@ -43,6 +49,7 @@ import {
   draftSchema,
   extractionSchema,
   jobReadingSchema,
+  layoutChoiceSchema,
   type Critique,
   type DraftOutput,
 } from './schemas';
@@ -95,6 +102,12 @@ function number(draft: DraftOutput): Numbered {
 }
 
 const allBullets = (draft: Numbered) => draft.sections.flatMap((section) => section.groups.flatMap((group) => group.bullets));
+
+/** The stored examples for the role, then the template's own sample for the same role. */
+function writerExamples(set: ExampleSet, template: TemplateDefinition, roleId: RoleId | null): string {
+  const sample = roleId ? `<template_example>\n${template.examples[roleId]}\n</template_example>` : '';
+  return [renderExamples(set), sample].filter(Boolean).join('\n\n');
+}
 
 @Injectable()
 export class GeminiEngine implements AiEngine {
@@ -183,13 +196,14 @@ export class GeminiEngine implements AiEngine {
     }
 
     const roleId = input.roleId ?? input.job.roleId;
+    const template = getTemplate(input.templateId);
     const pool = input.evidence.slice(0, this.env.AI_EVIDENCE_LIMIT).map((entry, index) => ({ entry, ref: `E${index + 1}` }));
     const lookup = new Map<string, PoolEntry>(
       pool.map(({ entry, ref }) => [ref, { ref, id: entry.id, text: `${entry.title} ${entry.claimText}`, skills: entry.skills }]),
     );
 
     const exampleSet = await this.examples.forRole(roleId, input.job.seniority ?? null);
-    const system = writerSystem(roleId, input.length, renderExamples(exampleSet));
+    const system = writerSystem(roleId, input.length, writerExamples(exampleSet, template, roleId));
     const basePrompt = writerPrompt(input, pool);
     const write = async (prompt: string) =>
       (
@@ -228,7 +242,49 @@ export class GeminiEngine implements AiEngine {
       numbered = number(raw);
     }
 
-    return this.assemble(input, pool, lookup, raw, numbered, findings, critique, revisions);
+    const draft = this.assemble(input, pool, lookup, raw, numbered, findings, critique, revisions);
+    const entries = pool.map(({ entry }) => entry);
+    const layout = await this.format(input, template, draft.content.sections, skillUses(entries), traitsOf(entries));
+    return { ...draft, content: { ...draft.content, layout } };
+  }
+
+  /** The formatter places the finished resume into the template. Anything it gets wrong falls back to the default layout. */
+  private async format(
+    input: GenerateInput,
+    template: TemplateDefinition,
+    sections: ResumeSection[],
+    uses: Map<string, SkillUse>,
+    traits: Map<string, string>,
+  ): Promise<ClassicRedLayout> {
+    const fallback = defaultLayout(sections, uses);
+    const groups = sections.flatMap((section) =>
+      section.kind === 'groups'
+        ? section.groups.map((group) => ({
+            id: group.id,
+            label: [section.heading, group.title, group.year].filter(Boolean).join(' / '),
+            first: group.bullets[0].text,
+          }))
+        : [],
+    );
+    if (groups.length === 0) return fallback;
+
+    try {
+      const { data } = await this.llm.json({
+        purpose: 'write',
+        model: this.env.AI_WRITER_MODEL,
+        system: formatterSystem(template.formatterRules),
+        prompt: formatterPrompt({ job: input.job, groups, skills: [...uses.values()].map((use) => use.name), strengths: [...traits.values()] }),
+        schema: layoutChoiceSchema,
+        temperature: 0,
+        maxOutputTokens: 1500,
+        userId: input.userId,
+      });
+      const layout = layoutFrom(data, sections, uses, traits);
+      return layout.experienceGroupIds.length > 0 ? layout : fallback;
+    } catch (error) {
+      this.logger.warn(`layout failed, using the default: ${error instanceof Error ? error.message : error}`);
+      return fallback;
+    }
   }
 
   /** The reviewing model sees only the entries the draft cites, which keeps this call small. */
@@ -246,6 +302,7 @@ export class GeminiEngine implements AiEngine {
       system: criticSystem(roleId),
       prompt: criticPrompt({
         job: input.job,
+        instructions: input.instructions,
         draftText: renderDraft(draft.sections),
         cited: refs.map((ref) => ({ ref, text: lookup.get(ref)!.text })),
         findings,
@@ -278,6 +335,7 @@ export class GeminiEngine implements AiEngine {
     const usedEvidenceIds: string[] = [];
     let kept = 0;
     let removed = 0;
+    let groupCount = 0;
 
     const sections: ResumeSection[] = [];
     const summary = raw.summary.trim();
@@ -309,7 +367,9 @@ export class GeminiEngine implements AiEngine {
             ...(bullet.needsNumber ? { needsNumber: true } : {}),
           });
         }
-        if (bullets.length) groups.push({ ...(group.title ? { title: group.title } : {}), ...(group.year ? { year: group.year } : {}), bullets });
+        if (bullets.length) {
+          groups.push({ id: `g${++groupCount}`, ...(group.title ? { title: group.title } : {}), ...(group.year ? { year: group.year } : {}), bullets });
+        }
       }
       if (groups.length) sections.push({ id: `s${sections.length + 1}`, heading: section.heading, kind: 'groups', groups });
     }
@@ -330,7 +390,14 @@ export class GeminiEngine implements AiEngine {
     };
 
     return {
-      content: { header: { name: input.person.name, contact: input.person.contact }, sections, evidenceRefs },
+      content: {
+        header: { name: input.person.name, contact: contactLine(input.person) },
+        person: input.person,
+        templateId: input.templateId,
+        layout: null,
+        sections,
+        evidenceRefs,
+      },
       usedEvidenceIds,
       review,
     };

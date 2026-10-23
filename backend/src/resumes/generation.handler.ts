@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
-import { ApiError, JobError, ROLE_IDS, type RoleId } from '@tracck/shared';
+import { ApiError, JobError, ROLE_IDS, type PersonDetails, type RoleId } from '@tracck/shared';
 import type { AiEngine, JobReading } from '../ai/ai-engine';
 import { EntitlementsService } from '../core/entitlements.service';
 import { JobDispatcher } from '../core/job-dispatcher.service';
@@ -69,7 +69,9 @@ export class ResumeGenerationHandler {
     if (!opportunity) throw new JobError('permanent', 'RESUME_GONE', 'That resume was deleted.');
 
     const focus = (run.userFocusJson.focus as string | null) ?? null;
-    const contact = String(run.userFocusJson.contact ?? '');
+    const instructions = (run.userFocusJson.instructions as string | null) ?? null;
+    const person = run.userFocusJson.person as PersonDetails;
+    const templateId = run.userFocusJson.templateId as string;
 
     await ctx.setStep('retrieve', 15);
     const reading: JobReading = await this.ai.parseJob(opportunity.jobDescriptionText);
@@ -97,16 +99,15 @@ export class ResumeGenerationHandler {
     }
 
     await ctx.setStep('draft', 40);
-    const [profile] = rowsOf<{ name: string | null }>(
-      await this.db.execute(sql`select display_name as name from public.profiles where id = ${userId}`),
-    );
     const draft = await this.ai.generateResume({
       userId,
-      person: { name: profile?.name ?? 'Your name', contact },
+      person,
       job: { ...reading, title: opportunity.title, company: opportunity.company, description: opportunity.jobDescriptionText },
       focus,
+      instructions,
       length: doc.length,
       roleId,
+      templateId,
       evidence,
     });
 
@@ -126,6 +127,7 @@ export class ResumeGenerationHandler {
           contentJson: draft.content as unknown as Record<string, unknown>,
           plainText: plainText(draft.content),
           generationRunId: runId,
+          layoutKey: draft.content.templateId,
           createdBy: 'ai',
           validationSummaryJson: { match, reading: stored, review: draft.review ?? null },
         })

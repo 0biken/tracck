@@ -6,7 +6,7 @@ export const metadata = { title: 'New resume' }
 
 export default async function NewResumePage() {
   const api = serverApi()
-  const [me, summary, sources] = await Promise.all([api.me.get(), api.me.summary(), api.sources.list()])
+  const [me, summary, sources, { templates }] = await Promise.all([api.me.get(), api.me.summary(), api.sources.list(), api.templates.list()])
   const limit = summary.resumesLimit
 
   return (
@@ -23,6 +23,7 @@ export default async function NewResumePage() {
         defaultRole={me.primaryRole}
         sources={sources}
         entries={summary.bySource}
+        templates={templates}
         atLimit={limit !== null && summary.resumesThisMonth >= limit}
         resetsOn={summary.periodResetsOn}
       />

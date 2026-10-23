@@ -1,9 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRef, useState, type FormEvent } from 'react'
-import { ROLES, type ParseJobResponse, type PlanId, type ResumeLength, type RoleId, type SourceProvider, type SourceView } from '@tracck/shared'
+import { ROLES, type ParseJobResponse, type PlanId, type ResumeLength, type RoleId, type SourceProvider, type SourceView, type TemplateView } from '@tracck/shared'
 import { Eyebrow } from '@/components/page-header'
 import { ErrorNotice } from '@/components/sources/dialogs'
 import { Tag } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ import { Button, buttonClass } from '@/components/ui/button'
 import { CheckField, SelectField, TextAreaField, TextField } from '@/components/ui/field'
 import { Segmented } from '@/components/ui/segmented'
 import { api } from '@/lib/api/client'
+import { apiBase } from '@/lib/api/transport'
 import { formatCount } from '@/lib/format'
 
 const MAX = 15000
@@ -34,6 +36,7 @@ export function NewResumeForm({
   defaultRole,
   sources,
   entries,
+  templates,
   atLimit,
   resetsOn,
 }: {
@@ -41,6 +44,7 @@ export function NewResumeForm({
   defaultRole: RoleId | null
   sources: SourceView[]
   entries: Record<SourceProvider, number>
+  templates: TemplateView[]
   atLimit: boolean
   resetsOn: string
 }) {
@@ -48,6 +52,8 @@ export function NewResumeForm({
   const [job, setJob] = useState('')
   const [company, setCompany] = useState('')
   const [focus, setFocus] = useState('')
+  const [instructions, setInstructions] = useState('')
+  const [templateId, setTemplateId] = useState(templates.find((item) => item.isDefault)?.id ?? '')
   const [length, setLength] = useState<ResumeLength>('one_page')
   const [role, setRole] = useState<RoleId | ''>(defaultRole ?? '')
   const [roleTouched, setRoleTouched] = useState(false)
@@ -109,6 +115,8 @@ export function NewResumeForm({
         ...(company.trim() && { company: company.trim() }),
         ...(focus.trim() && { focus: focus.trim() }),
         ...(role && { roleId: role }),
+        ...(instructions.trim() && { instructions: instructions.trim() }),
+        ...(templateId && { templateId }),
         ...(!allReady && { sources: [...chosen] }),
       })
       router.push(`/dashboard/resumes/${created.resumeId}/generating`)
@@ -223,6 +231,47 @@ export function NewResumeForm({
           maxLength={600}
           help="Your focus takes priority when choosing what to include."
         />
+
+        <TextAreaField
+          id="instructions"
+          label={
+            <>
+              What you want on the CV <span className="font-normal text-ink-muted">(optional)</span>
+            </>
+          }
+          rows={3}
+          value={instructions}
+          onChange={(event) => setInstructions(event.target.value)}
+          maxLength={1000}
+          help="In your own words. For example: lead with leadership, keep it to one page, no hobbies."
+        />
+
+        <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0">
+          <legend className="t-label mb-2.5 p-0">Template</legend>
+          <div role="radiogroup" aria-label="Template" className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+            {templates.map((item) => {
+              const on = item.id === templateId
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setTemplateId(item.id)}
+                  className={`flex cursor-pointer flex-col gap-2 bg-canvas p-2.5 text-left text-ink ${on ? 'border-2 border-ink' : 'border border-line-input hover:border-ink'}`}
+                >
+                  <Image src={`${apiBase()}${item.previewUrl}`} alt="" width={300} height={390} unoptimized className="aspect-[1/1.3] w-full object-cover object-top" />
+                  <span className="text-sm font-bold">{item.name}</span>
+                  <span className="text-xs leading-4 text-ink-muted">{item.description}</span>
+                </button>
+              )
+            })}
+            <div aria-disabled="true" className="flex flex-col items-center justify-center gap-2 border border-dashed border-line-input p-4 text-center text-ink-muted opacity-60">
+              <span className="font-mono text-xs tracking-[0.12em]">COMING SOON</span>
+              <span className="text-sm leading-5">Upload an example CV to copy its look</span>
+            </div>
+          </div>
+        </fieldset>
 
         <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0" aria-describedby={touched && noSource ? 'src-error' : undefined}>
           <legend className="t-label mb-2.5 p-0">Sources to use</legend>

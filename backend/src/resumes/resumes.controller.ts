@@ -19,6 +19,8 @@ const createBody = z.strictObject({
   focus: z.string().trim().min(1).max(600).optional(),
   length: z.enum(['one_page', 'full']),
   roleId: z.enum(ROLE_IDS).optional(),
+  templateId: z.string().trim().min(1).max(60).optional(),
+  instructions: z.string().trim().min(1).max(1000).optional(),
   sources: z.array(z.enum(['github', 'cv', 'linkedin', 'portfolio', 'x', 'behance', 'manual'])).max(7).optional(),
 });
 

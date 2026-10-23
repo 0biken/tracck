@@ -29,7 +29,7 @@ export function RolePicker({ initial }: { initial: RoleId[] }) {
     try {
       // Keep the catalogue order, so the first role listed is the primary one.
       await api.me.setRoles(ROLES.map((role) => role.id).filter((id) => selected.has(id)))
-      router.push('/onboarding/sources')
+      router.push('/onboarding/details')
     } catch (failure) {
       setError(messageOf(failure))
       setSaving(false)

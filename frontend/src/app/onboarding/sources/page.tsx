@@ -18,7 +18,7 @@ export default async function OnboardSourcesPage({
   return (
     <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-14">
       <div className="flex flex-col gap-4">
-        <Eyebrow>Step 2 of 3</Eyebrow>
+        <Eyebrow>Step 3 of 4</Eyebrow>
         <h1 className="m-0 text-balance font-display text-[clamp(34px,4.5vw,48px)] font-black leading-[1.08] tracking-[-0.03em]">
           Connect everything you have.
         </h1>

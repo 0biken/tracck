@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put, Patch, UseGuards } from '@nestjs/common';
-import { ROLES, type Preferences, type RoleId } from '@tracck/shared';
+import { ROLES, type Preferences, type RoleId, type UpdateMeRequest } from '@tracck/shared';
 import { AuthGuard } from '../auth/auth.guard';
 import { UserEmail, UserId } from '../auth/current-user.decorator';
 import { ZodPipe } from '../common/zod.pipe';
@@ -20,7 +20,7 @@ export class MeController {
   update(
     @UserId() userId: string,
     @UserEmail() email: string | null,
-    @Body(new ZodPipe(updateMeSchema)) body: { name?: string; headline?: string | null; location?: string | null; roles?: RoleId[] },
+    @Body(new ZodPipe(updateMeSchema)) body: UpdateMeRequest,
   ) {
     return this.me.update(userId, email, body);
   }

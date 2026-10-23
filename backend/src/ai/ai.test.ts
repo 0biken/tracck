@@ -12,6 +12,7 @@ import { EXAMPLE_SEEDS } from './examples-seed';
 import { GeminiEngine } from './gemini-engine';
 import { emptyUsage, type EmbedRequest, type JsonRequest, type LlmClient } from './llm';
 import { PlaceholderEngine } from './placeholder-engine';
+import { layoutChoiceSchema } from './schemas';
 import { numbersIn, verifyBullet, type PoolEntry } from './verify';
 
 const DIMENSIONS = 1536;
@@ -29,14 +30,21 @@ function embedText(text: string): number[] {
 
 type Responder = (request: JsonRequest<unknown>) => unknown;
 
+type FakeResponders = Partial<Record<JsonRequest<unknown>['purpose'] | 'format', Responder>>;
+
 class FakeLlm implements LlmClient {
   readonly calls: JsonRequest<unknown>[] = [];
   embedCalls = 0;
-  constructor(private readonly responders: Partial<Record<JsonRequest<unknown>['purpose'], Responder>> = {}) {}
+  /** The formatter also uses the write purpose, so it has a responder of its own. */
+  private readonly responders: FakeResponders;
+
+  constructor(responders: FakeResponders = {}) {
+    this.responders = { format: () => ({ experienceGroupIds: [], educationGroupIds: [], skills: [], strengths: [] }), ...responders };
+  }
 
   async json<T>(request: JsonRequest<T>) {
     this.calls.push(request as JsonRequest<unknown>);
-    const respond = this.responders[request.purpose];
+    const respond = (request.schema as unknown) === layoutChoiceSchema ? this.responders.format : this.responders[request.purpose];
     if (!respond) throw new Error(`no fake answer for ${request.purpose}`);
     return { data: request.schema.parse(respond(request as JsonRequest<unknown>)), usage: emptyUsage() };
   }
@@ -177,15 +185,17 @@ import { eq as sqlEq } from 'drizzle-orm';
 
 describe('GeminiEngine.generateResume', () => {
   const evidence: EvidenceCandidate[] = [
-    { id: 'ev-1', title: 'Billing API', claimText: 'Built a billing API in TypeScript and PostgreSQL handling 12,000 requests a day', skills: ['TypeScript', 'PostgreSQL'], projectKey: null, source: 'GITHUB', where: 'acme/billing', date: '2024-03-01', pinned: false },
-    { id: 'ev-2', title: 'Meetups', claimText: 'Organised monthly meetups for 300 attendees', skills: [], projectKey: null, source: 'CV', where: null, date: null, pinned: false },
+    { id: 'ev-1', title: 'Billing API', claimText: 'Built a billing API in TypeScript and PostgreSQL handling 12,000 requests a day', skills: ['TypeScript', 'PostgreSQL'], topics: ['performance'], projectKey: null, source: 'GITHUB', where: 'acme/billing', date: '2024-03-01', pinned: false },
+    { id: 'ev-2', title: 'Meetups', claimText: 'Organised monthly meetups for 300 attendees', skills: [], topics: [], projectKey: null, source: 'CV', where: null, date: null, pinned: false },
   ];
   const input: GenerateInput = {
-    person: { name: 'Ada Obi', contact: 'ada@example.com' },
+    person: { name: 'Ada Obi', email: 'ada@example.com', phone: null, location: null, address: null, dateOfBirth: null, nationality: null },
     job: { title: 'Backend Developer', company: 'Acme', description: 'Build APIs in TypeScript.', required: ['TypeScript'], preferred: [], roleId: 'dev' },
     focus: null,
+    instructions: null,
     length: 'one_page',
     roleId: 'dev',
+    templateId: 'classic-red',
     evidence,
   };
   const draftWith = (bullets: { text: string; evidence: string[] }[]) => ({
@@ -212,7 +222,25 @@ describe('GeminiEngine.generateResume', () => {
     const skills = draft.content.sections.find((s) => s.heading === 'Skills');
     expect(skills && 'text' in skills && skills.text).toBe('TypeScript');
     expect(draft.review).toMatchObject({ score: 88, revisions: 0, removedBullets: 0 });
-    expect(llm.calls.map((c) => c.purpose)).toEqual(['write', 'check']);
+    expect(llm.calls.map((c) => c.purpose)).toEqual(['write', 'check', 'write']);
+  });
+
+  it('lets the formatter choose layout ids, dropping any the resume does not have', async () => {
+    const llm = new FakeLlm({
+      write: () => draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]),
+      check: () => pass,
+      format: () => ({ experienceGroupIds: ['g1', 'g9'], educationGroupIds: [], skills: ['typescript', 'Rust'], strengths: ['performance', 'invented'] }),
+    });
+    const draft = await engineWith(llm).generateResume(input);
+    expect(draft.content.layout).toEqual({
+      templateId: 'classic-red',
+      experienceGroupIds: ['g1'],
+      educationGroupIds: [],
+      skills: [{ name: 'TypeScript', level: 1 }],
+      strengths: ['Performance'],
+    });
+    expect(draft.content.templateId).toBe('classic-red');
+    expect(draft.content.person).toEqual(input.person);
   });
 
   it('sends an invented figure back to the writer and keeps the corrected bullet', async () => {
@@ -251,7 +279,7 @@ describe('GeminiEngine.generateResume', () => {
   it('skips the critic entirely when revisions are set to 0', async () => {
     const llm = new FakeLlm({ write: () => draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]) });
     const draft = await engineWith(llm, { AI_MAX_REVISIONS: 0 }).generateResume(input);
-    expect(llm.calls.map((c) => c.purpose)).toEqual(['write']);
+    expect(llm.calls.map((c) => c.purpose)).toEqual(['write', 'write']);
     expect(draft.review?.score).toBeNull();
   });
 
@@ -261,7 +289,11 @@ describe('GeminiEngine.generateResume', () => {
       check: () => pass,
     });
     await engineWith(llm, { AI_WRITER_THINKING: 'high', AI_CRITIC_THINKING: 'low' }).generateResume(input);
-    expect(llm.calls.map((c) => [c.model, c.thinking])).toEqual([['writer', 'high'], ['critic', 'low']]);
+    expect(llm.calls.map((c) => [c.model, c.thinking])).toEqual([
+      ['writer', 'high'],
+      ['critic', 'low'],
+      ['writer', undefined],
+    ]);
   });
 
   it('puts the stable prompt text in the system message so it can be cached', async () => {

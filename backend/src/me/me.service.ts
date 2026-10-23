@@ -15,6 +15,7 @@ import {
   type RoleId,
   type SourceProvider,
   type SummaryView,
+  type UpdateMeRequest,
 } from '@tracck/shared';
 import type { ApiEnv } from '../config/env';
 import { AuditService } from '../core/audit.service';
@@ -69,6 +70,10 @@ export class MeService {
       name: profile.displayName,
       headline: profile.headline,
       location: profile.location,
+      phone: profile.phone,
+      address: profile.address,
+      dateOfBirth: profile.dateOfBirth,
+      nationality: profile.nationality,
       roles,
       primaryRole: isRole(profile.primaryRole ?? '') ? (profile.primaryRole as RoleId) : (roles[0] ?? null),
       plan: profile.plan as PlanId,
@@ -85,12 +90,16 @@ export class MeService {
   async update(
     userId: string,
     email: string | null,
-    input: { name?: string; headline?: string | null; location?: string | null; roles?: RoleId[] },
+    input: UpdateMeRequest,
   ) {
     const changes: Partial<typeof profiles.$inferInsert> = {};
     if (input.name !== undefined) changes.displayName = input.name;
     if (input.headline !== undefined) changes.headline = input.headline;
     if (input.location !== undefined) changes.location = input.location;
+    if (input.phone !== undefined) changes.phone = input.phone;
+    if (input.address !== undefined) changes.address = input.address;
+    if (input.dateOfBirth !== undefined) changes.dateOfBirth = input.dateOfBirth;
+    if (input.nationality !== undefined) changes.nationality = input.nationality;
     if (input.roles) {
       changes.preferredRoles = input.roles;
       changes.primaryRole = input.roles[0];

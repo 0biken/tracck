@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Bullet, EditBulletRequest, EvidenceRef, PlanId, ResumeDetailView, ResumeSection } from '@tracck/shared'
+import type { ComponentType } from 'react'
 import { ErrorNotice } from '@/components/sources/dialogs'
+import { TEMPLATE_RENDERERS } from '@/components/resumes/templates'
+import type { TemplateProps } from '@/components/resumes/templates/classic-red'
 import { Button, buttonClass } from '@/components/ui/button'
 import { TabPanel, Tabs } from '@/components/ui/tabs'
 import { api } from '@/lib/api/client'
@@ -118,6 +121,37 @@ export function ResumeEditor({ initial, plan }: { initial: ResumeDetailView; pla
     )
   }
 
+  /** The template to draw with, or the plain document for resumes written before templates. */
+  const Template = TEMPLATE_RENDERERS[content.templateId] as ComponentType<TemplateProps> | undefined
+
+  /** A bullet as the editor shows it: a button that selects it for review. */
+  function renderBullet(bullet: Bullet) {
+    const isSelected = bullet.id === selectedId
+    return (
+      <button
+        type="button"
+        onClick={() => select(bullet.id)}
+        aria-pressed={isSelected}
+        data-selected={isSelected || undefined}
+        data-flag={bullet.needsNumber || undefined}
+        className={`-mx-1.5 block w-[calc(100%+12px)] cursor-pointer border-0 px-1.5 py-[3px] text-left font-[inherit] text-[12.5px] leading-[17px] text-[#141310] ${
+          bullet.needsNumber
+            ? 'bg-[#F6E1DC] outline outline-1 outline-[#C4432E]'
+            : isSelected
+              ? 'bg-[#E3EFE8] outline outline-1 outline-[#1F6F4A]'
+              : 'bg-transparent hover:bg-[#F1EEE6]'
+        } ${isSelected && bullet.needsNumber ? 'outline-2' : ''}`}
+      >
+        {bullet.text}
+        {bullet.needsNumber && (
+          <span data-flag-label className="ml-1 font-mono text-[10px] text-[#A63A26]">
+            [CONFIRM A NUMBER]
+          </span>
+        )}
+      </button>
+    )
+  }
+
   const tabs = [
     { value: 'evidence' as const, label: 'Evidence' },
     { value: 'match' as const, label: 'Match report' },
@@ -166,60 +200,43 @@ export function ResumeEditor({ initial, plan }: { initial: ResumeDetailView; pla
             aria-label={`Resume for ${name}`}
             className="print-area box-border w-full max-w-190 border border-line-strong bg-white px-5 py-8 font-[Arial,Helvetica,sans-serif] text-[#141310] sm:px-[52px] sm:py-12"
           >
-            <div className="text-2xl font-bold">{content.header.name}</div>
-            <div className="mt-1 text-xs leading-[17px]">{content.header.contact}</div>
+            {Template ? (
+              <Template content={content} renderBullet={renderBullet} />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{content.header.name}</div>
+                <div className="mt-1 text-xs leading-[17px]">{content.header.contact}</div>
 
-            {content.sections.map((section) => (
-              <section key={section.id} aria-label={section.heading.toLowerCase()}>
-                <h2 className="mb-1.5 mt-3.5 border-b border-[#141310] pb-[3px] text-[11.5px] font-bold tracking-[0.06em]">
-                  {section.heading.toUpperCase()}
-                </h2>
-                {section.kind === 'text' ? (
-                  <p className="m-0 text-[12.5px] leading-[17px]">{section.text}</p>
-                ) : (
-                  section.groups.map((group, gi) => (
-                    <div key={group.title ?? gi}>
-                      {group.title && (
-                        <div className="flex justify-between gap-4 text-[12.5px] font-bold">
-                          <span>{group.title}</span>
-                          <span>{group.year}</span>
+                {content.sections.map((section) => (
+                  <section key={section.id} aria-label={section.heading.toLowerCase()}>
+                    <h2 className="mb-1.5 mt-3.5 border-b border-[#141310] pb-[3px] text-[11.5px] font-bold tracking-[0.06em]">
+                      {section.heading.toUpperCase()}
+                    </h2>
+                    {section.kind === 'text' ? (
+                      <p className="m-0 text-[12.5px] leading-[17px]">{section.text}</p>
+                    ) : (
+                      section.groups.map((group) => (
+                        <div key={group.id}>
+                          {group.title && (
+                            <div className="flex justify-between gap-4 text-[12.5px] font-bold">
+                              <span>{group.title}</span>
+                              <span>{group.year}</span>
+                            </div>
+                          )}
+                          <ul className="mb-2 mt-1 list-disc pl-[18px]">
+                            {group.bullets.map((bullet) => (
+                              <li key={bullet.id} className="text-[12.5px] leading-[17px]">
+                                {renderBullet(bullet)}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      )}
-                      <ul className="mb-2 mt-1 list-disc pl-[18px]">
-                        {group.bullets.map((bullet) => {
-                          const isSelected = bullet.id === selectedId
-                          return (
-                            <li key={bullet.id} className="text-[12.5px] leading-[17px]">
-                              <button
-                                type="button"
-                                onClick={() => select(bullet.id)}
-                                aria-pressed={isSelected}
-                                data-selected={isSelected || undefined}
-                                data-flag={bullet.needsNumber || undefined}
-                                className={`-mx-1.5 block w-[calc(100%+12px)] cursor-pointer border-0 px-1.5 py-[3px] text-left font-[inherit] text-[12.5px] leading-[17px] text-[#141310] ${
-                                  bullet.needsNumber
-                                    ? 'bg-[#F6E1DC] outline outline-1 outline-[#C4432E]'
-                                    : isSelected
-                                      ? 'bg-[#E3EFE8] outline outline-1 outline-[#1F6F4A]'
-                                      : 'bg-transparent hover:bg-[#F1EEE6]'
-                                } ${isSelected && bullet.needsNumber ? 'outline-2' : ''}`}
-                              >
-                                {bullet.text}
-                                {bullet.needsNumber && (
-                                  <span data-flag-label className="ml-1 font-mono text-[10px] text-[#A63A26]">
-                                    [CONFIRM A NUMBER]
-                                  </span>
-                                )}
-                              </button>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </div>
-                  ))
-                )}
-              </section>
-            ))}
+                      ))
+                    )}
+                  </section>
+                ))}
+              </>
+            )}
           </article>
         </main>
 

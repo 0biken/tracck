@@ -9,6 +9,7 @@ import { CoreModule } from './core/core.module';
 import { EmailModule } from './email/email.module';
 import { HealthController } from './health/health.controller';
 import { RolesController } from './roles/roles.controller';
+import { TemplatesController } from './templates/templates.controller';
 import { JobsModule } from './jobs/jobs.module';
 import { OrgModule } from './org/org.module';
 import { MeModule } from './me/me.module';
@@ -31,7 +32,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     OrgModule,
     WaitlistModule,
   ],
-  controllers: [HealthController, RolesController],
+  controllers: [HealthController, RolesController, TemplatesController],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
 })
 export class AppModule {}

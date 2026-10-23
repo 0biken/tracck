@@ -37,12 +37,15 @@ const SANDBOX_PROFILE: OrgProfileView = {
 
 const SANDBOX_RESUME: ResumeContent = {
   header: { name: 'Test Student', contact: 'test@example.com · Lagos, Nigeria' },
+  person: { name: 'Test Student', email: 'test@example.com', phone: null, location: 'Lagos, Nigeria', address: null, dateOfBirth: null, nationality: null },
+  templateId: 'classic-red',
+  layout: { templateId: 'classic-red', experienceGroupIds: ['g1'], educationGroupIds: [], skills: [], strengths: [] },
   sections: [
     {
       id: 's-experience',
       heading: 'Experience and projects',
       kind: 'groups',
-      groups: [{ title: 'Sample project', year: '2026', bullets: [{ id: 'b1', text: 'Built a sample service in TypeScript and PostgreSQL.', evidence: ['e1'] }] }],
+      groups: [{ id: 'g1', title: 'Sample project', year: '2026', bullets: [{ id: 'b1', text: 'Built a sample service in TypeScript and PostgreSQL.', evidence: ['e1'] }] }],
     },
   ],
   evidenceRefs: { e1: { id: 'e1', source: 'GITHUB', where: 'sample', date: '2026-01-01', original: 'Built a sample service in TypeScript and PostgreSQL.' } },
