@@ -1,21 +1,29 @@
 import Link from 'next/link'
 import { ColumnHead, PageHeader } from '@/components/page-header'
-import { Button, buttonClass } from '@/components/ui/button'
-import { ACCOUNT } from '@/lib/mock/account'
-import { MONTHS, SKILLS_BY_EVIDENCE } from '@/lib/mock/record'
+import { buttonClass } from '@/components/ui/button'
+import { serverApi } from '@/lib/api/server'
+import { formatCount, formatDate } from '@/lib/format'
 import { GraphExplorer } from './graph-explorer'
+import { RefreshButton } from './refresh-button'
 
 export const metadata = { title: 'Career Graph' }
 
-export default function CareerGraphPage() {
+const monthLabel = (month: string) => month.replace('-', '.')
+
+export default async function CareerGraphPage() {
+  const graph = await serverApi().graph()
+  const busiest = graph.months.reduce((a, b) => (b.count > a.count ? b : a), graph.months[0])
+  const peak = Math.max(1, busiest?.count ?? 0)
+  const projectCount = graph.projects.length + graph.moreProjects
+
   return (
     <>
       <PageHeader
-        eyebrow={`${ACCOUNT.entries} entries · ${ACCOUNT.projects} projects · ${ACCOUNT.skills} skills · Updated ${ACCOUNT.graphUpdated}`}
+        eyebrow={`${formatCount(graph.entries)} entries · ${projectCount} projects · ${graph.skills.length} skills${graph.updatedAt ? ` · Updated ${formatDate(graph.updatedAt)}` : ''}`}
         title="Career Graph"
         actions={
           <>
-            <Button variant="secondary">Refresh now</Button>
+            <RefreshButton />
             <Link href="/dashboard/evidence" className={buttonClass('secondary', 'md')}>
               Evidence library
             </Link>
@@ -26,40 +34,50 @@ export default function CareerGraphPage() {
         ranked most relevant to that job.
       </PageHeader>
 
-      <section aria-label="Activity by month" className="flex flex-col gap-2.5">
-        <div className="t-eyebrow text-ink-muted">Entries by month · 2025.11 to 2026.10</div>
-        <figure
-          className="m-0"
-          aria-label={`Bar chart of entries by month. Busiest month: ${MONTHS.reduce((a, b) => (b.v > a.v ? b : a)).m}.`}
-        >
-          <div className="grid h-24 grid-cols-12 items-end gap-1.5 border-b border-ink" aria-hidden="true">
-            {MONTHS.map((month) => (
-              <div key={month.m} className="bg-ink" style={{ height: `${month.v}%` }} />
-            ))}
-          </div>
-          <div className="mt-2 grid grid-cols-12 gap-1.5 font-mono text-[11px] text-ink-muted" aria-hidden="true">
-            {MONTHS.map((month) => (
-              <span key={month.m} className="truncate">
-                {month.m}
-              </span>
-            ))}
-          </div>
-        </figure>
-      </section>
+      {graph.entries === 0 ? (
+        <p className="m-0 border border-line p-6 text-[15px] text-ink-muted">
+          Your graph builds as sources finish collecting. <Link href="/dashboard/sources">Connect a source</Link> to start.
+        </p>
+      ) : (
+        <>
+          <section aria-label="Activity by month" className="flex flex-col gap-2.5">
+            <div className="t-eyebrow text-ink-muted">
+              Entries by month · {monthLabel(graph.months[0].month)} to {monthLabel(graph.months[graph.months.length - 1].month)}
+            </div>
+            <figure
+              className="m-0"
+              aria-label={`Bar chart of entries by month. Busiest month: ${monthLabel(busiest.month)}, ${busiest.count} entries.`}
+            >
+              <div className="grid h-24 grid-cols-12 items-end gap-1.5 border-b border-ink" aria-hidden="true">
+                {graph.months.map((month) => (
+                  <div key={month.month} className="bg-ink" style={{ height: `${Math.round((month.count / peak) * 100)}%` }} />
+                ))}
+              </div>
+              <div className="mt-2 grid grid-cols-12 gap-1.5 font-mono text-[11px] text-ink-muted" aria-hidden="true">
+                {graph.months.map((month) => (
+                  <span key={month.month} className="truncate">
+                    {month.month.slice(5)}
+                  </span>
+                ))}
+              </div>
+            </figure>
+          </section>
 
-      <GraphExplorer />
+          {graph.projects.length > 0 && <GraphExplorer projects={graph.projects} more={graph.moreProjects} />}
 
-      <section aria-label="Skills" className="flex flex-col gap-3">
-        <ColumnHead>SKILLS BY EVIDENCE</ColumnHead>
-        <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-x-8 gap-y-1 p-0">
-          {SKILLS_BY_EVIDENCE.map(([name, count]) => (
-            <li key={name} className="flex justify-between border-b border-line py-2">
-              <span>{name}</span>
-              <span className="font-mono text-[13px]">{count}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+          <section aria-label="Skills" className="flex flex-col gap-3">
+            <ColumnHead>SKILLS BY EVIDENCE</ColumnHead>
+            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-x-8 gap-y-1 p-0">
+              {graph.skills.map((skill) => (
+                <li key={skill.name} className="flex justify-between border-b border-line py-2">
+                  <span>{skill.name}</span>
+                  <span className="font-mono text-[13px]">{skill.count}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      )}
     </>
   )
 }

@@ -2,44 +2,50 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ACCOUNT } from '@/lib/mock/account'
+
+export interface NavCounts {
+  resumes: number
+  evidence: number
+  sources: number
+}
 
 type Item =
   | { head: string }
   | { href: string; label: string; count?: string; match: (path: string) => boolean }
 
-const userItems: Item[] = [
-  { href: '/dashboard', label: 'Home', match: (p) => p === '/dashboard' },
-  {
-    href: '/dashboard/resumes',
-    label: 'Resumes',
-    count: String(ACCOUNT.resumes),
-    match: (p) => p.startsWith('/dashboard/resumes') && !p.startsWith('/dashboard/resumes/new'),
-  },
-  { head: 'YOUR RECORD' },
-  { href: '/dashboard/graph', label: 'Career Graph', match: (p) => p.startsWith('/dashboard/graph') },
-  { href: '/dashboard/evidence', label: 'Evidence library', count: String(ACCOUNT.entries), match: (p) => p.startsWith('/dashboard/evidence') },
-  { href: '/dashboard/sources', label: 'Sources', count: String(ACCOUNT.sourcesTotal), match: (p) => p.startsWith('/dashboard/sources') },
-  { href: '/dashboard/feedback', label: 'CV feedback', match: (p) => p.startsWith('/dashboard/feedback') },
-  { head: 'ACCOUNT' },
-  { href: '/dashboard/settings', label: 'Settings and plan', match: (p) => p.startsWith('/dashboard/settings') },
-]
+function userItems(counts: NavCounts): Item[] {
+  return [
+    { href: '/dashboard', label: 'Home', match: (p) => p === '/dashboard' },
+    {
+      href: '/dashboard/resumes',
+      label: 'Resumes',
+      count: String(counts.resumes),
+      match: (p) => p.startsWith('/dashboard/resumes') && !p.startsWith('/dashboard/resumes/new'),
+    },
+    { head: 'YOUR RECORD' },
+    { href: '/dashboard/graph', label: 'Career Graph', match: (p) => p.startsWith('/dashboard/graph') },
+    { href: '/dashboard/evidence', label: 'Evidence library', count: String(counts.evidence), match: (p) => p.startsWith('/dashboard/evidence') },
+    { href: '/dashboard/sources', label: 'Sources', count: String(counts.sources), match: (p) => p.startsWith('/dashboard/sources') },
+    { href: '/dashboard/feedback', label: 'CV feedback', match: (p) => p.startsWith('/dashboard/feedback') },
+    { head: 'ACCOUNT' },
+    { href: '/dashboard/settings', label: 'Settings and plan', match: (p) => p.startsWith('/dashboard/settings') },
+  ]
+}
 
 const orgItems: Item[] = [
-  { head: 'UNILAG CAREERS' },
-  { href: '/org/keys', label: 'API keys', count: '3', match: (p) => p.startsWith('/org/keys') },
+  { head: 'STAFF CONSOLE' },
+  { href: '/org/keys', label: 'API keys', match: (p) => p.startsWith('/org/keys') },
   { href: '/org/usage', label: 'Usage and audit', match: (p) => p.startsWith('/org/usage') },
   { head: 'DOCS' },
   { href: '/org/docs', label: 'API reference', match: (p) => p.startsWith('/org/docs') },
-  { href: '/consent', label: 'Consent flow', match: (p) => p.startsWith('/consent') },
 ]
 
-export function SidebarNav({ mode }: { mode: 'user' | 'org' }) {
+export function SidebarNav({ mode, counts }: { mode: 'user' | 'org'; counts: NavCounts }) {
   const pathname = usePathname()
-  const items = mode === 'org' ? orgItems : userItems
+  const items = mode === 'org' ? orgItems : userItems(counts)
 
   return (
-    <nav aria-label={mode === 'org' ? 'Organisation' : 'App'} className="flex flex-col gap-0.5">
+    <nav aria-label={mode === 'org' ? 'Staff console' : 'App'} className="flex flex-col gap-0.5">
       {items.map((item) => {
         if ('head' in item) {
           return (

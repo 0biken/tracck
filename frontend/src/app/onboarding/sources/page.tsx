@@ -1,13 +1,20 @@
-import Link from 'next/link'
 import { Eyebrow } from '@/components/page-header'
-import { Tag } from '@/components/ui/badge'
-import { Button, buttonClass } from '@/components/ui/button'
+import { serverApi } from '@/lib/api/server'
+import { OnboardingSources } from './onboarding-sources'
 
 export const metadata = { title: 'Connect your sources' }
 
-const rowClass = 'grid grid-cols-1 items-center gap-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 sm:py-[22px]'
+export default async function OnboardSourcesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const [sources, params] = await Promise.all([serverApi().sources.list(), searchParams])
+  const notice =
+    params.error === 'github'
+      ? { tone: 'error' as const, text: 'GitHub did not connect. Try again, or choose another source.' }
+      : null
 
-export default function OnboardSourcesPage() {
   return (
     <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-14">
       <div className="flex flex-col gap-4">
@@ -24,90 +31,7 @@ export default function OnboardSourcesPage() {
         </div>
       </div>
 
-      <div className="min-w-0">
-        <div className={`${rowClass} border-t-2 border-t-ink`}>
-          <div className="flex flex-col gap-1">
-            <span className="flex flex-wrap items-center gap-2.5">
-              <span className="text-lg font-bold">GitHub</span>
-              <Tag tone="signal">CONNECTED</Tag>
-            </span>
-            <span className="text-sm leading-[21px] text-ink-muted">@toluadebayo. Collecting full history now.</span>
-          </div>
-          <Button variant="secondary">Change</Button>
-        </div>
-
-        <div className={rowClass}>
-          <div className="flex flex-col gap-1">
-            <span className="flex flex-wrap items-center gap-2.5">
-              <span className="text-lg font-bold">CV or resume</span>
-              <Tag tone="signal">UPLOADED</Tag>
-            </span>
-            <span className="text-sm leading-[21px] text-ink-muted">
-              Tolu_CV_2026.pdf · 184 KB. We will also give you feedback on it.
-            </span>
-          </div>
-          <Button variant="secondary">Replace</Button>
-        </div>
-
-        <div className={rowClass}>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-lg font-bold">LinkedIn</span>
-            <span className="text-sm leading-[21px] text-ink-muted">
-              Upload your data export ZIP (Settings › Data privacy › Get a copy of your data), a profile PDF, or paste
-              your profile text.
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button variant="secondary">Upload ZIP or PDF</Button>
-            <Button variant="secondary">Paste</Button>
-          </div>
-        </div>
-
-        <div className={rowClass}>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="portfolio" className="text-lg font-bold">
-              Portfolio or personal site
-            </label>
-            <input
-              id="portfolio"
-              type="url"
-              placeholder="https://"
-              className="min-h-11 w-full max-w-105 rounded-sm border border-line-input bg-canvas px-3 text-[15px] hover:border-ink"
-            />
-          </div>
-          <Button variant="secondary">Add link</Button>
-        </div>
-
-        <div className={rowClass}>
-          <div className="flex flex-col gap-1">
-            <span className="flex flex-wrap items-center gap-2.5">
-              <span className="text-lg font-bold">X</span>
-              <Tag>LIMITED</Tag>
-            </span>
-            <span className="text-sm leading-[21px] text-ink-muted">Upload your X archive or paste key posts.</span>
-          </div>
-          <Button variant="secondary">Upload archive</Button>
-        </div>
-
-        <div className={rowClass}>
-          <div className="flex flex-col gap-1">
-            <span className="text-lg font-bold">Manual entry</span>
-            <span className="text-sm leading-[21px] text-ink-muted">
-              Little public presence? Describe your work and Tracck helps with the wording.
-            </span>
-          </div>
-          <Button variant="secondary">Add manually</Button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-6">
-          <Link href="/onboarding/role" className="inline-flex min-h-11 items-center text-sm font-semibold">
-            Back
-          </Link>
-          <Link href="/onboarding/status" className={buttonClass('primary', 'lg')}>
-            Continue with 2 sources
-          </Link>
-        </div>
-      </div>
+      <OnboardingSources initial={sources} notice={notice} />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiError, errorEnvelope } from '@tracck/shared';
 import type { ApiRequest } from './api-request';
+import { RateLimitedError } from './rate-limited';
 
 const CHECK_REQUEST = 'Check the request and try again.';
 
@@ -28,6 +29,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     if (error instanceof ApiError) {
+      if (error instanceof RateLimitedError) response.setHeader('Retry-After', String(error.retryAfterSeconds));
       response.status(error.status).json(errorEnvelope(error.code, error.message, id));
       return;
     }
@@ -43,6 +45,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
         ? error.getStatus()
         : (error as { status?: number; statusCode?: number }).status ?? (error as { statusCode?: number }).statusCode;
 
+    if (status === 413) {
+      response.status(413).json(errorEnvelope('FILE_TOO_LARGE', 'That file is too large. The limit is 5 MB.', id));
+      return;
+    }
     if (status === 404) {
       response.status(404).json(errorEnvelope('NOT_FOUND', 'That address does not exist.', id));
       return;

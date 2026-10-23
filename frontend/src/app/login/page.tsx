@@ -12,9 +12,12 @@ export const metadata = { title: 'Log in' }
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; next?: string }>
 }) {
-  const error = authErrorMessage((await searchParams).error)
+  const params = await searchParams
+  const error = authErrorMessage(params.error)
+  // Only a path on this site: the same rule the sign-in action applies.
+  const next = params.next?.startsWith('/') && !params.next.startsWith('//') ? params.next : undefined
 
   return (
     <div className="flex min-h-dvh flex-col px-5 py-7 sm:px-10">
@@ -33,6 +36,7 @@ export default async function LoginPage({
           )}
 
           <form action={login} className="flex flex-col gap-4">
+            {next && <input type="hidden" name="next" value={next} />}
             <TextField id="email" label="Email" type="email" size="lg" autoComplete="email" placeholder="you@ui.edu.ng" required />
             <div className="flex flex-col gap-1.5">
               <TextField id="password" label="Password" type="password" size="lg" autoComplete="current-password" required />
@@ -46,7 +50,7 @@ export default async function LoginPage({
           </form>
 
           <OrDivider />
-          <GoogleButton page="login" />
+          <GoogleButton page="login" next={next} />
 
           <p className="m-0 border-t border-line pt-4 text-[15px]">
             New to Tracck?{' '}

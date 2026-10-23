@@ -1,9 +1,12 @@
 import { Eyebrow } from '@/components/page-header'
+import { serverApi } from '@/lib/api/server'
 import { RolePicker } from './role-picker'
 
 export const metadata = { title: 'Choose your role' }
 
-export default function OnboardRolePage() {
+export default async function OnboardRolePage() {
+  const me = await serverApi().me.get()
+
   return (
     <>
       <div className="flex max-w-180 flex-col gap-3">
@@ -14,7 +17,7 @@ export default function OnboardRolePage() {
           You can change this per job.
         </p>
       </div>
-      <RolePicker />
+      <RolePicker initial={me.roles} />
     </>
   )
 }

@@ -5,7 +5,7 @@ import { configureApp } from './app.setup';
 import type { ApiEnv } from './config/env';
 import { ENV } from './tokens';
 
-const app = await NestFactory.create(AppModule);
+const app = await NestFactory.create(AppModule, { rawBody: true });
 const env = app.get<ApiEnv>(ENV);
 
 configureApp(app, { appOrigin: env.APP_ORIGIN });

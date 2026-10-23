@@ -15,6 +15,10 @@ import { ConnectionsModule } from '../connections/connections.module';
 import * as schema from '../db/schema';
 import { FakeJobQueue, createTestDatabase, createTestUser, type PGlite } from '../testing';
 import { MemoryRateLimiter } from '../connections/rate-limiter';
+import { runJob, type RunOutcome, type RunnerDeps } from '../jobs/runner';
+import { MemoryStorage } from '../storage/storage';
+import { MemoryEmail } from '../email/email';
+import { FakeGithub, FakePaystack, FakeSafeFetch } from './fakes';
 import {
   DB,
   ENV,
@@ -22,7 +26,13 @@ import {
   JOB_QUEUE,
   JOB_STORE,
   NOTIFY_JOB,
+  EMAIL,
+  GITHUB,
+  PAYSTACK,
+  JOB_HANDLERS,
   RATE_LIMITER,
+  SAFE_FETCH,
+  STORAGE,
   STREAM_POLL_MS,
   VERIFY_TOKEN,
 } from '../tokens';
@@ -41,11 +51,21 @@ export interface TestApp {
   newUser: (name?: string) => Promise<string>;
   /** Job-change notifications the app sent. */
   notified: string[];
+  storage: MemoryStorage;
+  github: FakeGithub;
+  safeFetch: FakeSafeFetch;
+  paystack: FakePaystack;
+  /** Mail the app sent. Only present when the test asked for email with `email: true`. */
+  email: MemoryEmail;
+  /** Runs every queued job through the real runner and handlers, until none are left. */
+  drain: () => Promise<RunOutcome[]>;
   close: () => Promise<void>;
 }
 
 export interface TestAppOptions {
   env?: Partial<ApiEnv>;
+  /** Turns email on, into `email.sent`. Off by default so other tests see no extra jobs. */
+  email?: boolean;
   /** Replace more providers, for example the email or storage client. */
   override?: (builder: TestingModuleBuilder) => TestingModuleBuilder;
 }
@@ -55,6 +75,11 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const store = new JobStore(db);
   const queue = new FakeJobQueue();
   const notified: string[] = [];
+  const storage = new MemoryStorage();
+  const github = new FakeGithub();
+  const safeFetch = new FakeSafeFetch();
+  const paystack = new FakePaystack();
+  const email = new MemoryEmail();
 
   const env: ApiEnv = {
     PORT: 0,
@@ -67,6 +92,21 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     WORKER_CONCURRENCY: 1,
     RECONCILE_INTERVAL_SECONDS: 30,
     STORAGE_BUCKET: 'test-bucket',
+    AI_WRITER_MODEL: 'test-writer',
+    AI_CRITIC_MODEL: 'test-critic',
+    AI_EXTRACT_MODEL: 'test-extract',
+    AI_EMBEDDING_MODEL: 'test-embedding',
+    AI_EMBEDDING_DIMENSIONS: 1536,
+    AI_WRITER_THINKING: 'off',
+    AI_CRITIC_THINKING: 'off',
+    AI_MAX_REVISIONS: 2,
+    AI_EVIDENCE_LIMIT: 40,
+    // 32 bytes, base64: the key that encrypts stored tokens.
+    TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+    API_PUBLIC_URL: 'http://localhost:4000',
+    PAYSTACK_SECRET_KEY: 'sk_test_secret',
+    PAYSTACK_PRO_PLAN_CODE: 'PLN_pro',
+    PAYSTACK_STUDENT_PLAN_CODE: 'PLN_student',
     ...options.env,
   };
 
@@ -101,14 +141,43 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
       return { userId, email: `${userId}@example.com` };
     })
     .overrideProvider(STREAM_POLL_MS)
-    .useValue(50);
+    .useValue(50)
+    .overrideProvider(STORAGE)
+    .useValue(storage)
+    .overrideProvider(GITHUB)
+    .useValue(github)
+    .overrideProvider(SAFE_FETCH)
+    .useValue(safeFetch)
+    .overrideProvider(PAYSTACK)
+    .useValue(paystack);
+
+  if (options.email) builder = builder.overrideProvider(EMAIL).useValue(email);
 
   if (options.override) builder = options.override(builder);
 
   const moduleRef = await builder.compile();
-  const app = moduleRef.createNestApplication();
+  const app = moduleRef.createNestApplication({ rawBody: true });
   configureApp(app, { appOrigin: env.APP_ORIGIN });
   await app.init();
+
+  const drain = async () => {
+    const deps: RunnerDeps = {
+      store,
+      queue,
+      notify: async (jobId) => {
+        notified.push(jobId);
+      },
+      handlers: app.get(JOB_HANDLERS, { strict: false }),
+      heartbeatMs: 60_000,
+    };
+    const outcomes: RunOutcome[] = [];
+    for (let guard = 0; guard < 50 && queue.entries.size > 0; guard++) {
+      const [id, entry] = [...queue.entries.entries()][0];
+      queue.entries.delete(id);
+      outcomes.push(await runJob(deps, entry.message));
+    }
+    return outcomes;
+  };
 
   return {
     app,
@@ -116,6 +185,12 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     store,
     queue,
     notified,
+    storage,
+    github,
+    safeFetch,
+    paystack,
+    email,
+    drain,
     http: () => request(app.getHttpServer()),
     as: (userId) => ({ authorization: `Bearer token-${userId}` }),
     newUser: (name) => createTestUser(db, name),

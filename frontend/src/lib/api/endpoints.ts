@@ -78,7 +78,8 @@ export function createApi(call: Transport) {
       setRoles: (roles: RoleId[]) => put<MeView>('/v1/me/roles', { roles }),
       acceptPolicy: () => post<{ ok: true }>('/v1/me/consents/policy'),
       requestExport: () => post<{ jobId: string }>('/v1/me/export'),
-      deleteAccount: () => call<{ jobId: string }>('DELETE', '/v1/me'),
+      latestExport: () => get<{ url: string; expiresAt: string; createdAt: string } | null>('/v1/me/export/latest'),
+      deleteAccount: () => call<{ requestId: string; jobId: string }>('DELETE', '/v1/me', { query: { confirm: 'delete-my-account' } }),
       consents: () => get<ConsentsView>('/v1/me/consents'),
       revokeConsent: (id: string) => del<void>(`/v1/me/consents/${id}`),
     },
@@ -94,7 +95,8 @@ export function createApi(call: Transport) {
 
     sources: {
       list: () => get<SourceView[]>('/v1/sources'),
-      githubConnect: () => post<GithubConnectResponse>('/v1/sources/github/connect'),
+      githubConnect: (from: 'onboarding' | 'sources') =>
+        post<GithubConnectResponse>('/v1/sources/github/connect', { from }),
       uploadCv: (file: File) => call<UploadSourceResponse>('POST', '/v1/sources/cv', { form: fileForm(file) }),
       linkedinFile: (file: File) => call<UploadSourceResponse>('POST', '/v1/sources/linkedin', { form: fileForm(file) }),
       linkedinText: (text: string) => post<UploadSourceResponse>('/v1/sources/linkedin', { text }),
@@ -149,8 +151,7 @@ export function createApi(call: Transport) {
       checkout: (body: CheckoutRequest) => post<CheckoutResponse>('/v1/billing/checkout', body),
       verify: (reference: string) => get<VerifyPaymentResponse>('/v1/billing/verify', { reference }),
       cancel: () => post<BillingView>('/v1/billing/cancel'),
-      studentVerification: (email: string) => post<{ sent: true }>('/v1/billing/student-verification', { email }),
-      confirmStudent: (token: string) => get<{ verified: true }>('/v1/billing/student-verification/confirm', { token }),
+      studentVerification: (email: string) => post<{ ok: true }>('/v1/billing/student-verification', { email }),
     },
 
     consent: {
@@ -167,6 +168,10 @@ export function createApi(call: Transport) {
       clients: () => get<ClientView[]>('/v1/admin/clients'),
       createClient: (body: { name: string; contactEmail?: string; monthlyQuota?: number }) =>
         post<ClientView>('/v1/admin/clients', body),
+      updateClient: (clientId: string, body: { status?: 'active' | 'suspended'; monthlyQuota?: number }) =>
+        patch<ClientView>(`/v1/admin/clients/${clientId}`, body),
+      setWebhook: (clientId: string, url: string) =>
+        post<{ url: string; secret: string }>(`/v1/admin/clients/${clientId}/webhook`, { url }),
       keys: (clientId: string) => get<ApiKeyView[]>(`/v1/admin/clients/${clientId}/keys`),
       createKey: (clientId: string, body: CreateKeyRequest) =>
         post<CreatedKeyResponse>(`/v1/admin/clients/${clientId}/keys`, body),

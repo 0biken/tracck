@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Eyebrow } from '@/components/page-header'
 import { buttonClass } from '@/components/ui/button'
-import { PLANS } from '@/lib/mock/account'
+import { PLAN_CARDS } from '@tracck/shared'
 
 export const metadata = { title: 'Pricing' }
 
@@ -26,7 +26,7 @@ function Tier({
   last = false,
   per = false,
 }: {
-  plan: (typeof PLANS)[keyof typeof PLANS]
+  plan: (typeof PLAN_CARDS)[keyof typeof PLAN_CARDS]
   cta: string
   href: string
   primary?: boolean
@@ -71,9 +71,9 @@ export default function PricingPage() {
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] border border-line border-t-2 border-t-ink">
-        <Tier plan={PLANS.free} cta="Start free" href="/signup" />
-        <Tier plan={PLANS.student} cta="Verify and start" href="/signup" primary highlighted per />
-        <Tier plan={PLANS.pro} cta="Start Pro" href="/signup" last per />
+        <Tier plan={PLAN_CARDS.free} cta="Start free" href="/signup" />
+        <Tier plan={PLAN_CARDS.student} cta="Verify and start" href="/signup" primary highlighted per />
+        <Tier plan={PLAN_CARDS.pro} cta="Start Pro" href="/signup" last per />
       </div>
 
       <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] items-center gap-10 bg-inverse p-8 text-on-inverse sm:p-12">

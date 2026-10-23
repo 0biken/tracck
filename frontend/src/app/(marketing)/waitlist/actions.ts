@@ -1,8 +1,9 @@
 'use server'
 
-import { ORG_TYPES, type WaitlistField, type WaitlistState } from '@/lib/waitlist'
-import { isSupabaseConfigured } from '@/utils/supabase/config'
-import { createClient } from '@/utils/supabase/server'
+import { ORG_TYPES, type OrgType } from '@tracck/shared'
+import { publicApi } from '@/lib/api/server'
+import { ApiClientError } from '@/lib/api/errors'
+import type { WaitlistField, WaitlistState } from '@/lib/waitlist'
 
 const text = (data: FormData, key: string) => (typeof data.get(key) === 'string' ? (data.get(key) as string).trim() : '')
 
@@ -16,6 +17,7 @@ export async function joinWaitlist(_previous: WaitlistState, formData: FormData)
     message: text(formData, 'message'),
   }
 
+  // Catch the common mistakes here so the person sees which field to fix. The API checks again.
   const fields: Partial<Record<WaitlistField, string>> = {}
   if (!values.org_name) fields.org_name = 'Tell us the organisation name.'
   if (!values.contact_name) fields.contact_name = 'Tell us who to contact.'
@@ -24,28 +26,21 @@ export async function joinWaitlist(_previous: WaitlistState, formData: FormData)
 
   if (Object.keys(fields).length > 0) return { status: 'error', fields, values }
 
-  if (!isSupabaseConfigured()) {
-    return {
-      status: 'error',
-      fields: {},
-      values,
-      message: 'The waitlist is not set up on this server yet. Add the Supabase URL and key from .env.example.',
-    }
-  }
-
-  const supabase = await createClient()
-  const { error } = await supabase.from('org_waitlist').insert({
-    org_name: values.org_name.slice(0, 200),
-    contact_name: values.contact_name.slice(0, 200),
-    email: values.email.slice(0, 320),
-    org_type: values.org_type,
-    volume: values.volume ? values.volume.slice(0, 100) : null,
-    message: values.message ? values.message.slice(0, 2000) : null,
-  })
-
-  // 23505: this address is already on the list. The outcome the person wants is the same.
-  if (error && error.code !== '23505') {
-    return { status: 'error', fields: {}, values, message: 'We could not save that. Try again in a moment.' }
+  try {
+    await publicApi().waitlist.join({
+      orgName: values.org_name,
+      contactName: values.contact_name,
+      email: values.email,
+      orgType: values.org_type as OrgType,
+      volume: values.volume || undefined,
+      message: values.message || undefined,
+    })
+  } catch (error) {
+    const message =
+      error instanceof ApiClientError
+        ? error.message
+        : 'We could not reach the server. Check your connection and try again.'
+    return { status: 'error', fields: {}, values, message }
   }
 
   return { status: 'joined', email: values.email }

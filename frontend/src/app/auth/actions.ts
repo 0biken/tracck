@@ -43,7 +43,7 @@ export async function login(formData: FormData) {
   if (error) fail('/login', toAuthErrorCode(error.code))
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  redirect(safeNext(formData.get('next'), '/dashboard'))
 }
 
 export async function signup(formData: FormData) {

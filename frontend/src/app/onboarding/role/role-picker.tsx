@@ -1,13 +1,18 @@
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Button, buttonClass } from '@/components/ui/button'
-import { ROLES, type RoleId } from '@/lib/mock/account'
+import { ROLES, type RoleId } from '@tracck/shared'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { api, messageOf } from '@/lib/api/client'
 
 /** Pick one or more roles. Each role has its own resume conventions. */
-export function RolePicker() {
-  const [selected, setSelected] = useState<Set<RoleId>>(new Set(['dev', 'devrel']))
+export function RolePicker({ initial }: { initial: RoleId[] }) {
+  const router = useRouter()
+  const [selected, setSelected] = useState<Set<RoleId>>(new Set(initial))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   function toggle(id: RoleId) {
     setSelected((current) => {
@@ -16,6 +21,19 @@ export function RolePicker() {
       else next.add(id)
       return next
     })
+  }
+
+  async function save() {
+    setSaving(true)
+    setError(null)
+    try {
+      // Keep the catalogue order, so the first role listed is the primary one.
+      await api.me.setRoles(ROLES.map((role) => role.id).filter((id) => selected.has(id)))
+      router.push('/onboarding/sources')
+    } catch (failure) {
+      setError(messageOf(failure))
+      setSaving(false)
+    }
   }
 
   const count = selected.size
@@ -51,19 +69,19 @@ export function RolePicker() {
         })}
       </div>
 
+      {error && (
+        <Alert tone="danger" title="We could not save your roles">
+          {error}
+        </Alert>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
         <span className="font-mono text-[13px] text-ink-muted" role="status">
           {count} {count === 1 ? 'ROLE SELECTED' : 'ROLES SELECTED'}
         </span>
-        {count > 0 ? (
-          <Link href="/onboarding/sources" className={buttonClass('primary', 'lg')}>
-            Continue
-          </Link>
-        ) : (
-          <Button size="lg" disabled>
-            Continue
-          </Button>
-        )}
+        <Button size="lg" disabled={count === 0} loading={saving} onClick={save}>
+          Continue
+        </Button>
       </div>
     </>
   )

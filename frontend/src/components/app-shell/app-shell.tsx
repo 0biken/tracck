@@ -5,21 +5,39 @@ import { signout } from '@/app/auth/actions'
 import { Logo } from '@/components/logo'
 import { buttonClass } from '@/components/ui/button'
 import { Meter } from '@/components/ui/meter'
-import { ACCOUNT, MOCK_ORG } from '@/lib/mock/account'
 import type { Viewer } from '@/lib/viewer'
 import { MobileNav } from './mobile-nav'
-import { SidebarNav } from './sidebar-nav'
+import { SidebarNav, type NavCounts } from './sidebar-nav'
 
-function SidebarContent({ mode, viewer }: { mode: 'user' | 'org'; viewer: Viewer }) {
+export interface ShellPlan {
+  /** "Free" or "Pro". */
+  name: string
+  used: number
+  /** Null when the plan has no monthly limit. */
+  limit: number | null
+  /** ISO date the allowance resets. */
+  resetsOn: string
+}
+
+const noCounts: NavCounts = { resumes: 0, evidence: 0, sources: 0 }
+
+function SidebarContent({
+  mode,
+  viewer,
+  counts,
+  plan,
+}: {
+  mode: 'user' | 'org'
+  viewer: Viewer
+  counts: NavCounts
+  plan: ShellPlan | null
+}) {
   const isOrg = mode === 'org'
-  const name = isOrg ? MOCK_ORG.adminName : viewer.name
-  const initials = isOrg ? MOCK_ORG.adminInitials : viewer.initials
-  const sub = isOrg ? 'Admin · Production' : viewer.email
 
   return (
     <div className="flex min-h-full flex-1 flex-col gap-6 p-4 pt-5">
       <div className="px-2">
-        <Logo href={isOrg ? '/org/keys' : '/dashboard'} size="sm" badge={isOrg ? 'ORG' : undefined} />
+        <Logo href={isOrg ? '/org/keys' : '/dashboard'} size="sm" badge={isOrg ? 'STAFF' : undefined} />
       </div>
 
       {!isOrg && (
@@ -29,27 +47,33 @@ function SidebarContent({ mode, viewer }: { mode: 'user' | 'org'; viewer: Viewer
         </Link>
       )}
 
-      <SidebarNav mode={mode} />
+      <SidebarNav mode={mode} counts={counts} />
 
       <div className="mt-auto flex flex-col gap-3">
-        {!isOrg && (
+        {!isOrg && plan && (
           <div className="flex flex-col gap-2 border border-line-strong bg-canvas p-3">
             <div className="flex justify-between text-[13px]">
-              <span className="font-semibold">Free plan</span>
+              <span className="font-semibold">{plan.name} plan</span>
               <span className="font-mono text-ink-muted">
-                {ACCOUNT.resumesUsed} / {ACCOUNT.resumesLimit}
+                {plan.limit === null ? `${plan.used} this month` : `${plan.used} / ${plan.limit}`}
               </span>
             </div>
-            <Meter
-              value={(ACCOUNT.resumesUsed / ACCOUNT.resumesLimit) * 100}
-              label={`${ACCOUNT.resumesUsed} of ${ACCOUNT.resumesLimit} resumes used this month`}
-            />
+            {plan.limit !== null && (
+              <Meter
+                value={Math.min(100, (plan.used / plan.limit) * 100)}
+                label={`${plan.used} of ${plan.limit} resumes used this month`}
+              />
+            )}
             <span className="text-xs leading-[17px] text-ink-muted">
-              Resumes this month. Resets {ACCOUNT.resetsOn}.
+              {plan.limit === null
+                ? 'Resumes this month. No limit on your plan.'
+                : `Resumes this month. Resets ${plan.resetsOn.replaceAll('-', '.')}.`}
             </span>
-            <Link href="/dashboard/settings" className="text-[13px] font-semibold">
-              Upgrade to Pro
-            </Link>
+            {plan.limit !== null && (
+              <Link href="/dashboard/settings" className="text-[13px] font-semibold">
+                Upgrade to Pro
+              </Link>
+            )}
           </div>
         )}
 
@@ -58,11 +82,11 @@ function SidebarContent({ mode, viewer }: { mode: 'user' | 'org'; viewer: Viewer
             aria-hidden="true"
             className="grid size-8 shrink-0 place-items-center bg-ink text-[13px] font-bold text-canvas"
           >
-            {initials}
+            {viewer.initials}
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-sm font-semibold">{name}</span>
-            <span className="truncate font-mono text-[11px] text-ink-muted">{sub}</span>
+            <span className="truncate text-sm font-semibold">{viewer.name}</span>
+            <span className="truncate font-mono text-[11px] text-ink-muted">{viewer.email}</span>
           </span>
           <form action={signout}>
             <button
@@ -81,18 +105,22 @@ function SidebarContent({ mode, viewer }: { mode: 'user' | 'org'; viewer: Viewer
 /**
  * The frame around every signed-in screen: a sticky side menu from 1024px up, a
  * top bar with a menu drawer below that. `mode="org"` swaps the menu for the
- * organisation one.
+ * staff console one.
  */
 export function AppShell({
   mode = 'user',
   viewer,
+  counts = noCounts,
+  plan = null,
   children,
 }: {
   mode?: 'user' | 'org'
   viewer: Viewer
+  counts?: NavCounts
+  plan?: ShellPlan | null
   children: ReactNode
 }) {
-  const content = <SidebarContent mode={mode} viewer={viewer} />
+  const content = <SidebarContent mode={mode} viewer={viewer} counts={counts} plan={plan} />
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -111,7 +139,7 @@ export function AppShell({
         <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-canvas px-4 py-2 lg:hidden">
           <MobileNav>{content}</MobileNav>
           <div className="flex-1 px-1">
-            <Logo href={mode === 'org' ? '/org/keys' : '/dashboard'} size="sm" badge={mode === 'org' ? 'ORG' : undefined} />
+            <Logo href={mode === 'org' ? '/org/keys' : '/dashboard'} size="sm" badge={mode === 'org' ? 'STAFF' : undefined} />
           </div>
           {mode === 'user' && (
             <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md', 'px-3.5')}>

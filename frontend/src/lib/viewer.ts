@@ -1,4 +1,4 @@
-import { MOCK_USER } from '@/lib/mock/account'
+import type { MeView } from '@tracck/shared'
 import { isSupabaseConfigured } from '@/utils/supabase/config'
 import { createClient } from '@/utils/supabase/server'
 
@@ -10,10 +10,14 @@ export function initialsOf(name: string) {
   return letters.toUpperCase()
 }
 
-/**
- * The signed-in person, for the side menu. Without a Supabase project (local UI
- * work) it returns the sample user, so every screen still renders.
- */
+/** The signed-in person as the side menu shows them, from their profile. */
+export function viewerFromMe(me: Pick<MeView, 'name' | 'email'>): Viewer {
+  const email = me.email ?? ''
+  const name = me.name || email.split('@')[0] || 'You'
+  return { name, email, initials: initialsOf(name) }
+}
+
+/** The signed-in person from their Supabase session, for pages that do not load the profile. */
 export async function getViewer(): Promise<Viewer> {
   if (isSupabaseConfigured()) {
     const supabase = await createClient()
@@ -21,10 +25,11 @@ export async function getViewer(): Promise<Viewer> {
       data: { user },
     } = await supabase.auth.getUser()
     if (user) {
-      const email = user.email ?? ''
-      const name = (user.user_metadata?.full_name as string | undefined) || email.split('@')[0] || 'You'
-      return { name, email, initials: initialsOf(name) }
+      return viewerFromMe({
+        name: (user.user_metadata?.full_name as string | undefined) ?? null,
+        email: user.email ?? null,
+      })
     }
   }
-  return { name: MOCK_USER.name, email: MOCK_USER.email, initials: MOCK_USER.initials }
+  return { name: 'You', email: '', initials: 'Y' }
 }

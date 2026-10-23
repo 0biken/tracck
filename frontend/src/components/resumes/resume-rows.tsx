@@ -1,25 +1,30 @@
 import Link from 'next/link'
+import type { ResumeSummaryView } from '@tracck/shared'
 import { Tag } from '@/components/ui/badge'
 import { ScrollTable, tdClass, thClass } from '@/components/ui/table'
-import type { ResumeSummary } from '@/lib/mock/resumes'
+import { formatDate } from '@/lib/format'
+import { LENGTH_LABEL, roleName } from '@/lib/resumes'
 
-export function StatusTag({ resume, long = false }: { resume: ResumeSummary; long?: boolean }) {
-  if (resume.status === 'exported') return <Tag tone="signal">{long ? 'EXPORTED PDF' : 'EXPORTED'}</Tag>
+export function StatusTag({ resume, long = false }: { resume: ResumeSummaryView; long?: boolean }) {
+  if (resume.status === 'exported') return <Tag tone="signal">EXPORTED</Tag>
   if (resume.status === 'failed') return <Tag tone="danger">FAILED · RETRY</Tag>
-  return <Tag>{long && resume.note ? `DRAFT · ${resume.note.toUpperCase()}` : 'DRAFT'}</Tag>
+  if (resume.status === 'generating') return <Tag>WRITING…</Tag>
+  return <Tag>{long && resume.newEntries > 0 ? `DRAFT · ${resume.newEntries} NEW ${resume.newEntries === 1 ? 'ENTRY' : 'ENTRIES'}` : 'DRAFT'}</Tag>
 }
 
-function hrefFor(resume: ResumeSummary) {
-  return resume.status === 'failed'
+function hrefFor(resume: ResumeSummaryView) {
+  return resume.status === 'failed' || resume.status === 'generating'
     ? `/dashboard/resumes/${resume.id}/generating`
     : `/dashboard/resumes/${resume.id}`
 }
+
+const nameOf = (resume: ResumeSummaryView) => resume.company || resume.title
 
 /**
  * Resumes as a table from 768px up, and as stacked cards below it. `compact` is
  * the short list on Home; the full one adds role, created date and an action.
  */
-export function ResumeRows({ items, compact = false }: { items: ResumeSummary[]; compact?: boolean }) {
+export function ResumeRows({ items, compact = false }: { items: ResumeSummaryView[]; compact?: boolean }) {
   if (items.length === 0) {
     return <p className="m-0 border border-line p-6 text-center text-[15px] text-ink-muted">No resumes match.</p>
   }
@@ -48,16 +53,16 @@ export function ResumeRows({ items, compact = false }: { items: ResumeSummary[];
               <tr key={resume.id}>
                 <td className={tdClass}>
                   <Link href={hrefFor(resume)} className="font-bold no-underline hover:underline">
-                    {compact ? resume.title : resume.company}
+                    {compact ? resume.title : nameOf(resume)}
                   </Link>
                   <div className={compact ? 'font-mono text-xs text-ink-muted' : 'text-[13px] text-ink-muted'}>
-                    {compact ? `${resume.company.toUpperCase()} · ${resume.created}` : resume.title}
+                    {compact ? `${nameOf(resume).toUpperCase()} · ${formatDate(resume.createdAt)}` : resume.title}
                   </div>
                 </td>
-                {!compact && <td className={tdClass}>{resume.role}</td>}
-                <td className={tdClass}>{resume.length}</td>
+                {!compact && <td className={tdClass}>{roleName(resume.role) || '—'}</td>}
+                <td className={tdClass}>{LENGTH_LABEL[resume.length]}</td>
                 <td className={`${tdClass} font-mono`}>{resume.score ?? '—'}</td>
-                {!compact && <td className={`${tdClass} font-mono text-[13px]`}>{resume.created}</td>}
+                {!compact && <td className={`${tdClass} font-mono text-[13px]`}>{formatDate(resume.createdAt)}</td>}
                 <td className={tdClass}>
                   <StatusTag resume={resume} long={!compact} />
                 </td>
@@ -80,7 +85,7 @@ export function ResumeRows({ items, compact = false }: { items: ResumeSummary[];
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link href={hrefFor(resume)} className="font-bold no-underline hover:underline">
-                  {resume.company}
+                  {nameOf(resume)}
                 </Link>
                 <div className="text-[13px] text-ink-muted">{resume.title}</div>
               </div>
@@ -88,8 +93,8 @@ export function ResumeRows({ items, compact = false }: { items: ResumeSummary[];
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-ink-muted">
               <StatusTag resume={resume} long />
-              <span>{resume.length}</span>
-              <span className="font-mono">{resume.created}</span>
+              <span>{LENGTH_LABEL[resume.length]}</span>
+              <span className="font-mono">{formatDate(resume.createdAt)}</span>
             </div>
           </li>
         ))}

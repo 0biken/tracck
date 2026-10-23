@@ -32,6 +32,8 @@ export interface MeView {
   studentVerified: boolean;
   onboardingCompleted: boolean;
   policyAccepted: boolean;
+  /** Part of the Tracck team: may open the staff console. */
+  staff: boolean;
   preferences: Preferences;
 }
 
@@ -515,4 +517,22 @@ export interface WaitlistRequest {
   orgType: 'university' | 'bootcamp' | 'job_platform' | 'other';
   volume?: string;
   message?: string;
+}
+
+/** A resume job started through the organisation API. */
+export interface OrgJobView {
+  id: string;
+  status: 'queued' | 'running' | 'retry_wait' | 'needs_user_action' | 'succeeded' | 'failed' | 'cancelled';
+  step: string | null;
+  progressPercent: number | null;
+  error: { code: string; message: string } | null;
+  createdAt: string;
+  completedAt: string | null;
+  /** Present once the resume is written. */
+  result: { resumeId: string; score: number | null; content: ResumeContent } | null;
+}
+
+export interface OrgCreateResumeResponse {
+  jobId: string;
+  statusUrl: string;
 }

@@ -29,3 +29,17 @@ export const STORAGE = Symbol('STORAGE');
 export const EMAIL = Symbol('EMAIL');
 export const AI_ENGINE = Symbol('AI_ENGINE');
 export const CLOCK = Symbol('CLOCK');
+/** Encrypts provider tokens and webhook secrets at rest. */
+export const SECRET_BOX = Symbol("SECRET_BOX");
+/** GitHub REST access. Replaced by a fake in tests. */
+export const GITHUB = Symbol("GITHUB");
+/** HTTP fetch that refuses private network addresses, for portfolio links and webhooks. */
+export const SAFE_FETCH = Symbol("SAFE_FETCH");
+
+/** Calls the language and embedding models. Throws NOT_CONFIGURED when no API key is set. */
+export const LLM_CLIENT = Symbol('LLM_CLIENT');
+/** Records every model call (tokens, latency, status; never prompt text) in llm_calls. */
+export const USAGE_SINK = Symbol('USAGE_SINK');
+
+/** Paystack: start payments, verify them, stop subscriptions. */
+export const PAYSTACK = Symbol('PAYSTACK');

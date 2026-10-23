@@ -10,7 +10,7 @@ export function configureApp(app: INestApplication, options: { appOrigin: string
   app.use(requestId);
   app.enableCors({
     origin: options.appOrigin,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'Last-Event-ID'],
     exposedHeaders: ['X-Correlation-Id'],
   });

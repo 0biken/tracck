@@ -2,80 +2,59 @@
 
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Bullet, EditBulletRequest, EvidenceRef, PlanId, ResumeDetailView, ResumeSection } from '@tracck/shared'
+import { ErrorNotice } from '@/components/sources/dialogs'
 import { Button, buttonClass } from '@/components/ui/button'
-import { Segmented } from '@/components/ui/segmented'
 import { TabPanel, Tabs } from '@/components/ui/tabs'
-import {
-  EVIDENCE_REFS,
-  JOB_DESCRIPTION,
-  JOB_FOCUS,
-  REQUIREMENTS,
-  RESUME_HEADER,
-  RESUME_SECTIONS,
-  SAVED_AT,
-  type Bullet,
-  type ResumeSection,
-  type ResumeSummary,
-} from '@/lib/mock/resumes'
+import { api } from '@/lib/api/client'
+import { ApiClientError } from '@/lib/api/errors'
+import { apiBase } from '@/lib/api/transport'
+import { formatDate, formatStamp } from '@/lib/format'
+import { LENGTH_LABEL, roleName } from '@/lib/resumes'
+import { useJob } from '@/lib/use-job'
 
 type Tab = 'evidence' | 'match' | 'job'
-type Length = 'one' | 'full'
-type Removed = { bullet: Bullet; s: number; g: number; b: number }
-
-// ---------------------------------------------------------------------------
-// Pure helpers over the section tree
+type Format = 'pdf' | 'docx'
 
 function allBullets(sections: ResumeSection[]) {
   return sections.flatMap((section) => (section.kind === 'groups' ? section.groups.flatMap((group) => group.bullets) : []))
 }
 
+/** Where a bullet sits: its section, group and place in the group. */
 function locate(sections: ResumeSection[], id: string) {
-  for (let s = 0; s < sections.length; s++) {
-    const section = sections[s]
+  for (const [s, section] of sections.entries()) {
     if (section.kind !== 'groups') continue
-    for (let g = 0; g < section.groups.length; g++) {
-      const b = section.groups[g].bullets.findIndex((bullet) => bullet.id === id)
+    for (const [g, group] of section.groups.entries()) {
+      const b = group.bullets.findIndex((bullet) => bullet.id === id)
       if (b !== -1) return { s, g, b }
     }
   }
   return null
 }
 
-function withBullets(sections: ResumeSection[], s: number, g: number, change: (bullets: Bullet[]) => Bullet[]) {
-  return sections.map((section, si) => {
-    if (si !== s || section.kind !== 'groups') return section
-    return {
-      ...section,
-      groups: section.groups.map((group, gi) => (gi === g ? { ...group, bullets: change(group.bullets) } : group)),
-    }
-  })
-}
-
-const hasFigure = (text: string) => /\d/.test(text)
-
-// ---------------------------------------------------------------------------
-
-export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
-  const [sections, setSections] = useState<ResumeSection[]>(RESUME_SECTIONS)
-  const [selectedId, setSelectedId] = useState<string | null>('b1')
+export function ResumeEditor({ initial, plan }: { initial: ResumeDetailView; plan: PlanId }) {
+  const router = useRouter()
+  const [resume, setResume] = useState(initial)
+  const content = resume.content!
+  const [selectedId, setSelectedId] = useState<string | null>(() => allBullets(content.sections)[0]?.id ?? null)
   const [tab, setTab] = useState<Tab>('evidence')
-  const [length, setLength] = useState<Length>(resume.length === 'Full' ? 'full' : 'one')
-  const [edited, setEdited] = useState(false)
   const [rewriting, setRewriting] = useState<string | null>(null)
   const [figure, setFigure] = useState('')
-  const [removed, setRemoved] = useState<Removed | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  /** The version to bring back if the last removal is undone. */
+  const [undoTo, setUndoTo] = useState<number | null>(null)
   const panelRef = useRef<HTMLElement>(null)
 
-  const bullets = useMemo(() => allBullets(sections), [sections])
+  const bullets = useMemo(() => allBullets(content.sections), [content])
   const selected = bullets.find((bullet) => bullet.id === selectedId) ?? null
-  const selectedLoc = selected ? locate(sections, selected.id) : null
-
-  const measurable = bullets.filter((bullet) => hasFigure(bullet.text)).length
-  const traced = bullets.filter((bullet) => bullet.evidence.length > 0).length
-  const tracedPercent = bullets.length ? Math.round((traced / bullets.length) * 100) : 100
-  const lowFigures = bullets.length > 0 && measurable / bullets.length < 0.5
+  const selectedLoc = selected ? locate(content.sections, selected.id) : null
+  const match = resume.match
   const flagged = bullets.filter((bullet) => bullet.needsNumber)
+  const name = resume.company || resume.title
 
   function select(id: string) {
     setSelectedId(id)
@@ -88,67 +67,55 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
     }
   }
 
-  function change(next: ResumeSection[]) {
-    setSections(next)
-    setEdited(true)
+  /** Runs one change on the server. The reply is the new version of the resume, so what is on screen is what is saved. */
+  async function save(change: () => Promise<ResumeDetailView>, after?: (next: ResumeDetailView) => void) {
+    setSaving(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const next = await change()
+      setResume(next)
+      after?.(next)
+    } catch (failure) {
+      if (failure instanceof ApiClientError && failure.code === 'VERSION_CONFLICT') {
+        setNotice(failure.message)
+        router.refresh()
+      } else {
+        setError(failure)
+      }
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function updateText(id: string, text: string, keepFlag = false) {
-    const loc = locate(sections, id)
-    if (!loc) return
-    change(
-      withBullets(sections, loc.s, loc.g, (list) =>
-        list.map((bullet) => (bullet.id === id ? { ...bullet, text, needsNumber: keepFlag ? bullet.needsNumber : false } : bullet)),
-      ),
-    )
-  }
+  const edit = (bulletId: string, body: Omit<EditBulletRequest, 'version'>, after?: () => void) =>
+    save(() => api.resumes.editBullet(resume.id, bulletId, { ...body, version: resume.version }), after)
 
   function addFigure() {
     if (!selected || !figure.trim()) return
-    const base = selected.text.replace(/[.\s]+$/, '')
-    updateText(selected.id, `${base}, ${figure.trim().replace(/[.\s]+$/, '')}.`)
-    setFigure('')
-  }
-
-  function keepWithoutFigure() {
-    if (!selected) return
-    updateText(selected.id, selected.text)
-  }
-
-  function moveUp() {
-    if (!selectedLoc || selectedLoc.b === 0) return
-    const { s, g, b } = selectedLoc
-    change(
-      withBullets(sections, s, g, (list) => {
-        const next = [...list]
-        ;[next[b - 1], next[b]] = [next[b], next[b - 1]]
-        return next
-      }),
-    )
+    void edit(selected.id, { figure: figure.trim() }, () => setFigure(''))
   }
 
   function remove() {
-    if (!selected || !selectedLoc) return
-    const { s, g, b } = selectedLoc
-    const neighbour = allBullets(sections).find((_, i, list) => list[i + 1]?.id === selected.id || list[i - 1]?.id === selected.id)
-    setRemoved({ bullet: selected, s, g, b })
-    change(withBullets(sections, s, g, (list) => list.filter((bullet) => bullet.id !== selected.id)))
-    setSelectedId(neighbour?.id ?? null)
-    setRewriting(null)
+    if (!selected) return
+    const before = resume.version
+    const neighbour = bullets.find((_, i, list) => list[i + 1]?.id === selected.id || list[i - 1]?.id === selected.id)
+    void save(
+      () => api.resumes.removeBullet(resume.id, selected.id, resume.version),
+      () => {
+        setUndoTo(before)
+        setSelectedId(neighbour?.id ?? null)
+        setRewriting(null)
+      },
+    )
   }
 
   function undoRemove() {
-    if (!removed) return
-    const { bullet, s, g, b } = removed
-    change(
-      withBullets(sections, s, g, (list) => {
-        const next = [...list]
-        next.splice(Math.min(b, next.length), 0, bullet)
-        return next
-      }),
+    if (undoTo === null) return
+    void save(
+      () => api.resumes.restoreBullet(resume.id, undoTo),
+      () => setUndoTo(null),
     )
-    setSelectedId(bullet.id)
-    setRemoved(null)
   }
 
   const tabs = [
@@ -169,33 +136,13 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
             <ChevronLeft className="size-5" strokeWidth={2} aria-hidden="true" />
           </Link>
           <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-0.5">
-            <h1 className="m-0 truncate font-display text-[22px] font-bold leading-7">Resume for {resume.company}</h1>
+            <h1 className="m-0 truncate font-display text-[22px] font-bold leading-7">Resume for {name}</h1>
             <span className="truncate font-mono text-xs text-ink-muted" aria-live="polite">
-              {resume.title.toUpperCase()} · {resume.role.toUpperCase()} ·{' '}
-              {edited ? 'UNSAVED CHANGES' : `SAVED ${SAVED_AT}`}
+              {[resume.title, roleName(resume.role), LENGTH_LABEL[resume.length]].filter(Boolean).join(' · ').toUpperCase()} ·{' '}
+              {saving ? 'SAVING…' : `SAVED ${formatStamp(resume.savedAt)} UTC · VERSION ${resume.version}`}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Segmented
-              label="Length"
-              size="sm"
-              value={length}
-              onChange={setLength}
-              options={[
-                { value: 'one', label: 'One page' },
-                { value: 'full', label: 'Full' },
-              ]}
-            />
-            <Link href={`/dashboard/resumes/${resume.id}/generating`} className={buttonClass('secondary', 'md', 'min-h-10')}>
-              Regenerate
-            </Link>
-            <Link href="/dashboard/settings" className={buttonClass('secondary', 'md', 'min-h-10')}>
-              Export DOCX <span className="font-mono text-[11px] text-ink-muted">PRO</span>
-            </Link>
-            <Button onClick={() => window.print()} className="min-h-10">
-              Export PDF
-            </Button>
-          </div>
+          <Actions resume={resume} plan={plan} onError={setError} />
         </div>
       </header>
 
@@ -203,22 +150,29 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
         <main id="content" aria-label="Resume" className="flex min-w-0 flex-1 flex-col items-center gap-4 bg-sunken px-3 py-6 sm:p-8">
           <div className="flex w-full max-w-190 flex-wrap justify-between gap-3 font-mono text-xs text-ink-muted">
             <span>
-              {length === 'one' ? 'A4 · ARIAL 11 PT · ATS SAFE · FITS 1 PAGE' : 'A4 · ARIAL 11 PT · ATS SAFE · FULL LENGTH'}
+              {resume.length === 'one_page' ? 'A4 · HELVETICA · ATS SAFE · ONE PAGE' : 'A4 · HELVETICA · ATS SAFE · FULL LENGTH'}
+              {match?.fitsOnePage === false && ' · MAY RUN OVER ONE PAGE'}
             </span>
             <span>SELECT A BULLET TO SEE ITS EVIDENCE</span>
           </div>
 
+          {(error !== null || notice) && (
+            <div className="w-full max-w-190">
+              {error !== null ? <ErrorNotice error={error} /> : <p role="status" className="m-0 border border-line-strong bg-canvas px-4 py-3 text-sm">{notice}</p>}
+            </div>
+          )}
+
           <article
-            aria-label={`Resume for ${resume.company}`}
+            aria-label={`Resume for ${name}`}
             className="print-area box-border w-full max-w-190 border border-line-strong bg-white px-5 py-8 font-[Arial,Helvetica,sans-serif] text-[#141310] sm:px-[52px] sm:py-12"
           >
-            <div className="text-2xl font-bold">{RESUME_HEADER.name}</div>
-            <div className="mt-1 text-xs leading-[17px]">{RESUME_HEADER.contact}</div>
+            <div className="text-2xl font-bold">{content.header.name}</div>
+            <div className="mt-1 text-xs leading-[17px]">{content.header.contact}</div>
 
-            {sections.map((section) => (
+            {content.sections.map((section) => (
               <section key={section.id} aria-label={section.heading.toLowerCase()}>
                 <h2 className="mb-1.5 mt-3.5 border-b border-[#141310] pb-[3px] text-[11.5px] font-bold tracking-[0.06em]">
-                  {section.heading}
+                  {section.heading.toUpperCase()}
                 </h2>
                 {section.kind === 'text' ? (
                   <p className="m-0 text-[12.5px] leading-[17px]">{section.text}</p>
@@ -278,10 +232,10 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
 
           <TabPanel idBase="review" value="evidence" active={tab === 'evidence'}>
             <div className="flex flex-col gap-5 p-4 sm:p-6">
-              {removed && (
+              {undoTo !== null && (
                 <div role="status" className="flex flex-wrap items-center justify-between gap-2 border border-line-strong bg-sunken px-3.5 py-2.5 text-sm">
                   <span>Bullet removed.</span>
-                  <button type="button" onClick={undoRemove} className="min-h-9 cursor-pointer border-0 bg-transparent font-semibold underline">
+                  <button type="button" onClick={undoRemove} disabled={saving} className="min-h-9 cursor-pointer border-0 bg-transparent font-semibold underline">
                     Undo
                   </button>
                 </div>
@@ -293,11 +247,10 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
                     <div className="t-eyebrow text-ink-muted">Selected bullet</div>
                     {rewriting === selected.id ? (
                       <RewriteBox
+                        key={selected.id}
                         initial={selected.text}
-                        onSave={(text) => {
-                          updateText(selected.id, text, true)
-                          setRewriting(null)
-                        }}
+                        saving={saving}
+                        onSave={(text) => edit(selected.id, { text }, () => setRewriting(null))}
                         onCancel={() => setRewriting(null)}
                       />
                     ) : (
@@ -305,46 +258,20 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
                     )}
                   </div>
 
-                  {selected.evidence.length > 0 ? (
-                    <div className="flex flex-col gap-3">
-                      {selected.evidence.map((refId, index) => {
-                        const ref = EVIDENCE_REFS[refId]
-                        const primary = index === 0
-                        return (
-                          <div
-                            key={refId}
-                            className={`flex flex-col gap-2 border p-4 ${primary ? 'border-signal bg-signal-tint' : 'border-line'}`}
-                          >
-                            <div className="flex justify-between gap-2">
-                              <span className={`font-mono text-xs ${primary ? 'text-signal' : 'text-ink-muted'}`}>
-                                {ref.source} · {ref.where}
-                              </span>
-                              <span className={`font-mono text-xs ${primary ? 'text-signal' : 'text-ink-muted'}`}>{ref.date}</span>
-                            </div>
-                            <div className={primary ? 'font-mono text-[13px] leading-5' : 'text-sm leading-5'}>{ref.original}</div>
-                            {primary && (
-                              <Link href="/dashboard/evidence" className="text-[13px] font-semibold">
-                                Open in evidence library
-                              </Link>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="m-0 border border-danger bg-danger-tint p-4 text-sm leading-5">
-                      This bullet has no evidence behind it. Add a source, or remove the bullet.
-                    </p>
-                  )}
+                  <Evidence bullet={selected} refs={content.evidenceRefs} />
 
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" onClick={() => setRewriting(selected.id)}>
+                    <Button variant="secondary" onClick={() => setRewriting(selected.id)} disabled={saving}>
                       Rewrite this bullet
                     </Button>
-                    <Button variant="secondary" onClick={moveUp} disabled={!selectedLoc || selectedLoc.b === 0}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void save(() => api.resumes.moveBullet(resume.id, selected.id, resume.version))}
+                      disabled={saving || !selectedLoc || selectedLoc.b === 0}
+                    >
                       Move up
                     </Button>
-                    <Button variant="danger" onClick={remove}>
+                    <Button variant="danger" onClick={remove} disabled={saving}>
                       Remove
                     </Button>
                   </div>
@@ -353,8 +280,8 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
                     <div className="flex flex-col gap-2.5 border border-danger bg-danger-tint p-4">
                       <div className="font-bold text-danger-ink">Confirm a number</div>
                       <div className="text-sm leading-5">
-                        &ldquo;{selected.text.split(' ').slice(0, 3).join(' ')}…&rdquo; would be stronger with a figure,
-                        but your evidence has none. Tracck will not invent one.
+                        &ldquo;{selected.text.split(' ').slice(0, 3).join(' ')}…&rdquo; would be stronger with a figure, but your evidence
+                        has none. Tracck will not invent one.
                       </div>
                       <label htmlFor="figure" className="text-[13px] font-semibold">
                         By how much, in your own words
@@ -362,15 +289,16 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
                       <input
                         id="figure"
                         value={figure}
+                        maxLength={120}
                         onChange={(event) => setFigure(event.target.value)}
                         placeholder="e.g. from 18% to 9% over 2 months"
                         className="min-h-11 rounded-sm border border-line-input bg-canvas px-3 text-[15px] hover:border-ink"
                       />
                       <div className="flex flex-wrap gap-2">
-                        <Button onClick={addFigure} disabled={!figure.trim()}>
+                        <Button onClick={addFigure} disabled={!figure.trim() || saving}>
                           Add to bullet
                         </Button>
-                        <Button variant="secondary" onClick={keepWithoutFigure}>
+                        <Button variant="secondary" disabled={saving} onClick={() => void edit(selected.id, { keepWithoutFigure: true })}>
                           Keep without a number
                         </Button>
                       </div>
@@ -378,74 +306,25 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
                   )}
                 </>
               ) : (
-                <p className="m-0 text-[15px] leading-[22px] text-ink-muted">
-                  Select a bullet on the page to see the evidence behind it.
-                </p>
+                <p className="m-0 text-[15px] leading-[22px] text-ink-muted">Select a bullet on the page to see the evidence behind it.</p>
               )}
             </div>
           </TabPanel>
 
           <TabPanel idBase="review" value="match" active={tab === 'match'}>
-            <div className="flex flex-col gap-5 p-4 sm:p-6">
-              <div className="flex items-baseline gap-2.5">
-                <span className="font-mono text-5xl leading-[52px]">{resume.score ?? 82}</span>
-                <span className="font-mono text-[13px] text-ink-muted">/ 100 · {resume.role.toUpperCase()} PROFILE</span>
-              </div>
-
-              <dl className="m-0 flex flex-col gap-3 text-sm">
-                {[
-                  ['Required skills covered', '6 / 6', ''],
-                  ['Preferred skills covered', '1 / 2', ''],
-                  ['Claims traced to evidence', `${tracedPercent}%`, tracedPercent === 100 ? 'text-signal' : 'text-danger-ink'],
-                  ['Technical specificity', 'Strong', ''],
-                  ['Measurable outcomes', `${measurable} of ${bullets.length} bullets`, lowFigures ? 'text-danger-ink' : ''],
-                  ['Fits one page', length === 'one' ? 'Yes' : 'Not needed', ''],
-                ].map(([label, value, tone]) => (
-                  <div key={label} className="flex justify-between gap-3">
-                    <dt>{label}</dt>
-                    <dd className={`m-0 text-right font-mono ${tone}`}>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div>
-                <div className="border-b-2 border-ink pb-1.5 text-xs font-bold tracking-[0.08em]">REQUIREMENTS</div>
-                <ul className="m-0 list-none p-0">
-                  {REQUIREMENTS.map((requirement) => (
-                    <li key={requirement.label} className="flex items-start gap-2.5 border-b border-line py-2.5 text-sm leading-5">
-                      <span
-                        className={`min-w-16 font-mono text-xs ${requirement.covered ? 'text-signal' : 'text-danger-ink'}`}
-                      >
-                        {requirement.covered ? 'COVERED' : 'MISSING'}
-                      </span>
-                      <span>
-                        {requirement.label} — {requirement.detail}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="flex flex-col gap-2 border border-line-strong bg-sunken p-4">
-                <div className="font-bold">What you could add</div>
-                <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-sm leading-[21px]">
-                  <li>
-                    A project deployed to Kubernetes, if you have one. <Link href="/dashboard/sources">Add a source</Link>
-                  </li>
-                  {flagged.length > 0 && <li>Numbers for the renewal and report-speed bullets.</li>}
-                </ul>
-              </div>
-            </div>
+            <MatchTab resume={resume} flagged={flagged.length} />
           </TabPanel>
 
           <TabPanel idBase="review" value="job" active={tab === 'job'}>
             <div className="flex flex-col gap-3 p-4 sm:p-6">
-              <div className="t-eyebrow text-ink-muted">Job description · pasted 2026.10.12</div>
-              <div className="whitespace-pre-line border border-line bg-sunken p-4 text-sm leading-[22px]">
-                {JOB_DESCRIPTION}
-              </div>
-              <div className="t-eyebrow mt-2 text-ink-muted">Your focus</div>
-              <div className="text-sm leading-[21px]">{JOB_FOCUS}</div>
+              <div className="t-eyebrow text-ink-muted">Job description · saved {formatDate(resume.createdAt)}</div>
+              <div className="whitespace-pre-line border border-line bg-sunken p-4 text-sm leading-[22px]">{resume.job.description}</div>
+              {resume.job.focus && (
+                <>
+                  <div className="t-eyebrow mt-2 text-ink-muted">Your focus</div>
+                  <div className="text-sm leading-[21px]">{resume.job.focus}</div>
+                </>
+              )}
             </div>
           </TabPanel>
         </aside>
@@ -454,17 +333,216 @@ export function ResumeEditor({ resume }: { resume: ResumeSummary }) {
   )
 }
 
-/** Manual rewrite until the AI rewrite is wired: edit the text, then save. */
+/** Regenerate and the two exports. An export is a background job; when it is done the file opens. */
+function Actions({ resume, plan, onError }: { resume: ResumeDetailView; plan: PlanId; onError: (error: unknown) => void }) {
+  const router = useRouter()
+  const [regenerating, setRegenerating] = useState(false)
+  const [exporting, setExporting] = useState<{ format: Format; jobId: string } | null>(null)
+  const [starting, setStarting] = useState<Format | null>(null)
+
+  async function regenerate() {
+    setRegenerating(true)
+    try {
+      await api.resumes.regenerate(resume.id)
+      router.push(`/dashboard/resumes/${resume.id}/generating`)
+    } catch (failure) {
+      onError(failure)
+      setRegenerating(false)
+    }
+  }
+
+  async function start(format: Format) {
+    setStarting(format)
+    try {
+      const { jobId } = await api.resumes.export(resume.id, format)
+      setExporting({ format, jobId })
+    } catch (failure) {
+      onError(failure)
+    } finally {
+      setStarting(null)
+    }
+  }
+
+  const busy = (format: Format) => starting === format || exporting?.format === format
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="secondary" className="min-h-10" loading={regenerating} onClick={regenerate}>
+        Regenerate
+      </Button>
+      {plan === 'pro' ? (
+        <Button variant="secondary" className="min-h-10" loading={busy('docx')} onClick={() => start('docx')}>
+          Export DOCX
+        </Button>
+      ) : (
+        <Link href="/dashboard/settings" className={buttonClass('secondary', 'md', 'min-h-10')}>
+          Export DOCX <span className="font-mono text-[11px] text-ink-muted">PRO</span>
+        </Link>
+      )}
+      <Button className="min-h-10" loading={busy('pdf')} onClick={() => start('pdf')}>
+        Export PDF
+      </Button>
+      {exporting && <ExportWatcher key={exporting.jobId} resumeId={resume.id} {...exporting} onDone={() => setExporting(null)} onError={onError} />}
+    </div>
+  )
+}
+
+/** Follows an export job, then opens the file through a short-lived link. */
+function ExportWatcher({
+  resumeId,
+  format,
+  jobId,
+  onDone,
+  onError,
+}: {
+  resumeId: string
+  format: Format
+  jobId: string
+  onDone: () => void
+  onError: (error: unknown) => void
+}) {
+  const router = useRouter()
+  const { job } = useJob(apiBase(), jobId)
+  const status = job?.status
+
+  useEffect(() => {
+    if (status === 'succeeded') {
+      void api.resumes
+        .exportLink(resumeId, format)
+        .then(({ url }) => {
+          window.open(url, '_blank', 'noopener')
+          router.refresh()
+        })
+        .catch(onError)
+        .finally(onDone)
+    } else if (status === 'failed' || status === 'cancelled') {
+      onError(new ApiClientError(422, job?.error?.code ?? 'EXPORT_FAILED', job?.error?.message ?? 'We could not make that file. Try again.'))
+      onDone()
+    }
+  }, [status, job, resumeId, format, router, onDone, onError])
+
+  return <span className="sr-only" role="status">Preparing your {format.toUpperCase()}…</span>
+}
+
+function Evidence({ bullet, refs }: { bullet: Bullet; refs: Record<string, EvidenceRef> }) {
+  if (bullet.evidence.length === 0) {
+    return (
+      <p className="m-0 border border-danger bg-danger-tint p-4 text-sm leading-5">
+        This bullet has no evidence behind it. Add a source, or remove the bullet.
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {bullet.evidence.map((refId, index) => {
+        const ref = refs[refId]
+        if (!ref) return null
+        const primary = index === 0
+        return (
+          <div key={refId} className={`flex flex-col gap-2 border p-4 ${primary ? 'border-signal bg-signal-tint' : 'border-line'}`}>
+            <div className="flex justify-between gap-2">
+              <span className={`font-mono text-xs ${primary ? 'text-signal' : 'text-ink-muted'}`}>
+                {ref.source}
+                {ref.where && ` · ${ref.where}`}
+              </span>
+              <span className={`font-mono text-xs ${primary ? 'text-signal' : 'text-ink-muted'}`}>{formatDate(ref.date)}</span>
+            </div>
+            <div className={primary ? 'font-mono text-[13px] leading-5' : 'text-sm leading-5'}>{ref.original}</div>
+            {primary && (
+              <Link href="/dashboard/evidence" className="text-[13px] font-semibold">
+                Open in evidence library
+              </Link>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function MatchTab({ resume, flagged }: { resume: ResumeDetailView; flagged: number }) {
+  const match = resume.match
+  if (!match) {
+    return <p className="m-0 p-4 text-[15px] text-ink-muted sm:p-6">The match report is ready once the draft is written.</p>
+  }
+  const lowFigures = match.measurable.total > 0 && match.measurable.withFigure / match.measurable.total < 0.5
+  const rows: [string, string, string][] = [
+    ['Required skills covered', `${match.required.covered} / ${match.required.total}`, ''],
+    ['Preferred skills covered', `${match.preferred.covered} / ${match.preferred.total}`, ''],
+    ['Claims traced to evidence', `${match.claimsTraced}%`, match.claimsTraced === 100 ? 'text-signal' : 'text-danger-ink'],
+    ['Measurable outcomes', `${match.measurable.withFigure} of ${match.measurable.total} bullets`, lowFigures ? 'text-danger-ink' : ''],
+    [
+      'Fits one page',
+      match.fitsOnePage === null ? 'Not needed' : match.fitsOnePage ? 'Yes' : 'Probably not',
+      match.fitsOnePage === false ? 'text-danger-ink' : '',
+    ],
+  ]
+
+  return (
+    <div className="flex flex-col gap-5 p-4 sm:p-6">
+      <div className="flex items-baseline gap-2.5">
+        <span className="font-mono text-5xl leading-[52px]">{match.score ?? '—'}</span>
+        <span className="font-mono text-[13px] text-ink-muted">/ 100{roleName(resume.role) && ` · ${roleName(resume.role).toUpperCase()} PROFILE`}</span>
+      </div>
+
+      <dl className="m-0 flex flex-col gap-3 text-sm">
+        {rows.map(([label, value, tone]) => (
+          <div key={label} className="flex justify-between gap-3">
+            <dt>{label}</dt>
+            <dd className={`m-0 text-right font-mono ${tone}`}>{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {match.requirements.length > 0 && (
+        <div>
+          <div className="border-b-2 border-ink pb-1.5 text-xs font-bold tracking-[0.08em]">REQUIREMENTS</div>
+          <ul className="m-0 list-none p-0">
+            {match.requirements.map((requirement) => (
+              <li key={requirement.label} className="flex items-start gap-2.5 border-b border-line py-2.5 text-sm leading-5">
+                <span className={`min-w-16 font-mono text-xs ${requirement.covered ? 'text-signal' : 'text-danger-ink'}`}>
+                  {requirement.covered ? 'COVERED' : 'MISSING'}
+                </span>
+                <span>
+                  {requirement.label} — {requirement.detail}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {(match.suggestions.length > 0 || flagged > 0) && (
+        <div className="flex flex-col gap-2 border border-line-strong bg-sunken p-4">
+          <div className="font-bold">What you could add</div>
+          <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-sm leading-[21px]">
+            {match.suggestions.map((suggestion) => (
+              <li key={suggestion}>{suggestion}</li>
+            ))}
+            <li>
+              <Link href="/dashboard/sources">Add a source</Link> or <Link href="/dashboard/evidence">an entry</Link> to cover more of the job.
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** The person's own rewrite of a bullet. */
 function RewriteBox({
   initial,
+  saving,
   onSave,
   onCancel,
 }: {
   initial: string
+  saving: boolean
   onSave: (text: string) => void
   onCancel: () => void
 }) {
   const [text, setText] = useState(initial)
+  const valid = text.trim().length >= 5
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor="rewrite" className="sr-only">
@@ -474,12 +552,13 @@ function RewriteBox({
         id="rewrite"
         autoFocus
         rows={4}
+        maxLength={600}
         value={text}
         onChange={(event) => setText(event.target.value)}
         className="w-full resize-y rounded-sm border border-line-input bg-canvas p-3 text-[15px] leading-[22px] hover:border-ink"
       />
       <div className="flex gap-2">
-        <Button size="sm" onClick={() => onSave(text.trim() || initial)}>
+        <Button size="sm" disabled={!valid || text.trim() === initial} loading={saving} onClick={() => onSave(text.trim())}>
           Save wording
         </Button>
         <Button size="sm" variant="secondary" onClick={onCancel}>

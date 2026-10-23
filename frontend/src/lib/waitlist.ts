@@ -1,9 +1,4 @@
-export const ORG_TYPES = [
-  { value: 'university', label: 'University or careers office' },
-  { value: 'bootcamp', label: 'Bootcamp or training programme' },
-  { value: 'job_platform', label: 'Job platform or recruiter' },
-  { value: 'other', label: 'Something else' },
-] as const
+export { ORG_TYPES } from '@tracck/shared'
 
 export type WaitlistField = 'org_name' | 'contact_name' | 'email' | 'org_type'
 

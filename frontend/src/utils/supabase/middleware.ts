@@ -13,6 +13,7 @@ function isPublicPath(pathname: string) {
     pathname.startsWith('/privacy') ||
     pathname.startsWith('/data-deletion') ||
     pathname.startsWith('/waitlist') ||
+    pathname.startsWith('/consent') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/auth')
   )
@@ -20,8 +21,11 @@ function isPublicPath(pathname: string) {
 
 function redirectToLogin(request: NextRequest) {
   const url = request.nextUrl.clone()
+  const back = request.nextUrl.pathname + request.nextUrl.search
   url.pathname = '/login'
   url.search = ''
+  // Come back to the page that was asked for once signed in.
+  if (back !== '/') url.searchParams.set('next', back)
   return NextResponse.redirect(url)
 }
 

@@ -17,7 +17,10 @@ import {
   type SourceProvider,
   type SummaryView,
 } from '@tracck/shared';
+import type { ApiEnv } from '../config/env';
+import { AuditService } from '../core/audit.service';
 import { EntitlementsService, periodResetsOn } from '../core/entitlements.service';
+import { isStaff } from '../org/staff.guard';
 import type { Database } from '../db';
 import {
   apiClients,
@@ -27,7 +30,7 @@ import {
   subscriptions,
   userPolicyConsents,
 } from '../db/schema';
-import { DB } from '../tokens';
+import { DB, ENV } from '../tokens';
 
 export const DEFAULT_PREFERENCES: Preferences = {
   notifications: { done: true, weekly: true, attention: true },
@@ -46,6 +49,8 @@ export class MeService {
   constructor(
     @Inject(DB) private readonly db: Database,
     @Inject(EntitlementsService) private readonly entitlements: EntitlementsService,
+    @Inject(ENV) private readonly env: ApiEnv,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async view(userId: string, email: string | null): Promise<MeView> {
@@ -79,6 +84,7 @@ export class MeService {
       priceTier: profile.plan === 'pro' ? ((subscription?.tier ?? 'standard') as PriceTier) : null,
       studentVerified: profile.studentVerifiedAt !== null,
       onboardingCompleted: profile.onboardingCompletedAt !== null,
+      staff: isStaff(this.env, userId),
       policyAccepted: POLICY_PURPOSES.every((purpose) => accepted.some((row) => row.purpose === purpose)),
       preferences: {
         notifications: { ...DEFAULT_PREFERENCES.notifications, ...stored.notifications },
@@ -268,6 +274,7 @@ export class MeService {
       .where(and(eq(consents.userId, userId), eq(consents.clientId, clientId), isNull(consents.revokedAt)))
       .returning({ id: consents.id });
     if (revoked.length === 0) throw new ApiError(404, 'NOT_FOUND', 'That organisation does not have access.');
+    await this.audit.record({ eventType: 'consent.revoked', clientId, userId, actor: userId, metadata: { scopes: revoked.length } });
   }
 }
 
