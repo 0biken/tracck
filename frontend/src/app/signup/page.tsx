@@ -88,7 +88,7 @@ export default async function SignupPage({
             </form>
 
             <p className="m-0 text-[13px] leading-[19px] text-ink-muted">
-              An .edu.ng email qualifies for Student Plus. By signing up you agree to the{' '}
+              By signing up you agree to the{' '}
               <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.
             </p>
             <p className="m-0 border-t border-line pt-4 text-[15px]">

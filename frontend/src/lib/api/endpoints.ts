@@ -151,7 +151,6 @@ export function createApi(call: Transport) {
       checkout: (body: CheckoutRequest) => post<CheckoutResponse>('/v1/billing/checkout', body),
       verify: (reference: string) => get<VerifyPaymentResponse>('/v1/billing/verify', { reference }),
       cancel: () => post<BillingView>('/v1/billing/cancel'),
-      studentVerification: (email: string) => post<{ ok: true }>('/v1/billing/student-verification', { email }),
     },
 
     consent: {

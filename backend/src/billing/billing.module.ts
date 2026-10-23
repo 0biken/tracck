@@ -6,7 +6,7 @@ import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { HttpPaystack, UnconfiguredPaystack, type PaystackClient } from './paystack';
 
-/** Plans, Paystack checkout and webhooks, and the student price. */
+/** Plans, Paystack checkout and webhooks. */
 @Module({
   imports: [AuthModule],
   controllers: [BillingController],

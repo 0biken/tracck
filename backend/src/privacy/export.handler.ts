@@ -37,7 +37,7 @@ export class DataExportHandler {
     const table = async (name: string, query: ReturnType<typeof sql>) => [`${name}.json`, strToU8(JSON.stringify(rowsOf(await this.db.execute(query)), null, 2))] as const;
 
     const files: Record<string, Uint8Array> = Object.fromEntries([
-      await table('profile', sql`select display_name, headline, location, summary, career_level, preferred_roles, primary_role, plan, preferences_json as preferences, student_email, created_at from public.profiles where id = ${userId}`),
+      await table('profile', sql`select display_name, headline, location, summary, career_level, preferred_roles, primary_role, plan, preferences_json as preferences, created_at from public.profiles where id = ${userId}`),
       await table('sources', sql`select provider, display_handle, status, last_sync_at, created_at from public.source_connections where user_id = ${userId} and revoked_at is null`),
       await table('source-items', sql`select source_type, title, canonical_url, body_text, source_created_at, imported_at from public.source_items where user_id = ${userId} and deletion_status = 'active'`),
       await table('evidence', sql`select title, claim_text as text, original_text as original, skills, project_key as project, source_provider as source, source_where as "where", valid_from, valid_to, pinned, excluded, user_edited as edited, created_at from public.candidate_evidence where user_id = ${userId} order by created_at`),

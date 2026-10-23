@@ -1,15 +1,16 @@
-// Test helpers. An in-process PostgreSQL (PGlite) runs the real migrations, so
+// Test helpers. An in-process PostgreSQL (PGlite) runs the real drizzle migrations, so
 // tests exercise the same SQL that production does.
 
-import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { vector } from '@electric-sql/pglite-pgvector';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { queueEntryId, type JobQueue, type QueueMessage } from '@tracck/shared';
 
 export type { PGlite };
 
-const MIGRATIONS_DIR = fileURLToPath(new URL('../../supabase/migrations/', import.meta.url));
+const MIGRATIONS_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 // The parts of a Supabase project the migrations rely on.
 const SUPABASE_STUB = `
@@ -32,9 +33,7 @@ const SUPABASE_STUB = `
 export async function createTestDatabase(): Promise<PGlite> {
   const db = await PGlite.create({ extensions: { vector } });
   await db.exec(SUPABASE_STUB);
-  for (const file of readdirSync(MIGRATIONS_DIR).sort()) {
-    await db.exec(readFileSync(`${MIGRATIONS_DIR}${file}`, 'utf8'));
-  }
+  await migrate(drizzle(db), { migrationsFolder: MIGRATIONS_DIR });
   return db;
 }
 

@@ -106,7 +106,6 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     API_PUBLIC_URL: 'http://localhost:4000',
     PAYSTACK_SECRET_KEY: 'sk_test_secret',
     PAYSTACK_PRO_PLAN_CODE: 'PLN_pro',
-    PAYSTACK_STUDENT_PLAN_CODE: 'PLN_student',
     ...options.env,
   };
 

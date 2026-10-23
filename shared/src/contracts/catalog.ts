@@ -23,11 +23,8 @@ export const ROLES: RoleProfile[] = [
 
 // ─── Plans ───────────────────────────────────────────────────────────────────
 
-/** What is stored on the profile. Student Plus is `pro` at the student price. */
+/** What is stored on the profile. */
 export type PlanId = 'free' | 'pro';
-export type PriceTier = 'standard' | 'student';
-/** What a person picks on the pricing page. */
-export type CheckoutPlan = 'pro' | 'student';
 
 export interface Entitlements {
   /** Sources that can be connected at once; null means no limit. */
@@ -59,15 +56,12 @@ export function entitlementsFor(plan: PlanId): Entitlements {
   return plan === 'pro' ? PRO_ENTITLEMENTS : FREE_ENTITLEMENTS;
 }
 
-/** Monthly prices in kobo (1 naira = 100 kobo). Money is never stored as a float. */
-export const PRICES_KOBO: Record<CheckoutPlan, number> = {
-  pro: 250_000,
-  student: 100_000,
-};
+/** Monthly price of Pro in kobo (1 naira = 100 kobo). Money is never stored as a float. */
+export const PRO_PRICE_KOBO = 250_000;
 
 /** The text of the pricing and settings plan cards. */
 export interface PlanCard {
-  id: 'free' | 'student' | 'pro';
+  id: PlanId;
   eyebrow: string;
   name: string;
   price: string;
@@ -95,20 +89,12 @@ export const PLAN_CARDS: Record<PlanCard['id'], PlanCard> = {
     settingsBlurb: '1 source, 2 resumes a month, one page, PDF export.',
     features: ['1 source', '2 resumes a month', 'One page only', 'PDF export'],
   },
-  student: {
-    id: 'student',
-    eyebrow: 'Students',
-    name: 'Student Plus',
-    price: '₦1,000',
-    blurb: 'Everything in Pro for students. Verify with an .edu.ng email.',
-    features: PAID_FEATURES,
-  },
   pro: {
     id: 'pro',
     eyebrow: 'Pro',
     name: 'Pro',
     price: '₦2,500',
-    blurb: 'For corpers, self-taught builders and working professionals.',
+    blurb: 'For students, corpers, self-taught builders and working professionals.',
     settingsBlurb: 'All sources, unlimited resumes, one page and full, DOCX, match report, evidence library.',
     features: PAID_FEATURES,
   },

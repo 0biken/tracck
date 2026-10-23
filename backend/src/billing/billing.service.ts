@@ -1,13 +1,11 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   ApiError,
-  PRICES_KOBO,
+  PRO_PRICE_KOBO,
   type BillingView,
-  type CheckoutPlan,
   type CheckoutResponse,
-  type PriceTier,
   type VerifyPaymentResponse,
 } from '@tracck/shared';
 import type { ApiEnv } from '../config/env';
@@ -17,17 +15,15 @@ import { EntitlementsService, periodResetsOn } from '../core/entitlements.servic
 import { JobDispatcher } from '../core/job-dispatcher.service';
 import { NotificationsService } from '../core/notifications.service';
 import type { Database } from '../db';
-import { payments, profiles, studentVerifications, subscriptions, webhookEvents } from '../db/schema';
+import { payments, profiles, subscriptions, webhookEvents } from '../db/schema';
 import type { EmailSender } from '../email/email';
 import { DB, EMAIL, ENV, PAYSTACK } from '../tokens';
 import { validSignature, type PaystackCharge, type PaystackClient } from './paystack';
 
 const rowsOf = <T>(result: unknown) => (result as { rows: T[] }).rows;
 const sha = (value: string) => createHash('sha256').update(value).digest('hex');
-const STUDENT_EMAIL = /^[^\s@]+@([a-z0-9-]+\.)+edu\.ng$/i;
 /** A late renewal keeps the paid plan this long before it lapses. */
 const GRACE_DAYS = 3;
-const STUDENT_LINK_HOURS = 24;
 
 const addMonth = (from: Date) => {
   const next = new Date(from);
@@ -71,7 +67,6 @@ export class BillingService {
     const now = new Date();
     return {
       plan: profile.plan,
-      priceTier: profile.plan === 'pro' ? (subscription?.priceTier ?? 'standard') : null,
       status: subscription?.status ?? 'none',
       currentPeriodEnd: subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toISOString() : null,
       cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
@@ -82,26 +77,21 @@ export class BillingService {
         sourcesLimit: entitlements.maxSources,
         resetsOn: periodResetsOn(now),
       },
-      studentVerified: Boolean(profile.studentVerifiedAt),
-      studentEmail: profile.studentEmail,
       paymentsConfigured: this.paymentsConfigured(),
     };
   }
 
   private paymentsConfigured() {
-    return Boolean(this.paystack.configured && this.env.PAYSTACK_PRO_PLAN_CODE && this.env.PAYSTACK_STUDENT_PLAN_CODE);
+    return Boolean(this.paystack.configured && this.env.PAYSTACK_PRO_PLAN_CODE);
   }
 
   // ─── Paying ────────────────────────────────────────────────────────────────
 
-  async checkout(userId: string, email: string | null, plan: CheckoutPlan, returnPath: string): Promise<CheckoutResponse> {
+  async checkout(userId: string, email: string | null, returnPath: string): Promise<CheckoutResponse> {
     if (!this.paymentsConfigured()) return notConfigured('Payments');
     if (!email) throw new ApiError(400, 'VALIDATION_ERROR', 'Your account has no email address to bill.');
 
     const [profile] = await this.db.select().from(profiles).where(eq(profiles.id, userId));
-    if (plan === 'student' && !profile?.studentVerifiedAt) {
-      throw new ApiError(403, 'FORBIDDEN', 'Confirm your student email first to get the student price.');
-    }
     const [active] = await this.db
       .select({ cancel: subscriptions.cancelAtPeriodEnd })
       .from(subscriptions)
@@ -112,20 +102,19 @@ export class BillingService {
     }
 
     const reference = `trk_${randomUUID().replaceAll('-', '')}`;
-    const tier: PriceTier = plan === 'student' ? 'student' : 'standard';
     const charge = await this.paystack.initialize({
       email,
-      amountKobo: PRICES_KOBO[plan],
+      amountKobo: PRO_PRICE_KOBO,
       reference,
       callbackUrl: `${this.env.APP_ORIGIN}${returnPath}`,
-      planCode: (plan === 'student' ? this.env.PAYSTACK_STUDENT_PLAN_CODE : this.env.PAYSTACK_PRO_PLAN_CODE)!,
-      metadata: { userId, plan, tier },
+      planCode: this.env.PAYSTACK_PRO_PLAN_CODE!,
+      metadata: { userId },
     });
     await this.db.insert(payments).values({
       userId,
       provider: 'paystack',
       providerReference: reference,
-      amountMinor: BigInt(PRICES_KOBO[plan]),
+      amountMinor: BigInt(PRO_PRICE_KOBO),
       currency: 'NGN',
       status: 'pending',
     });
@@ -142,7 +131,7 @@ export class BillingService {
 
     if (payment.status !== 'succeeded') {
       const charge = await this.paystack.verify(reference);
-      if (charge.status === 'success') await this.applyCharge(charge, userId, null);
+      if (charge.status === 'success') await this.applyCharge(charge, userId);
       else if (charge.status === 'failed') await this.db.update(payments).set({ status: 'failed' }).where(eq(payments.id, payment.id));
       else return { status: 'pending', plan: await this.entitlements.planOf(userId) };
       if (charge.status === 'failed') return { status: 'failed', plan: await this.entitlements.planOf(userId) };
@@ -155,7 +144,7 @@ export class BillingService {
    * either order with a webhook: the payment row is the guard, and the paid-through date
    * only ever moves forward.
    */
-  private async applyCharge(charge: PaystackCharge, userId: string | null, tierHint: PriceTier | null): Promise<void> {
+  private async applyCharge(charge: PaystackCharge, userId: string | null): Promise<void> {
     const [known] = await this.db.select().from(payments).where(eq(payments.providerReference, charge.reference));
     const owner = known?.userId ?? userId ?? (await this.ownerOf(charge));
     if (!owner) return;
@@ -166,9 +155,8 @@ export class BillingService {
       .where(and(eq(subscriptions.userId, owner), eq(subscriptions.provider, 'paystack')))
       .orderBy(desc(subscriptions.createdAt))
       .limit(1);
-    const tier: PriceTier = tierHint ?? (known && Number(known.amountMinor) === PRICES_KOBO.student ? 'student' : (existing?.priceTier ?? 'standard'));
 
-    if (charge.amountKobo < PRICES_KOBO[tier === 'student' ? 'student' : 'pro']) {
+    if (charge.amountKobo < PRO_PRICE_KOBO) {
       await this.db
         .insert(payments)
         .values({ userId: owner, provider: 'paystack', providerReference: charge.reference, amountMinor: BigInt(charge.amountKobo), currency: charge.currency, status: 'failed' })
@@ -195,7 +183,6 @@ export class BillingService {
             .set({
               plan: 'pro',
               status: 'active',
-              priceTier: tier,
               providerCustomerId: charge.customerCode ?? existing.providerCustomerId,
               currentPeriodStart: paidAt,
               // A late-arriving older charge must not shorten a period already paid for.
@@ -206,7 +193,7 @@ export class BillingService {
             .returning({ id: subscriptions.id })
         : await tx
             .insert(subscriptions)
-            .values({ userId: owner, provider: 'paystack', providerCustomerId: charge.customerCode, plan: 'pro', status: 'active', priceTier: tier, currentPeriodStart: paidAt, currentPeriodEnd: end })
+            .values({ userId: owner, provider: 'paystack', providerCustomerId: charge.customerCode, plan: 'pro', status: 'active', currentPeriodStart: paidAt, currentPeriodEnd: end })
             .returning({ id: subscriptions.id });
       await tx.update(payments).set({ subscriptionId: subscription.id }).where(eq(payments.id, row.id));
       await tx.update(profiles).set({ plan: 'pro' }).where(eq(profiles.id, owner));
@@ -214,11 +201,11 @@ export class BillingService {
     });
     if (!applied) return;
 
-    await this.audit.record({ userId: owner, eventType: 'billing.payment_succeeded', subjectType: 'payment', metadata: { tier, reference: charge.reference } });
+    await this.audit.record({ userId: owner, eventType: 'billing.payment_succeeded', subjectType: 'payment', metadata: { reference: charge.reference } });
     await this.notifications.notify({
       userId: owner,
       template: 'payment_received',
-      payload: { plan: tier === 'student' ? 'Student Plus' : 'Pro', amount: naira(charge.amountKobo), reference: charge.reference },
+      payload: { plan: 'Pro', amount: naira(charge.amountKobo), reference: charge.reference },
       idempotencyKey: `payment:${charge.reference}`,
     });
     await this.jobs
@@ -226,7 +213,7 @@ export class BillingService {
         userId: owner,
         jobType: 'email_send',
         idempotencyKey: `email:payment:${charge.reference}`,
-        input: { template: 'payment_received', data: { plan: tier === 'student' ? 'Student Plus' : 'Pro', amount: naira(charge.amountKobo), reference: charge.reference } },
+        input: { template: 'payment_received', data: { plan: 'Pro', amount: naira(charge.amountKobo), reference: charge.reference } },
       })
       .catch(() => {});
   }
@@ -278,46 +265,6 @@ export class BillingService {
     return lapsed.length;
   }
 
-  // ─── Student price ─────────────────────────────────────────────────────────
-
-  async requestStudentVerification(userId: string, address: string): Promise<void> {
-    if (!STUDENT_EMAIL.test(address)) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Use your university email address. It ends in .edu.ng.');
-    }
-    if (!this.email.configured) return notConfigured('Email');
-
-    const token = randomBytes(32).toString('base64url');
-    await this.db.insert(studentVerifications).values({
-      userId,
-      email: address.toLowerCase(),
-      tokenHash: sha(token),
-      expiresAt: new Date(Date.now() + STUDENT_LINK_HOURS * 3_600_000),
-    });
-    await this.jobs.dispatch({
-      userId,
-      jobType: 'email_send',
-      idempotencyKey: `student:${sha(token)}`,
-      input: { template: 'student_verify', to: address, data: { url: `${this.env.API_PUBLIC_URL}/v1/billing/student-verification/confirm?token=${token}` } },
-    });
-  }
-
-  /** Opened from the email. Possession of the link is the proof, so it needs no sign-in. Returns where to send the browser. */
-  async confirmStudent(token: string | undefined): Promise<string> {
-    const back = (outcome: string) => `${this.env.APP_ORIGIN}/dashboard/settings?student=${outcome}`;
-    if (!token) return back('invalid');
-
-    const [row] = await this.db
-      .update(studentVerifications)
-      .set({ usedAt: new Date() })
-      .where(and(eq(studentVerifications.tokenHash, sha(token)), sql`${studentVerifications.usedAt} is null`, sql`${studentVerifications.expiresAt} > now()`))
-      .returning();
-    if (!row) return back('invalid');
-
-    await this.db.update(profiles).set({ studentEmail: row.email, studentVerifiedAt: new Date() }).where(eq(profiles.id, row.userId));
-    await this.audit.record({ userId: row.userId, eventType: 'billing.student_verified', subjectType: 'profile', subjectId: row.userId });
-    return back('verified');
-  }
-
   // ─── Webhook ───────────────────────────────────────────────────────────────
 
   async handleWebhook(rawBody: Buffer | undefined, signature: string | undefined): Promise<void> {
@@ -360,7 +307,6 @@ export class BillingService {
             email: data.customer?.email ?? null,
           },
           typeof data.metadata?.userId === 'string' ? data.metadata.userId : null,
-          data.metadata?.tier === 'student' ? 'student' : data.metadata?.tier === 'standard' ? 'standard' : null,
         );
         return;
 

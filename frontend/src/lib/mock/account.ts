@@ -65,21 +65,6 @@ export const PLANS = {
     settingsBlurb: '1 source, 2 resumes a month, one page, PDF export.',
     features: ['1 source', '2 resumes a month', 'One page only', 'PDF export'],
   },
-  student: {
-    id: 'student',
-    eyebrow: 'Students',
-    name: 'Student Plus',
-    price: '₦1,000',
-    blurb: 'Everything in Pro for students. Verify with an .edu.ng email.',
-    features: [
-      'All sources',
-      'Unlimited resumes',
-      'One page and full',
-      'PDF and DOCX',
-      'Match report with gap suggestions',
-      'Evidence library',
-    ],
-  },
   pro: {
     id: 'pro',
     eyebrow: 'Pro',

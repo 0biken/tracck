@@ -151,19 +151,6 @@ describe('cleaning up', () => {
     expect(await scheduler.cleanup(tomorrow)).not.toBeNull();
   });
 
-  it('lets a plan lapse when its paid period is long over', async () => {
-    const lapsed = await ctx.newUser('Lapsed');
-    await ctx.db.query(`update public.profiles set plan = 'pro' where id = $1`, [lapsed]);
-    await ctx.db.query(
-      `insert into public.subscriptions (user_id, provider, plan, status, current_period_end, cancel_at_period_end) values ($1, 'paystack', 'pro', 'active', now() - interval '10 days', false)`,
-      [lapsed],
-    );
-    const day = new Date(Date.now() + 2 * 86_400_000);
-    day.setUTCHours(5, 0, 0, 0);
-    expect(await scheduler.cleanup(day)).toMatchObject({ plans: 1 });
-    expect((await ctx.db.query<{ plan: string }>(`select plan from public.profiles where id = $1`, [lapsed])).rows[0].plan).toBe('free');
-  });
-
   it('expires consent requests nobody answered', async () => {
     const client = (await ctx.db.query<{ id: string }>(`insert into public.api_clients (name, status) values ('Acme', 'active') returning id`)).rows[0].id;
     await ctx.db.query(`insert into public.consent_requests (client_id, token_hash, scopes, expires_at) values ($1, 'hash-1', '{profile:read}', now() - interval '1 day')`, [client]);

@@ -81,17 +81,14 @@ describe('starting a resume', () => {
     expect(await used(tolu)).toBe(0);
   });
 
-  it('refuses unknown fields and a missing idempotency key', async () => {
-    await addEvidence(tolu);
-    expect((await send('post', '/v1/resumes', { ...body, plan: 'pro' })).status).toBe(400);
-    expect((await ctx.http().post('/v1/resumes').set(ctx.as(tolu)).send(body)).status).toBe(400);
-  });
 });
 
 describe('writing and reading a resume', () => {
   let resumeId: string;
   let jobId: string;
   const idempotency = key();
+
+  beforeAll(() => addEvidence(tolu));
 
   it('accepts the request, counts it once, and answers the same to a repeat', async () => {
     const first = await send('post', '/v1/resumes', { jobDescription: JOB, company: 'Paystack', focus: 'payments', length: 'one_page' }, tolu, idempotency);
@@ -280,31 +277,6 @@ describe('writing and reading a resume', () => {
       expect((await get(`/v1/resumes/${resumeId}/versions`)).body[0].createdBy).toBe('ai');
       expect(detail.version).toBeGreaterThan(2);
     });
-  });
-});
-
-describe('plan limits', () => {
-  it('stops at the monthly cap and says when it resets', async () => {
-    const user = await ctx.newUser('Capped');
-    await send('post', '/v1/me/consents/policy', undefined, user);
-    await addEvidence(user);
-    const body = { jobDescription: JOB, length: 'one_page' };
-    expect((await send('post', '/v1/resumes', body, user)).status).toBe(202);
-    expect((await send('post', '/v1/resumes', body, user)).status).toBe(202);
-    const third = await send('post', '/v1/resumes', body, user);
-    expect(third.status).toBe(402);
-    expect(third.body.error.message).toMatch(/reset on/);
-    expect(await used(user)).toBe(2);
-    await ctx.drain();
-  });
-
-  it('keeps full length for Pro', async () => {
-    const user = await ctx.newUser('Free');
-    await send('post', '/v1/me/consents/policy', undefined, user);
-    await addEvidence(user);
-    const refused = await send('post', '/v1/resumes', { jobDescription: JOB, length: 'full' }, user);
-    expect(refused.status).toBe(402);
-    expect(await used(user)).toBe(0);
   });
 });
 

@@ -11,7 +11,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
   // A new account finishes setup (role, sources, agreement) before the product opens.
   if (!me.onboardingCompleted) redirect('/onboarding/role')
 
-  const planName = me.plan === 'pro' ? (me.priceTier === 'student' ? 'Student Plus' : 'Pro') : 'Free'
+  const planName = me.plan === 'pro' ? 'Pro' : 'Free'
 
   return (
     <AppShell

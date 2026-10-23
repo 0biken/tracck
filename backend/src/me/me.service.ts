@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import {
   ApiError,
   POLICY_PURPOSES,
@@ -12,7 +12,6 @@ import {
   type Page,
   type PlanId,
   type Preferences,
-  type PriceTier,
   type RoleId,
   type SourceProvider,
   type SummaryView,
@@ -27,7 +26,6 @@ import {
   consents,
   notifications,
   profiles,
-  subscriptions,
   userPolicyConsents,
 } from '../db/schema';
 import { DB, ENV } from '../tokens';
@@ -57,13 +55,6 @@ export class MeService {
     const [profile] = await this.db.select().from(profiles).where(eq(profiles.id, userId));
     if (!profile) throw new ApiError(404, 'NOT_FOUND', 'We could not find your account.');
 
-    const [subscription] = await this.db
-      .select({ tier: subscriptions.priceTier })
-      .from(subscriptions)
-      .where(and(eq(subscriptions.userId, userId), inArray(subscriptions.status, ['active', 'trialing', 'past_due'])))
-      .orderBy(desc(subscriptions.createdAt))
-      .limit(1);
-
     const accepted = await this.db
       .select({ purpose: userPolicyConsents.purpose })
       .from(userPolicyConsents)
@@ -81,8 +72,6 @@ export class MeService {
       roles,
       primaryRole: isRole(profile.primaryRole ?? '') ? (profile.primaryRole as RoleId) : (roles[0] ?? null),
       plan: profile.plan as PlanId,
-      priceTier: profile.plan === 'pro' ? ((subscription?.tier ?? 'standard') as PriceTier) : null,
-      studentVerified: profile.studentVerifiedAt !== null,
       onboardingCompleted: profile.onboardingCompletedAt !== null,
       staff: isStaff(this.env, userId),
       policyAccepted: POLICY_PURPOSES.every((purpose) => accepted.some((row) => row.purpose === purpose)),

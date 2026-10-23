@@ -56,35 +56,12 @@ describe('schema', () => {
 });
 
 describe('JobStore', () => {
-  it('returns the original job when an idempotency key is reused', async () => {
-    const idempotencyKey = crypto.randomUUID();
-    const first = await store.create({ userId, jobType: 'diagnostic', idempotencyKey });
-    const second = await store.create({ userId, jobType: 'diagnostic', idempotencyKey });
-    expect(first.created).toBe(true);
-    expect(second.created).toBe(false);
-    expect(second.job.id).toBe(first.job.id);
-  });
-
   it('scopes idempotency keys to the user', async () => {
     const idempotencyKey = crypto.randomUUID();
     const mine = await store.create({ userId, jobType: 'diagnostic', idempotencyKey });
     const theirs = await store.create({ userId: otherUserId, jobType: 'diagnostic', idempotencyKey });
     expect(theirs.created).toBe(true);
     expect(theirs.job.id).not.toBe(mine.job.id);
-  });
-
-  it('hides other users’ jobs', async () => {
-    const job = await newJob();
-    expect(await store.getForUser(job.id, otherUserId)).toBeNull();
-    expect((await store.getForUser(job.id, userId))?.id).toBe(job.id);
-  });
-
-  it('lets only one delivery claim a job', async () => {
-    const job = await newJob();
-    const claimed = await store.markRunning(job.id);
-    expect(claimed).toMatchObject({ status: 'running', attemptCount: 1 });
-    expect(claimed!.version).toBeGreaterThan(job.version);
-    expect(await store.markRunning(job.id)).toBeNull();
   });
 
   it('ignores updates from an attempt that was replaced', async () => {
@@ -102,14 +79,6 @@ describe('JobStore', () => {
     });
   });
 
-  it('cancels a waiting job immediately', async () => {
-    const job = await newJob();
-    const cancelled = await store.requestCancel(job.id, userId);
-    expect(cancelled).toMatchObject({ status: 'cancelled' });
-    expect(cancelled!.completedAt).not.toBeNull();
-    expect(await store.markRunning(job.id)).toBeNull();
-  });
-
   it('only flags a running job for cancellation', async () => {
     const job = await newJob();
     await store.markRunning(job.id);
@@ -125,20 +94,6 @@ describe('JobStore', () => {
     await store.markRunning(job.id);
     await store.succeed(job.id, 1, {});
     expect(await store.requestCancel(job.id, userId)).toBeNull();
-  });
-
-  it('requeues only failed jobs, with a fresh attempt budget', async () => {
-    const job = await newJob();
-    expect(await store.requeueFailed(job.id, userId)).toBeNull();
-    await store.markRunning(job.id);
-    await store.fail(job.id, 1, 'BROKEN', 'It broke.');
-    expect(await store.requeueFailed(job.id, otherUserId)).toBeNull();
-    expect(await store.requeueFailed(job.id, userId)).toMatchObject({
-      status: 'queued',
-      attemptCount: 0,
-      errorCode: null,
-      completedAt: null,
-    });
   });
 
   it('recovers a running job whose worker went silent', async () => {

@@ -11,7 +11,7 @@ Tracck builds resumes from work a person can show. It keeps a record of entries 
 | `frontend/` | Next.js 16 app: marketing and pricing, sign-in and signup, onboarding, the product screens (Home, Resumes and the editor, Career Graph, Evidence library, Sources, CV feedback, Settings) and the organisation API screens. Product screens run on sample data in `src/lib/mock/` until the API has endpoints for them |
 | `backend/` | NestJS app: the HTTPS API and the background jobs (BullMQ), in one process. Verifies Supabase tokens, creates jobs, serves job status and a server-sent event stream, runs jobs with retries, and recovers lost ones. Modules: `config`, `connections`, `auth`, `jobs`, `health`. Job handlers live in `backend/src/jobs/handlers/` |
 | `shared/` | Source-only code used by both apps: job states, the PostgreSQL job store, queue contract, labels, error codes |
-| `supabase/migrations/` | Database schema and row-level security |
+| `backend/src/db/schema.ts`, `backend/drizzle/` | Database schema (Drizzle) and its generated migrations |
 | `docs/` | Architecture, design system, audit and gap analysis |
 
 The frontend and backend are separate apps. Each has its own `package.json`, lockfile and `node_modules`, and none of them depends on a root install. `shared/` is linked into each one as a local dependency (`"@tracck/shared": "file:../shared"`). It has no `node_modules` of its own: each app compiles it, 
@@ -42,7 +42,7 @@ cd backend && npm install
 
 Each app has its own `.env.example`. Copy it next to itself and fill it in: `frontend/.env.local` and `backend/.env`. The frontend needs the two `NEXT_PUBLIC_SUPABASE_*` values to sign in. Without them the sign-in page loads and explains what is missing. The backend needs `DATABASE_URL` and `REDIS_URL`.
 
-Apply the files in `supabase/migrations/` to your Supabase project in order, with the Supabase CLI or the SQL editor.
+The schema lives in `backend/src/db/schema.ts`. After changing it, run `pnpm db:generate` in `backend/` to write a migration, and `pnpm db:migrate` to apply pending migrations to `DATABASE_URL`. Do not edit generated migrations.
 
 Run each app in its own terminal. The backend serves the API and runs background jobs:
 

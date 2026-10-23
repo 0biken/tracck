@@ -43,11 +43,9 @@ describe('the plan page', () => {
     const { body } = await get('/v1/billing');
     expect(body).toMatchObject({
       plan: 'free',
-      priceTier: null,
       status: 'none',
       currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
-      studentVerified: false,
       paymentsConfigured: true,
       usage: { resumes: 0, resumesLimit: 2, sources: 0, sourcesLimit: 1 },
     });
@@ -58,7 +56,7 @@ describe('paying', () => {
   let reference: string;
 
   it('starts a Paystack checkout on the Pro plan and remembers the pending payment', async () => {
-    const { status, body } = await post('/v1/billing/checkout', { plan: 'pro' });
+    const { status, body } = await post('/v1/billing/checkout', {});
     expect(status).toBe(200);
     reference = body.reference;
     expect(body.authorizationUrl).toBe(`https://checkout.paystack.test/${reference}`);
@@ -67,22 +65,19 @@ describe('paying', () => {
       amountKobo: 250000,
       planCode: 'PLN_pro',
       callbackUrl: 'http://localhost:3000/dashboard/settings',
-      metadata: { userId: tolu, plan: 'pro', tier: 'standard' },
+      metadata: { userId: tolu },
     });
     expect(await row(`select status, amount_minor::int as amount from public.payments where provider_reference = $1`, [reference])).toEqual({ status: 'pending', amount: 250000 });
   });
 
   it('only sends the person back to a page on this site', async () => {
     for (const returnPath of ['https://evil.example/steal', '//evil.example', 'javascript:alert(1)']) {
-      expect((await post('/v1/billing/checkout', { plan: 'pro', returnPath })).status).toBe(400);
+      expect((await post('/v1/billing/checkout', { returnPath })).status).toBe(400);
     }
-    expect((await post('/v1/billing/checkout', { plan: 'pro', returnPath: '/dashboard/settings?paid=1' })).status).toBe(200);
+    expect((await post('/v1/billing/checkout', { returnPath: '/dashboard/settings?paid=1' })).status).toBe(200);
   });
 
-  it('keeps the student price for verified students', async () => {
-    const refused = await post('/v1/billing/checkout', { plan: 'student' });
-    expect(refused.status).toBe(403);
-    expect(refused.body.error.code).toBe('FORBIDDEN');
+  it('has one plan to buy, so it refuses any other', async () => {
     expect((await post('/v1/billing/checkout', { plan: 'enterprise' })).status).toBe(400);
   });
 
@@ -98,19 +93,19 @@ describe('paying', () => {
     expect((await get(`/v1/billing/verify?reference=${reference}`)).body).toEqual({ status: 'succeeded', plan: 'pro' });
 
     const { body } = await get('/v1/billing');
-    expect(body).toMatchObject({ plan: 'pro', priceTier: 'standard', status: 'active', cancelAtPeriodEnd: false, usage: { resumesLimit: null, sourcesLimit: null } });
+    expect(body).toMatchObject({ plan: 'pro', status: 'active', cancelAtPeriodEnd: false, usage: { resumesLimit: null, sourcesLimit: null } });
     expect(new Date(body.currentPeriodEnd).getTime()).toBeGreaterThan(Date.now() + 27 * 86_400_000);
     expect(await row(`select count(*)::int as n from public.subscriptions where user_id = $1`, [tolu])).toEqual({ n: 1 });
     expect(await row(`select count(*)::int as n from public.notifications where user_id = $1 and template = 'payment_received'`, [tolu])).toEqual({ n: 1 });
   });
 
   it('will not sell Pro to someone who already has it', async () => {
-    expect((await post('/v1/billing/checkout', { plan: 'pro' })).status).toBe(409);
+    expect((await post('/v1/billing/checkout', {})).status).toBe(409);
   });
 
   it('refuses a payment for less than the plan costs', async () => {
     const user = await ctx.newUser('Underpaid');
-    const { body } = await post('/v1/billing/checkout', { plan: 'pro' }, user);
+    const { body } = await post('/v1/billing/checkout', {}, user);
     ctx.paystack.charges.set(body.reference, { status: 'success', amountKobo: 1000, paidAt: new Date().toISOString() });
     await get(`/v1/billing/verify?reference=${body.reference}`, user);
     expect((await get('/v1/billing', user)).body.plan).toBe('free');
@@ -119,7 +114,7 @@ describe('paying', () => {
 
   it('records a payment that failed', async () => {
     const user = await ctx.newUser('Declined');
-    const { body } = await post('/v1/billing/checkout', { plan: 'pro' }, user);
+    const { body } = await post('/v1/billing/checkout', {}, user);
     ctx.paystack.charges.set(body.reference, { status: 'failed' });
     expect((await get(`/v1/billing/verify?reference=${body.reference}`, user)).body).toEqual({ status: 'failed', plan: 'free' });
   });
@@ -136,8 +131,8 @@ describe('the Paystack webhook', () => {
 
   it('applies a signed charge, and applies a redelivery only once', async () => {
     const user = await ctx.newUser('Webhook');
-    const { body } = await post('/v1/billing/checkout', { plan: 'pro' }, user);
-    const event = chargeEvent(body.reference, { metadata: { userId: user, plan: 'pro', tier: 'standard' }, customer: { customer_code: 'CUS_hook', email: 'w@example.com' } }, 777);
+    const { body } = await post('/v1/billing/checkout', {}, user);
+    const event = chargeEvent(body.reference, { metadata: { userId: user }, customer: { customer_code: 'CUS_hook', email: 'w@example.com' } }, 777);
 
     expect((await webhook(event)).status).toBe(200);
     expect((await webhook(event)).status).toBe(200);
@@ -149,10 +144,10 @@ describe('the Paystack webhook', () => {
 
   it('does not let a late older charge shorten the paid period', async () => {
     const user = await ctx.newUser('Ordering');
-    const first = (await post('/v1/billing/checkout', { plan: 'pro' }, user)).body.reference;
+    const first = (await post('/v1/billing/checkout', {}, user)).body.reference;
     const customer = { customer_code: 'CUS_order', email: 'o@example.com' };
     const recent = new Date().toISOString();
-    await webhook(chargeEvent(first, { paid_at: recent, customer, metadata: { userId: user, tier: 'standard' } }, 1));
+    await webhook(chargeEvent(first, { paid_at: recent, customer, metadata: { userId: user } }, 1));
     const before = await row<{ end: string }>(`select current_period_end as "end" from public.subscriptions where user_id = $1`, [user]);
 
     const older = new Date(Date.now() - 20 * 86_400_000).toISOString();
@@ -167,8 +162,8 @@ describe('the Paystack webhook', () => {
 
     beforeAll(async () => {
       user = await ctx.newUser('Lifecycle');
-      const { body } = await post('/v1/billing/checkout', { plan: 'pro' }, user);
-      await webhook(chargeEvent(body.reference, { customer, metadata: { userId: user, tier: 'standard' } }, 11));
+      const { body } = await post('/v1/billing/checkout', {}, user);
+      await webhook(chargeEvent(body.reference, { customer, metadata: { userId: user } }, 11));
     });
 
     it('renews on a charge Tracck did not start, found by the customer', async () => {
@@ -213,8 +208,8 @@ describe('the Paystack webhook', () => {
   it('gives a late subscription announcement the cancel the person already asked for', async () => {
     const user = await ctx.newUser('Eager');
     const customer = { customer_code: 'CUS_eager', email: 'e@example.com' };
-    const { body } = await post('/v1/billing/checkout', { plan: 'pro' }, user);
-    await webhook(chargeEvent(body.reference, { customer, metadata: { userId: user, tier: 'standard' } }, 21));
+    const { body } = await post('/v1/billing/checkout', {}, user);
+    await webhook(chargeEvent(body.reference, { customer, metadata: { userId: user } }, 21));
     await post('/v1/billing/cancel', undefined, user);
     expect(ctx.paystack.disabled.find((d) => d.code === 'SUB_eager')).toBeUndefined();
 
@@ -229,60 +224,6 @@ describe('the Paystack webhook', () => {
 
   it('has nothing to cancel on Free', async () => {
     expect((await post('/v1/billing/cancel', undefined, other)).status).toBe(409);
-  });
-});
-
-describe('the student price', () => {
-  let student: string;
-
-  beforeAll(async () => {
-    student = await ctx.newUser('Student');
-  });
-
-  it('wants a university address', async () => {
-    for (const email of ['me@gmail.com', 'me@school.edu', 'me@edu.ng.example.com']) {
-      expect((await post('/v1/billing/student-verification', { email }, student)).status).toBe(400);
-    }
-  });
-
-  it('emails a link that works for a day, and confirms the student from it', async () => {
-    await ctx.drain();
-    const sent = await post('/v1/billing/student-verification', { email: 'Ada@Unilag.edu.ng' }, student);
-    expect(sent.status).toBe(202);
-    expect(await ctx.drain()).toEqual(['succeeded']);
-
-    const mail = ctx.email.sent.at(-1)!;
-    expect(mail.to).toBe('ada@unilag.edu.ng');
-    expect(mail.subject).toBe('Confirm your student email');
-    const link = mail.text.match(/http:\/\/localhost:4000(\/v1\/billing\/student-verification\/confirm\?token=[\w-]+)/)![1];
-
-    const confirmed = await ctx.http().get(link);
-    expect(confirmed.status).toBe(302);
-    expect(confirmed.headers.location).toBe('http://localhost:3000/dashboard/settings?student=verified');
-    expect((await get('/v1/billing', student)).body).toMatchObject({ studentVerified: true, studentEmail: 'ada@unilag.edu.ng' });
-
-    // A link works once.
-    expect((await ctx.http().get(link)).headers.location).toBe('http://localhost:3000/dashboard/settings?student=invalid');
-    expect((await ctx.http().get('/v1/billing/student-verification/confirm?token=guess')).headers.location).toContain('student=invalid');
-    expect((await ctx.http().get('/v1/billing/student-verification/confirm')).headers.location).toContain('student=invalid');
-  });
-
-  it('does not accept an expired link', async () => {
-    const late = await ctx.newUser('Late');
-    await post('/v1/billing/student-verification', { email: 'late@uam.edu.ng' }, late);
-    await ctx.drain();
-    const link = ctx.email.sent.at(-1)!.text.match(/(\/v1\/billing\/student-verification\/confirm\?token=[\w-]+)/)![1];
-    await ctx.db.query(`update public.student_verifications set expires_at = now() - interval '1 minute' where user_id = $1`, [late]);
-    expect((await ctx.http().get(link)).headers.location).toContain('student=invalid');
-    expect((await get('/v1/billing', late)).body.studentVerified).toBe(false);
-  });
-
-  it('charges a verified student the student price', async () => {
-    const { body } = await post('/v1/billing/checkout', { plan: 'student' }, student);
-    expect(ctx.paystack.initialized.at(-1)).toMatchObject({ amountKobo: 100000, planCode: 'PLN_student', metadata: { plan: 'student', tier: 'student' } });
-    ctx.paystack.charges.set(body.reference, { status: 'success', amountKobo: 100000, paidAt: new Date().toISOString(), customerCode: 'CUS_student' });
-    await get(`/v1/billing/verify?reference=${body.reference}`, student);
-    expect((await get('/v1/billing', student)).body).toMatchObject({ plan: 'pro', priceTier: 'student' });
   });
 });
 

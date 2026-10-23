@@ -1,19 +1,25 @@
-// Drizzle mirror of the tables in supabase/migrations. The SQL migrations stay the
-// source of truth (they also hold triggers, check constraints, RLS and the
-// auth.users link); this file gives the API typed queries over the same tables.
-// When you change a table, change the migration first, then this file.
+// The database schema. Migrations are generated from this file with drizzle-kit
+// (`pnpm db:generate`) and applied with `pnpm db:migrate`; never edit a generated
+// migration. What a schema cannot express (extensions, triggers, grants) lives in
+// the custom migrations next to them.
+//
+// Row level security: every table has it on. A signed-in browser may read its own
+// rows through the policies below and can write nothing; tables with no policy are
+// reachable only by the API's server-only database role.
 
-import { sql } from 'drizzle-orm';
+import { getTableColumns, getTableName, sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
   check,
   customType,
   date,
+  halfvec,
   index,
   integer,
   jsonb,
   numeric,
+  pgPolicy,
   pgTable,
   primaryKey,
   smallint,
@@ -22,42 +28,72 @@ import {
   unique,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
+  type PgTable,
 } from 'drizzle-orm/pg-core';
+import { anonRole, authenticatedRole, authUsers } from 'drizzle-orm/supabase';
+import { JOB_STATUSES, JOB_STEPS, JOB_TYPES } from '@tracck/shared';
 
 const tstz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 const createdAt = () => tstz('created_at').notNull().defaultNow();
 const updatedAt = () => tstz('updated_at').notNull().defaultNow();
 
-/** pgvector half-precision column, 1536 dimensions (must match AI_EMBEDDING_DIMENSIONS). */
-const halfvec = customType<{ data: number[]; driverData: string }>({
-  dataType: () => 'extensions.halfvec(1536)',
-  toDriver: (value) => `[${value.join(',')}]`,
-  fromDriver: (value) => value.slice(1, -1).split(',').map(Number),
-});
-
 const tsvector = customType<{ data: string }>({ dataType: () => 'tsvector' });
+
+/**
+ * A CHECK for every column declared with `enum`, so the database refuses what the types forbid.
+ * The columns an extra-config callback receives do not carry their enum values, so they are
+ * read from the table the columns belong to.
+ */
+const enumChecks = (columns: Record<string, AnyPgColumn>) => {
+  const table = Object.values(columns)[0].table as PgTable;
+  return Object.values(getTableColumns(table)).flatMap((column) =>
+    column.enumValues?.length
+      ? [
+          check(
+            `${getTableName(table)}_${column.name}_check`,
+            sql`${column} in (${sql.raw(column.enumValues.map((value) => `'${value}'`).join(', '))})`,
+          ),
+        ]
+      : [],
+  );
+};
+
+/** A signed-in browser may read the rows whose owner column is its own user ID. */
+const ownRows = (owner: AnyPgColumn) =>
+  pgPolicy(`${getTableName(owner.table)}_select_own`, {
+    for: 'select',
+    to: authenticatedRole,
+    using: sql`(select auth.uid()) = ${owner}`,
+  });
 
 // ─── Profiles ────────────────────────────────────────────────────────────────
 
-/** `id` is also a foreign key to auth.users, declared in the migration. */
-export const profiles = pgTable('profiles', {
-  id: uuid('id').primaryKey(),
-  displayName: text('display_name'),
-  headline: text('headline'),
-  location: text('location'),
-  summary: text('summary'),
-  careerLevel: text('career_level'),
-  preferredRoles: text('preferred_roles').array().notNull().default(sql`'{}'`),
-  preferencesJson: jsonb('preferences_json').$type<Record<string, unknown>>().notNull().default({}),
-  primaryRole: text('primary_role'),
-  plan: text('plan', { enum: ['free', 'pro'] }).notNull().default('free'),
-  deletedAt: tstz('deleted_at'),
-  studentEmail: text('student_email'),
-  studentVerifiedAt: tstz('student_verified_at'),
-  onboardingCompletedAt: tstz('onboarding_completed_at'),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const profiles = pgTable(
+  'profiles',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
+    displayName: text('display_name'),
+    headline: text('headline'),
+    location: text('location'),
+    summary: text('summary'),
+    careerLevel: text('career_level'),
+    preferredRoles: text('preferred_roles').array().notNull().default(sql`'{}'`),
+    preferencesJson: jsonb('preferences_json').$type<Record<string, unknown>>().notNull().default({}),
+    primaryRole: text('primary_role'),
+    plan: text('plan', { enum: ['free', 'pro'] }).notNull().default('free'),
+    deletedAt: tstz('deleted_at'),
+    onboardingCompletedAt: tstz('onboarding_completed_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.id),
+  ],
+);
 
 // ─── Sources and evidence ────────────────────────────────────────────────────
 
@@ -84,6 +120,9 @@ export const sourceConnections = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    
     uniqueIndex('source_connections_account_unique')
       .on(t.userId, t.provider, t.providerAccountId)
       .where(sql`${t.revokedAt} is null`),
@@ -92,16 +131,22 @@ export const sourceConnections = pgTable(
 );
 
 /** Encrypted provider tokens. Never exposed to browser roles. */
-export const sourceConnectionSecrets = pgTable('source_connection_secrets', {
-  connectionId: uuid('connection_id')
-    .primaryKey()
-    .references(() => sourceConnections.id, { onDelete: 'cascade' }),
-  accessTokenEncrypted: text('access_token_encrypted'),
-  refreshTokenEncrypted: text('refresh_token_encrypted'),
-  tokenExpiresAt: tstz('token_expires_at'),
-  keyVersion: text('key_version').notNull(),
-  updatedAt: updatedAt(),
-});
+export const sourceConnectionSecrets = pgTable(
+  'source_connection_secrets',
+  {
+    connectionId: uuid('connection_id')
+      .primaryKey()
+      .references(() => sourceConnections.id, { onDelete: 'cascade' }),
+    accessTokenEncrypted: text('access_token_encrypted'),
+    refreshTokenEncrypted: text('refresh_token_encrypted'),
+    tokenExpiresAt: tstz('token_expires_at'),
+    keyVersion: text('key_version').notNull(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    ...enumChecks(t),
+  ],
+).enableRLS();
 
 export const sourceItems = pgTable(
   'source_items',
@@ -139,6 +184,9 @@ export const sourceItems = pgTable(
       .default('active'),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    
     uniqueIndex('source_items_provider_item_unique')
       .on(t.connectionId, t.providerItemId)
       .where(sql`${t.connectionId} is not null and ${t.providerItemId} is not null`),
@@ -200,7 +248,15 @@ export const candidateEvidence = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    check('candidate_evidence_confidence_check', sql`${t.confidence} between 0 and 1`),
+    
     index('candidate_evidence_user_status_idx').on(t.userId, t.verificationStatus),
+    index('candidate_evidence_project_idx').on(t.userId, t.projectKey),
+    index('candidate_evidence_flags_idx').on(t.userId).where(sql`${t.pinned} or ${t.excluded}`),
+    index('candidate_evidence_skills_idx').using('gin', t.skills),
+    index('candidate_evidence_topics_idx').using('gin', t.topics),
     index('candidate_evidence_tsv_idx').using('gin', t.claimTsv),
   ],
 );
@@ -213,11 +269,16 @@ export const evidenceEmbeddings = pgTable(
     embeddingModel: text('embedding_model').notNull(),
     embeddingVersion: text('embedding_version').notNull(),
     contentHash: text('content_hash').notNull(),
-    embedding: halfvec('embedding').notNull(),
+    embedding: halfvec('embedding', { dimensions: 1536 }).notNull(),
     createdAt: createdAt(),
   },
-  (t) => [primaryKey({ columns: [t.evidenceId, t.embeddingModel, t.embeddingVersion] })],
-);
+  (t) => [
+    ...enumChecks(t),
+    primaryKey({ columns: [t.evidenceId, t.embeddingModel, t.embeddingVersion] }),
+    index('evidence_embeddings_user_idx').on(t.userId),
+    index('evidence_embeddings_hnsw_idx').using('hnsw', t.embedding.op('halfvec_cosine_ops')),
+  ],
+).enableRLS();
 
 export const evidenceSources = pgTable(
   'evidence_sources',
@@ -231,6 +292,13 @@ export const evidenceSources = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
+    ...enumChecks(t),
+    pgPolicy('evidence_sources_select_own', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`exists (select 1 from ${candidateEvidence} where ${candidateEvidence.id} = ${t.evidenceId} and ${candidateEvidence.userId} = (select auth.uid()))`,
+    }),
+    
     primaryKey({ columns: [t.evidenceId, t.sourceItemId] }),
     index('evidence_sources_source_item_idx').on(t.sourceItemId),
   ],
@@ -260,6 +328,9 @@ export const evidenceRelations = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    
     check('evidence_relations_distinct', sql`${t.fromEvidenceId} <> ${t.toEvidenceId}`),
     unique().on(t.fromEvidenceId, t.relationType, t.toEvidenceId),
     index('evidence_relations_from_idx').on(t.userId, t.fromEvidenceId),
@@ -285,7 +356,11 @@ export const targetOpportunities = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('target_opportunities_user_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    index('target_opportunities_user_idx').on(t.userId, t.createdAt.desc()),
+  ],
 );
 
 export const backgroundJobs = pgTable(
@@ -293,39 +368,9 @@ export const backgroundJobs = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-    jobType: text('job_type', {
-      enum: [
-        'source_import',
-        'cv_parse',
-        'cv_review',
-        'profile_index',
-        'resume_generation',
-        'resume_export',
-        'source_sync',
-        'cleanup',
-        'diagnostic',
-      ],
-    }).notNull(),
-    status: text('status', {
-      enum: ['queued', 'running', 'retry_wait', 'succeeded', 'failed', 'cancelled', 'needs_user_action'],
-    })
-      .notNull()
-      .default('queued'),
-    step: text('step', {
-      enum: [
-        'download_source',
-        'parse_cv',
-        'normalize',
-        'embed',
-        'retrieve',
-        'draft',
-        'critique',
-        'revise',
-        'validate',
-        'export',
-        'notify',
-      ],
-    }),
+    jobType: text('job_type', { enum: JOB_TYPES }).notNull(),
+    status: text('status', { enum: JOB_STATUSES }).notNull().default('queued'),
+    step: text('step', { enum: JOB_STEPS }),
     progressPercent: smallint('progress_percent'),
     attemptCount: integer('attempt_count').notNull().default(0),
     maxAttempts: integer('max_attempts').notNull().default(3),
@@ -346,6 +391,11 @@ export const backgroundJobs = pgTable(
     cancelRequestedAt: tstz('cancel_requested_at'),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    check('background_jobs_progress_percent_range', sql`${t.progressPercent} between 0 and 100`),
+    check('background_jobs_max_attempts_positive', sql`${t.maxAttempts} >= 1`),
+    
     unique().on(t.userId, t.idempotencyKey),
     index('background_jobs_user_idx').on(t.userId, t.createdAt.desc()),
     index('background_jobs_open_idx')
@@ -371,12 +421,15 @@ export const resumeDocuments = pgTable(
     focus: text('focus'),
     engine: text('engine').notNull().default('placeholder'),
     lastExportedAt: tstz('last_exported_at'),
-    /** Foreign key to resume_versions is declared in the migration (circular). */
-    currentVersionId: uuid('current_version_id'),
+    currentVersionId: uuid('current_version_id').references((): AnyPgColumn => resumeVersions.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('resume_documents_user_idx').on(t.userId, t.updatedAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    index('resume_documents_user_idx').on(t.userId, t.updatedAt.desc()),
+  ],
 );
 
 export const generationRuns = pgTable(
@@ -411,7 +464,11 @@ export const generationRuns = pgTable(
     startedAt: tstz('started_at'),
     completedAt: tstz('completed_at'),
   },
-  (t) => [index('generation_runs_user_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    index('generation_runs_user_idx').on(t.userId, t.createdAt.desc()),
+  ],
 );
 
 /** Edits and builds add versions. Nothing is overwritten. */
@@ -434,7 +491,15 @@ export const resumeVersions = pgTable(
     exportStatus: text('export_status', { enum: ['queued', 'ready', 'failed'] }),
     createdAt: createdAt(),
   },
-  (t) => [unique().on(t.resumeDocumentId, t.versionNumber)],
+  (t) => [
+    ...enumChecks(t),
+    pgPolicy('resume_versions_select_own', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`exists (select 1 from ${resumeDocuments} where ${resumeDocuments.id} = ${t.resumeDocumentId} and ${resumeDocuments.userId} = (select auth.uid()))`,
+    }),
+    unique().on(t.resumeDocumentId, t.versionNumber),
+  ],
 );
 
 // ─── Examples, rubrics, notifications, audit ─────────────────────────────────
@@ -457,9 +522,11 @@ export const resumeExamples = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
+    ...enumChecks(t),
+    
     index('resume_examples_lookup_idx').on(t.roleFamily, t.seniority, t.exampleKind).where(sql`${t.active}`),
   ],
-);
+).enableRLS();
 
 export const roleRubrics = pgTable(
   'role_rubrics',
@@ -474,8 +541,11 @@ export const roleRubrics = pgTable(
     active: boolean('active').notNull().default(true),
     createdAt: createdAt(),
   },
-  (t) => [unique().on(t.roleFamily, t.seniority, t.version)],
-);
+  (t) => [
+    ...enumChecks(t),
+    unique().on(t.roleFamily, t.seniority, t.version),
+  ],
+).enableRLS();
 
 export const notifications = pgTable(
   'notifications',
@@ -495,7 +565,11 @@ export const notifications = pgTable(
     sentAt: tstz('sent_at'),
     readAt: tstz('read_at'),
   },
-  (t) => [unique().on(t.userId, t.idempotencyKey), index('notifications_user_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    unique().on(t.userId, t.idempotencyKey), index('notifications_user_idx').on(t.userId, t.createdAt.desc()),
+  ],
 );
 
 /** Security-relevant actions. Never store document contents here. */
@@ -509,29 +583,39 @@ export const auditEvents = pgTable(
     subjectId: uuid('subject_id'),
     correlationId: text('correlation_id'),
     metadataJson: jsonb('metadata_json').$type<Record<string, unknown>>().notNull().default({}),
-    clientId: uuid('client_id'),
-    keyId: uuid('key_id'),
+    clientId: uuid('client_id').references(() => apiClients.id, { onDelete: 'set null' }),
+    keyId: uuid('key_id').references(() => apiKeys.id, { onDelete: 'set null' }),
     /** Who did it: a staff member's ID, a user, or "api". */
     actor: text('actor'),
     ip: text('ip'),
     createdAt: createdAt(),
   },
-  (t) => [index('audit_events_user_idx').on(t.userId, t.createdAt.desc())],
-);
+  (t) => [
+    ...enumChecks(t),
+    index('audit_events_user_idx').on(t.userId, t.createdAt.desc()),
+    index('audit_events_client_idx').on(t.clientId, t.createdAt.desc()),
+  ],
+).enableRLS();
 
 // ─── Organisation API, consents (PRD data model) ─────────────────────────────
 
-export const apiClients = pgTable('api_clients', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  status: text('status', { enum: ['pending', 'active', 'suspended'] }).notNull().default('pending'),
-  contactEmail: text('contact_email'),
-  monthlyQuota: integer('monthly_quota').notNull().default(5000),
-  webhookUrl: text('webhook_url'),
-  webhookSecretEncrypted: text('webhook_secret_encrypted'),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const apiClients = pgTable(
+  'api_clients',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    status: text('status', { enum: ['pending', 'active', 'suspended'] }).notNull().default('pending'),
+    contactEmail: text('contact_email'),
+    monthlyQuota: integer('monthly_quota').notNull().default(5000),
+    webhookUrl: text('webhook_url'),
+    webhookSecretEncrypted: text('webhook_secret_encrypted'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    ...enumChecks(t),
+  ],
+).enableRLS();
 
 export const apiKeys = pgTable(
   'api_keys',
@@ -552,12 +636,16 @@ export const apiKeys = pgTable(
     lastUsedIp: text('last_used_ip'),
     /** A rotated key keeps working until this time. */
     stopsAt: tstz('stops_at'),
-    rotatedFrom: uuid('rotated_from'),
-    createdBy: uuid('created_by'),
+    rotatedFrom: uuid('rotated_from').references((): AnyPgColumn => apiKeys.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => profiles.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
   },
-  (t) => [index('api_keys_client_idx').on(t.clientId)],
-);
+  (t) => [
+    ...enumChecks(t),
+    check('api_keys_rate_limit_positive', sql`${t.rateLimitPerMin} > 0`),
+    index('api_keys_client_idx').on(t.clientId),
+  ],
+).enableRLS();
 
 export const apiUsageEvents = pgTable(
   'api_usage_events',
@@ -570,8 +658,11 @@ export const apiUsageEvents = pgTable(
     ip: text('ip'),
     at: tstz('at').notNull().defaultNow(),
   },
-  (t) => [index('api_usage_events_key_idx').on(t.keyId, t.at.desc())],
-);
+  (t) => [
+    ...enumChecks(t),
+    index('api_usage_events_key_idx').on(t.keyId, t.at.desc()),
+  ],
+).enableRLS();
 
 /** A user grants an organisation client access to a scope of their data. */
 export const consents = pgTable(
@@ -585,6 +676,9 @@ export const consents = pgTable(
     revokedAt: tstz('revoked_at'),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    
     uniqueIndex('consents_active_unique').on(t.userId, t.clientId, t.scope).where(sql`${t.revokedAt} is null`),
     index('consents_client_idx').on(t.clientId),
   ],
@@ -605,12 +699,14 @@ export const subscriptions = pgTable(
     currentPeriodStart: tstz('current_period_start'),
     currentPeriodEnd: tstz('current_period_end'),
     cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
-    priceTier: text('price_tier', { enum: ['standard', 'student'] }).notNull().default('standard'),
     providerEmailToken: text('provider_email_token'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    
     index('subscriptions_user_idx').on(t.userId),
     uniqueIndex('subscriptions_provider_unique')
       .on(t.provider, t.providerSubscriptionId)
@@ -633,7 +729,12 @@ export const payments = pgTable(
     paidAt: tstz('paid_at'),
     createdAt: createdAt(),
   },
-  (t) => [unique().on(t.provider, t.providerReference), index('payments_user_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    check('payments_amount_minor_positive', sql`${t.amountMinor} >= 0`),
+    unique().on(t.provider, t.providerReference), index('payments_user_idx').on(t.userId, t.createdAt.desc()),
+  ],
 );
 
 /** One row per provider event, so a redelivered webhook is applied once. */
@@ -648,8 +749,11 @@ export const webhookEvents = pgTable(
     receivedAt: tstz('received_at').notNull().defaultNow(),
     processedAt: tstz('processed_at'),
   },
-  (t) => [unique().on(t.provider, t.providerEventId)],
-);
+  (t) => [
+    ...enumChecks(t),
+    unique().on(t.provider, t.providerEventId),
+  ],
+).enableRLS();
 
 export const usageCounters = pgTable(
   'usage_counters',
@@ -660,7 +764,12 @@ export const usageCounters = pgTable(
     count: integer('count').notNull().default(0),
     updatedAt: updatedAt(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.metric, t.periodStart] })],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    check('usage_counters_count_positive', sql`${t.count} >= 0`),
+    primaryKey({ columns: [t.userId, t.metric, t.periodStart] }),
+  ],
 );
 
 // ─── Model calls and deletion ────────────────────────────────────────────────
@@ -682,8 +791,11 @@ export const llmCalls = pgTable(
     status: text('status', { enum: ['ok', 'error', 'timeout', 'refused', 'truncated'] }).notNull(),
     createdAt: createdAt(),
   },
-  (t) => [index('llm_calls_run_idx').on(t.generationRunId), index('llm_calls_created_idx').on(t.createdAt)],
-);
+  (t) => [
+    ...enumChecks(t),
+    index('llm_calls_run_idx').on(t.generationRunId), index('llm_calls_created_idx').on(t.createdAt),
+  ],
+).enableRLS();
 
 export const deletionRequests = pgTable(
   'deletion_requests',
@@ -698,8 +810,11 @@ export const deletionRequests = pgTable(
     dueAt: tstz('due_at').notNull().default(sql`now() + interval '30 days'`),
     completedAt: tstz('completed_at'),
   },
-  (t) => [index('deletion_requests_status_idx').on(t.status, t.dueAt)],
-);
+  (t) => [
+    ...enumChecks(t),
+    index('deletion_requests_status_idx').on(t.status, t.dueAt),
+  ],
+).enableRLS();
 
 // ─── Added by the product API migration (20261022000100) ─────────────────────
 
@@ -712,21 +827,11 @@ export const userPolicyConsents = pgTable(
     textVersion: text('text_version').notNull(),
     grantedAt: tstz('granted_at').notNull().defaultNow(),
   },
-  (t) => [unique('user_policy_consents_unique').on(t.userId, t.purpose, t.textVersion)],
-);
-
-export const studentVerifications = pgTable(
-  'student_verifications',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-    email: text('email').notNull(),
-    tokenHash: text('token_hash').notNull().unique(),
-    expiresAt: tstz('expires_at').notNull(),
-    usedAt: tstz('used_at'),
-    createdAt: createdAt(),
-  },
-  (t) => [index('student_verifications_user_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    unique('user_policy_consents_unique').on(t.userId, t.purpose, t.textVersion),
+  ],
 );
 
 export const cvReviews = pgTable(
@@ -740,7 +845,11 @@ export const cvReviews = pgTable(
     engine: text('engine').notNull().default('placeholder'),
     createdAt: createdAt(),
   },
-  (t) => [index('cv_reviews_user_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    ...enumChecks(t),
+    ownRows(t.userId),
+    index('cv_reviews_user_idx').on(t.userId, t.createdAt.desc()),
+  ],
 );
 
 /** An organisation asks a person for access; the person decides on a Tracck page. */
@@ -758,17 +867,33 @@ export const consentRequests = pgTable(
     createdAt: createdAt(),
     decidedAt: tstz('decided_at'),
   },
-  (t) => [index('consent_requests_client_idx').on(t.clientId, t.createdAt.desc())],
-);
+  (t) => [
+    ...enumChecks(t),
+    index('consent_requests_client_idx').on(t.clientId, t.createdAt.desc()),
+  ],
+).enableRLS();
 
 /** Organisation API waitlist (migration 20261019000100). Insert-only from the browser. */
-export const orgWaitlist = pgTable('org_waitlist', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgName: text('org_name').notNull(),
-  contactName: text('contact_name').notNull(),
-  email: text('email').notNull(),
-  orgType: text('org_type', { enum: ['university', 'bootcamp', 'job_platform', 'other'] }).notNull(),
-  volume: text('volume'),
-  message: text('message'),
-  createdAt: createdAt(),
-});
+export const orgWaitlist = pgTable(
+  'org_waitlist',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgName: text('org_name').notNull(),
+    contactName: text('contact_name').notNull(),
+    email: text('email').notNull(),
+    orgType: text('org_type', { enum: ['university', 'bootcamp', 'job_platform', 'other'] }).notNull(),
+    volume: text('volume'),
+    message: text('message'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    ...enumChecks(t),
+    pgPolicy('org_waitlist_insert', { for: 'insert', to: [anonRole, authenticatedRole], withCheck: sql`true` }),
+    uniqueIndex('org_waitlist_email_idx').on(sql`lower(${t.email})`),
+    check('org_waitlist_org_name_length', sql`char_length(${t.orgName}) between 1 and 200`),
+    check('org_waitlist_contact_name_length', sql`char_length(${t.contactName}) between 1 and 200`),
+    check('org_waitlist_email_shape', sql`char_length(${t.email}) between 3 and 320 and ${t.email} like '%_@_%._%'`),
+    check('org_waitlist_volume_length', sql`${t.volume} is null or char_length(${t.volume}) <= 100`),
+    check('org_waitlist_message_length', sql`${t.message} is null or char_length(${t.message}) <= 2000`),
+  ],
+);

@@ -36,10 +36,6 @@ export default function TermsPage() {
                 You need an account to use Tracck. Give accurate details, keep your password to yourself, and tell us if
                 you think someone else has used your account.
               </p>
-              <p className="m-0">
-                An .edu.ng email address qualifies you for Student Plus once you verify that you can read mail sent to
-                it.
-              </p>
             </>
           ),
         },

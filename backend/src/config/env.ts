@@ -36,7 +36,6 @@ const schema = z.object({
   PAYSTACK_SECRET_KEY: optional(z.string().min(1)),
   /** Paystack plan codes (PLN_...) for the two monthly prices. */
   PAYSTACK_PRO_PLAN_CODE: optional(z.string().min(1)),
-  PAYSTACK_STUDENT_PLAN_CODE: optional(z.string().min(1)),
   RESEND_API_KEY: optional(z.string().min(1)),
   /** For example: Tracck <hello@tracck.app> */
   EMAIL_FROM: optional(z.string().min(1)),

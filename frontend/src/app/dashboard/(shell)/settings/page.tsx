@@ -5,21 +5,16 @@ import { SettingsForm, type Notice } from './settings-form'
 
 export const metadata = { title: 'Settings and plan' }
 
-const STUDENT_NOTICE: Record<string, Notice> = {
-  verified: { tone: 'ok', text: 'Student email confirmed. You can now get the student price.' },
-  invalid: { tone: 'error', text: 'That confirmation link has expired or was already used. Request a new one.' },
-}
-
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reference?: string; student?: string }>
+  searchParams: Promise<{ reference?: string }>
 }) {
   const api = serverApi()
   const params = await searchParams
 
   // Paystack sends the person back here after paying. Asking it for the outcome settles the plan even if its webhook is late.
-  let notice: Notice | null = params.student ? (STUDENT_NOTICE[params.student] ?? null) : null
+  let notice: Notice | null = null
   if (params.reference) {
     try {
       const result = await api.billing.verify(params.reference)
@@ -35,7 +30,7 @@ export default async function SettingsPage({
   }
 
   const [me, billing, consents] = await Promise.all([api.me.get(), api.billing.get(), api.me.consents()])
-  const planLabel = me.plan === 'pro' ? (me.priceTier === 'student' ? 'Student Plus' : 'Pro') : 'Free'
+  const planLabel = me.plan === 'pro' ? 'Pro' : 'Free'
 
   return (
     <div className="flex flex-col">

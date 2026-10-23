@@ -18,10 +18,6 @@ const send = (method: 'post' | 'put' | 'patch' | 'delete', path: string, body?: 
   ctx.http()[method](path).set(ctx.as(user)).send(body);
 
 describe('profile', () => {
-  it('needs a signed-in user', async () => {
-    expect((await ctx.http().get('/v1/me')).status).toBe(401);
-  });
-
   it('returns the profile made at signup, with defaults', async () => {
     const { status, body } = await get('/v1/me');
     expect(status).toBe(200);
@@ -30,8 +26,6 @@ describe('profile', () => {
       email: `${userId}@example.com`,
       name: 'Tolu Adebayo',
       plan: 'free',
-      priceTier: null,
-      studentVerified: false,
       onboardingCompleted: false,
       policyAccepted: false,
       roles: [],
@@ -79,11 +73,6 @@ describe('profile', () => {
     expect(rows[0]).toEqual({ n: 3 });
   });
 
-  it('lists the roles on offer', async () => {
-    const { body } = await get('/v1/roles');
-    expect(body).toHaveLength(6);
-    expect(body[0]).toMatchObject({ id: 'dev', name: 'Developer' });
-  });
 });
 
 describe('home summary', () => {

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
-import { PLAN_CARDS, ROLES, type BillingView, type CheckoutPlan, type ConsentsView, type CvRetention, type MeView, type Preferences } from '@tracck/shared'
+import { PLAN_CARDS, ROLES, type BillingView, type ConsentsView, type CvRetention, type MeView, type Preferences } from '@tracck/shared'
 import { ErrorNotice } from '@/components/sources/dialogs'
 import { Tag } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -78,7 +78,6 @@ export function SettingsForm({
   const [busy, setBusy] = useState<string | null>(null)
   const [message, setMessage] = useState<Notice | null>(notice)
   const [error, setError] = useState<unknown>(null)
-  const [studentEmail, setStudentEmail] = useState('')
   const [typed, setTyped] = useState('')
 
   const say = (text: string) => setMessage({ tone: 'ok', text })
@@ -120,28 +119,14 @@ export function SettingsForm({
   }
 
   /** Paystack hosts the payment. The person comes back to this page with the outcome. */
-  async function checkout(plan: CheckoutPlan) {
-    setBusy(plan)
+  async function checkout() {
+    setBusy('pro')
     setMessage(null)
     try {
-      const { authorizationUrl } = await api.billing.checkout({ plan, returnPath: '/dashboard/settings' })
+      const { authorizationUrl } = await api.billing.checkout({ returnPath: '/dashboard/settings' })
       window.location.assign(authorizationUrl)
     } catch (failure) {
       fail(failure)
-      setBusy(null)
-    }
-  }
-
-  async function verifyStudent() {
-    setBusy('student')
-    setMessage(null)
-    try {
-      await api.billing.studentVerification(studentEmail.trim())
-      say(`We sent a link to ${studentEmail.trim()}. It works for 24 hours.`)
-      setStudentEmail('')
-    } catch (failure) {
-      fail(failure)
-    } finally {
       setBusy(null)
     }
   }
@@ -195,8 +180,6 @@ export function SettingsForm({
 
   const roleNames = me.roles.map((id) => ROLES.find((role) => role.id === id)?.name ?? id)
   const onPro = me.plan === 'pro'
-  const student = onPro && me.priceTier === 'student'
-  const standard = onPro && me.priceTier !== 'student'
   const paymentsOff = !billing.paymentsConfigured
   const { usage } = billing
 
@@ -284,39 +267,8 @@ export function SettingsForm({
               <span className="text-sm leading-[21px] text-ink-muted">{PLAN_CARDS.free.settingsBlurb}</span>
             </div>
 
-            <div className={`flex flex-col gap-2.5 p-5 ${student ? 'bg-sunken' : 'bg-canvas'}`}>
-              <span className="t-eyebrow text-ink-muted">{student ? 'Current' : PLAN_CARDS.student.eyebrow}</span>
-              <span className="text-lg font-bold">{PLAN_CARDS.student.name}</span>
-              <span className="font-mono text-[22px]">
-                {PLAN_CARDS.student.price}
-                <span className="text-[13px] text-ink-muted"> / month</span>
-              </span>
-              <span className="text-sm leading-[21px] text-ink-muted">Everything in Pro. Confirm a university email that ends in .edu.ng.</span>
-              {!onPro &&
-                (billing.studentVerified ? (
-                  <Button className="self-start" loading={busy === 'student'} disabled={paymentsOff} onClick={() => checkout('student')}>
-                    Get Student Plus
-                  </Button>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <TextField
-                      id="student-email"
-                      label="University email"
-                      type="email"
-                      value={studentEmail}
-                      onChange={(event) => setStudentEmail(event.target.value)}
-                      placeholder="you@university.edu.ng"
-                      autoComplete="email"
-                    />
-                    <Button className="self-start" loading={busy === 'student'} disabled={!studentEmail.trim()} onClick={verifyStudent}>
-                      Send confirmation link
-                    </Button>
-                  </div>
-                ))}
-            </div>
-
-            <div className={`flex flex-col gap-2.5 p-5 ${standard ? 'bg-sunken' : 'bg-canvas'}`}>
-              <span className="t-eyebrow text-ink-muted">{standard ? 'Current' : PLAN_CARDS.pro.eyebrow}</span>
+            <div className={`flex flex-col gap-2.5 p-5 ${onPro ? 'bg-sunken' : 'bg-canvas'}`}>
+              <span className="t-eyebrow text-ink-muted">{onPro ? 'Current' : PLAN_CARDS.pro.eyebrow}</span>
               <span className="text-lg font-bold">{PLAN_CARDS.pro.name}</span>
               <span className="font-mono text-[22px]">
                 {PLAN_CARDS.pro.price}
@@ -324,7 +276,7 @@ export function SettingsForm({
               </span>
               <span className="text-sm leading-[21px] text-ink-muted">{PLAN_CARDS.pro.settingsBlurb}</span>
               {!onPro && (
-                <Button variant="secondary" className="self-start" loading={busy === 'pro'} disabled={paymentsOff} onClick={() => checkout('pro')}>
+                <Button variant="secondary" className="self-start" loading={busy === 'pro'} disabled={paymentsOff} onClick={checkout}>
                   Upgrade
                 </Button>
               )}

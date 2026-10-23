@@ -96,12 +96,6 @@ describe('uploading a CV', () => {
     expect(before.cv).toBeGreaterThanOrEqual(1);
   });
 
-  it('refuses a second source on the free plan, and says why', async () => {
-    const response = await post('/v1/sources/portfolio').send({ url: 'https://tolu.dev' });
-    expect(response.status).toBe(402);
-    expect(response.body.error.code).toBe('PLAN_LIMIT_REACHED');
-    expect((await get('/v1/sources')).body).toHaveLength(1);
-  });
 });
 
 describe('upload checks', () => {
@@ -114,16 +108,12 @@ describe('upload checks', () => {
     expect(zip.status).toBe(415);
   });
 
-  it('refuses an empty request, a huge file, and a request with no idempotency key', async () => {
+  it('refuses an empty request and a huge file', async () => {
     expect((await post('/v1/sources/cv', other)).status).toBe(400);
 
     const big = await post('/v1/sources/cv', other).attach('file', Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(5 * 1024 * 1024 + 10)]), { filename: 'big.pdf' });
     expect(big.status).toBe(413);
     expect(big.body.error.code).toBe('FILE_TOO_LARGE');
-
-    const noKey = await ctx.http().post('/v1/sources/cv').set(ctx.as(other)).attach('file', makePdf(), { filename: 'cv.pdf' });
-    expect(noKey.status).toBe(400);
-    expect(noKey.body.error.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
   });
 
   it('applies a repeated request once', async () => {

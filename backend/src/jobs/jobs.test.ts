@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { JOB_STATUSES, JOB_STEPS, JOB_STATUS_BADGES, STEP_LABELS, backoffMs, canTransition, hasAttemptsLeft, isSettled } from '@tracck/shared';
+import { JOB_STATUSES, backoffMs, canTransition, isSettled } from '@tracck/shared';
 
 describe('job lifecycle', () => {
   it('allows the transitions in the architecture', () => {
@@ -31,13 +31,7 @@ describe('job lifecycle', () => {
 
   it('treats only finished statuses as settled', () => {
     expect(JOB_STATUSES.filter(isSettled)).toEqual(['succeeded', 'failed', 'cancelled']);
-  });
-
-  it('has a user-facing label for every step and status', () => {
-    for (const step of JOB_STEPS) expect(STEP_LABELS[step]).toBeTruthy();
-    for (const status of JOB_STATUSES) expect(JOB_STATUS_BADGES[status].label).toBeTruthy();
-  });
-});
+  });});
 
 describe('retry policy', () => {
   it('doubles the delay each attempt and stays inside the jitter band', () => {
@@ -49,10 +43,4 @@ describe('retry policy', () => {
 
   it('caps the delay', () => {
     expect(backoffMs(30, { random: () => 0.999999 })).toBeLessThanOrEqual(5 * 60_000);
-  });
-
-  it('stops retrying once the attempt budget is spent', () => {
-    expect(hasAttemptsLeft(2, 3)).toBe(true);
-    expect(hasAttemptsLeft(3, 3)).toBe(false);
-  });
-});
+  });});

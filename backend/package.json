@@ -8,9 +8,10 @@
     "start": "tsx --env-file-if-exists=.env src/main.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "db:migrate": "tsx --env-file-if-exists=.env src/db/migrate.ts",
-    "db:studio": "drizzle-kit studio",
-    "ai:seed": "tsx --env-file-if-exists=.env src/ai/seed-examples.ts"
+    "db:migrate": "node --env-file-if-exists=.env node_modules/drizzle-kit/bin.cjs migrate",
+    "db:studio": "node --env-file-if-exists=.env node_modules/drizzle-kit/bin.cjs studio",
+    "ai:seed": "tsx --env-file-if-exists=.env src/ai/seed-examples.ts",
+    "db:generate": "node --env-file-if-exists=.env node_modules/drizzle-kit/bin.cjs generate"
   },
   "dependencies": {
     "@google/genai": "^2.30.0",

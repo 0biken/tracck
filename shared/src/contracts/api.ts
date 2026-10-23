@@ -2,7 +2,7 @@
 // requests with zod, and the frontend uses these to read responses. Dates are
 // ISO 8601 strings in UTC and numbers are raw; screens format them.
 
-import type { CheckoutPlan, KeyScope, PlanId, PriceTier, RoleId } from './catalog';
+import type { KeyScope, PlanId, RoleId } from './catalog';
 
 export interface Page<T> {
   items: T[];
@@ -28,8 +28,6 @@ export interface MeView {
   roles: RoleId[];
   primaryRole: RoleId | null;
   plan: PlanId;
-  priceTier: PriceTier | null;
-  studentVerified: boolean;
   onboardingCompleted: boolean;
   policyAccepted: boolean;
   /** Part of the Tracck team: may open the staff console. */
@@ -355,18 +353,14 @@ export interface ExportLinkResponse {
 
 export interface BillingView {
   plan: PlanId;
-  priceTier: PriceTier | null;
   status: 'active' | 'trialing' | 'past_due' | 'cancelled' | 'expired' | 'none';
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   usage: { resumes: number; resumesLimit: number | null; sources: number; sourcesLimit: number | null; resetsOn: string };
-  studentVerified: boolean;
-  studentEmail: string | null;
   paymentsConfigured: boolean;
 }
 
 export interface CheckoutRequest {
-  plan: CheckoutPlan;
   /** Where Paystack sends the person back to. Must be on the app origin. */
   returnPath?: string;
 }
@@ -379,10 +373,6 @@ export interface CheckoutResponse {
 export interface VerifyPaymentResponse {
   status: 'succeeded' | 'pending' | 'failed';
   plan: PlanId;
-}
-
-export interface StudentVerificationRequest {
-  email: string;
 }
 
 // ─── Consent (the person's side) ─────────────────────────────────────────────

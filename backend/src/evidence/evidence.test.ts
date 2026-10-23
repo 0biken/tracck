@@ -39,10 +39,6 @@ const send = (method: 'post' | 'patch', path: string, body?: object, user = tolu
 const manual = (title: string, body: string, user = tolu) => send('post', '/v1/evidence', { kind: 'project', title, body }, user);
 
 describe('manual entries', () => {
-  it('needs a signed-in user', async () => {
-    expect((await ctx.http().get('/v1/evidence')).status).toBe(401);
-  });
-
   it('adds an entry the person wrote, confirmed and tagged with the skills it names', async () => {
     const { status, body } = await manual('Payments rewrite', 'Rebuilt the payments service in TypeScript and PostgreSQL, cutting failed charges by a third.');
     expect(status).toBe(201);

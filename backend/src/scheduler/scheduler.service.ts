@@ -136,7 +136,6 @@ export class SchedulerService implements OnApplicationBootstrap, BeforeApplicati
       plans: await this.billing.expireLapsed(now),
       cvFiles: await this.applyCvRetention(now),
       consentRequests: await count(sql`update public.consent_requests set status = 'expired' where status = 'pending' and expires_at < ${now.toISOString()} returning id`),
-      studentLinks: await count(sql`delete from public.student_verifications where expires_at < ${ago(now, 7)} returning id`),
       modelCalls: await count(sql`delete from public.llm_calls where created_at < ${ago(now, 90)} returning id`),
       webhookEvents: await count(sql`delete from public.webhook_events where received_at < ${ago(now, 90)} returning id`),
       exports: await this.dropOldExports(now),

@@ -72,8 +72,7 @@ export default function PricingPage() {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] border border-line border-t-2 border-t-ink">
         <Tier plan={PLAN_CARDS.free} cta="Start free" href="/signup" />
-        <Tier plan={PLAN_CARDS.student} cta="Verify and start" href="/signup" primary highlighted per />
-        <Tier plan={PLAN_CARDS.pro} cta="Start Pro" href="/signup" last per />
+        <Tier plan={PLAN_CARDS.pro} cta="Start Pro" href="/signup" primary highlighted last per />
       </div>
 
       <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] items-center gap-10 bg-inverse p-8 text-on-inverse sm:p-12">
@@ -81,7 +80,7 @@ export default function PricingPage() {
           <Eyebrow className="!text-inverse-muted">Organisations</Eyebrow>
           <h2 className="t-h2 m-0 text-balance">Universities, bootcamps and job platforms</h2>
           <p className="m-0 text-[17px] leading-[26px] text-inverse-muted">
-            Per-client API keys, quotas set by plan, usage billed per key. Students consent before you read their data.
+            Per-client API keys, quotas set by plan, usage billed per key. People consent before you read their data.
           </p>
         </div>
         <div className="flex md:justify-end">

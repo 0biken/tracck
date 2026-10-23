@@ -1,12 +1,13 @@
 import { defineConfig } from 'drizzle-kit';
 
-// The SQL migrations in supabase/migrations are the source of truth. drizzle-kit is
-// used for `db:studio` and `db:check` (compare the live database with schema.ts via
-// `drizzle-kit pull`), not to generate migrations.
+// `pnpm db:generate` writes a migration from src/db/schema.ts, `pnpm db:migrate`
+// applies the pending ones to DATABASE_URL.
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/db/schema.ts',
-  out: './.drizzle',
+  out: './drizzle',
   dbCredentials: { url: process.env.DATABASE_URL ?? '' },
+  // Supabase owns the auth, storage and extensions schemas; only public is ours.
   schemaFilter: ['public'],
+  entities: { roles: { provider: 'supabase' } },
 });

@@ -52,13 +52,6 @@ const TEMPLATES: Record<string, (data: Data, origin: string) => Rendered> = {
       }),
     };
   },
-  student_verify: (data) => ({
-    subject: 'Confirm your student email',
-    ...layout(['Confirm this is your student email address to get the student price on Tracck Pro.', 'The link works for 24 hours.'], {
-      label: 'Confirm my email',
-      url: str(data, 'url'),
-    }),
-  }),
   payment_received: (data, origin) => ({
     subject: 'Payment received',
     ...layout([`Thank you. Your ${str(data, 'plan', 'Pro')} plan is active.`, `Paid ${str(data, 'amount')}. Reference ${str(data, 'reference')}.`], {
