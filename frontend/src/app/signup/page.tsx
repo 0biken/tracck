@@ -115,11 +115,6 @@ export default async function SignupPage({
           </span>
           <span className="font-mono text-xs text-signal-on-inverse">GITHUB — lemni-billing — 2026.08.18</span>
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs text-inverse-muted">
-          <span>NO SCRAPING</span>
-          <span>DELETE ANY TIME</span>
-          <span>NDPR</span>
-        </div>
       </aside>
     </div>
   )
