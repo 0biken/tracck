@@ -13,7 +13,6 @@ function isPublicPath(pathname: string) {
     pathname.startsWith('/privacy') ||
     pathname.startsWith('/data-deletion') ||
     pathname.startsWith('/waitlist') ||
-    pathname.startsWith('/consent') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/auth')
   )
@@ -30,13 +29,9 @@ function redirectToLogin(request: NextRequest) {
 }
 
 export async function updateSession(request: NextRequest) {
-  // Without Supabase credentials nobody can be signed in. In production that
-  // means only the public pages load. In development every screen opens, with
-  // sample data, so the interface can be worked on without a project.
+  // Without Supabase credentials nobody can be signed in, so only public pages load.
   if (!isSupabaseConfigured()) {
-    return isPublicPath(request.nextUrl.pathname) || process.env.NODE_ENV === 'development'
-      ? NextResponse.next({ request })
-      : redirectToLogin(request)
+    return isPublicPath(request.nextUrl.pathname) ? NextResponse.next({ request }) : redirectToLogin(request)
   }
 
   let supabaseResponse = NextResponse.next({

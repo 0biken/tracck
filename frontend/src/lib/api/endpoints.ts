@@ -4,20 +4,13 @@
 // Supabase session). Paths follow docs/prd/03-architecture.md.
 
 import type {
-  ApiKeyView,
-  AuditEventView,
   BillingView,
   CheckoutRequest,
   CheckoutResponse,
-  ClientView,
-  ConsentRequestView,
-  ConsentsView,
   CreateEvidenceRequest,
-  CreateKeyRequest,
   CreateResumeRequest,
   TemplateView,
   CreateResumeResponse,
-  CreatedKeyResponse,
   CvReviewView,
   EditBulletRequest,
   EvidencePage,
@@ -28,7 +21,6 @@ import type {
   GithubConnectResponse,
   GraphView,
   JobView,
-  KeyScope,
   MeView,
   NotificationView,
   Page,
@@ -46,7 +38,6 @@ import type {
   UpdateEvidenceRequest,
   UpdateMeRequest,
   UploadSourceResponse,
-  UsageView,
   VerifyPaymentResponse,
   WaitlistRequest,
 } from '@tracck/shared'
@@ -81,8 +72,6 @@ export function createApi(call: Transport) {
       requestExport: () => post<{ jobId: string }>('/v1/me/export'),
       latestExport: () => get<{ url: string; expiresAt: string; createdAt: string } | null>('/v1/me/export/latest'),
       deleteAccount: () => call<{ requestId: string; jobId: string }>('DELETE', '/v1/me', { query: { confirm: 'delete-my-account' } }),
-      consents: () => get<ConsentsView>('/v1/me/consents'),
-      revokeConsent: (id: string) => del<void>(`/v1/me/consents/${id}`),
     },
 
     notifications: {
@@ -158,36 +147,10 @@ export function createApi(call: Transport) {
       cancel: () => post<BillingView>('/v1/billing/cancel'),
     },
 
-    consent: {
-      get: (token: string) => get<ConsentRequestView>(`/v1/consent-requests/${token}`),
-      grant: (token: string, scopes: KeyScope[]) => post<{ ok: true }>(`/v1/consent-requests/${token}/grant`, { scopes }),
-      deny: (token: string) => post<{ ok: true }>(`/v1/consent-requests/${token}/deny`),
-    },
-
     waitlist: {
       join: (body: WaitlistRequest) => post<{ ok: true }>('/v1/waitlist', body),
     },
 
-    admin: {
-      clients: () => get<ClientView[]>('/v1/admin/clients'),
-      createClient: (body: { name: string; contactEmail?: string; monthlyQuota?: number }) =>
-        post<ClientView>('/v1/admin/clients', body),
-      updateClient: (clientId: string, body: { status?: 'active' | 'suspended'; monthlyQuota?: number }) =>
-        patch<ClientView>(`/v1/admin/clients/${clientId}`, body),
-      setWebhook: (clientId: string, url: string) =>
-        post<{ url: string; secret: string }>(`/v1/admin/clients/${clientId}/webhook`, { url }),
-      keys: (clientId: string) => get<ApiKeyView[]>(`/v1/admin/clients/${clientId}/keys`),
-      createKey: (clientId: string, body: CreateKeyRequest) =>
-        post<CreatedKeyResponse>(`/v1/admin/clients/${clientId}/keys`, body),
-      rotateKey: (clientId: string, keyId: string) =>
-        post<CreatedKeyResponse>(`/v1/admin/clients/${clientId}/keys/${keyId}/rotate`),
-      revokeKey: (clientId: string, keyId: string) => del<void>(`/v1/admin/clients/${clientId}/keys/${keyId}`),
-      usage: (clientId: string) => get<UsageView>(`/v1/admin/clients/${clientId}/usage`),
-      audit: (clientId: string, query: { key?: string } = {}) =>
-        get<AuditEventView[]>(`/v1/admin/clients/${clientId}/audit`, query),
-      auditCsvPath: (clientId: string, key?: string) =>
-        `/v1/admin/clients/${clientId}/audit${key ? `?key=${encodeURIComponent(key)}&` : '?'}format=csv`,
-    },
   }
 }
 

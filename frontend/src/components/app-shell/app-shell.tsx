@@ -22,35 +22,29 @@ export interface ShellPlan {
 const noCounts: NavCounts = { resumes: 0, evidence: 0, sources: 0 }
 
 function SidebarContent({
-  mode,
   viewer,
   counts,
   plan,
 }: {
-  mode: 'user' | 'org'
   viewer: Viewer
   counts: NavCounts
   plan: ShellPlan | null
 }) {
-  const isOrg = mode === 'org'
-
   return (
     <div className="flex min-h-full flex-1 flex-col gap-6 p-4 pt-5">
       <div className="px-2">
-        <Logo href={isOrg ? '/org/keys' : '/dashboard'} size="sm" badge={isOrg ? 'STAFF' : undefined} />
+        <Logo href="/dashboard" size="sm" />
       </div>
 
-      {!isOrg && (
-        <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md', 'w-full')}>
-          <Plus className="size-4" strokeWidth={2} aria-hidden="true" />
-          New resume
-        </Link>
-      )}
+      <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md', 'w-full')}>
+        <Plus className="size-4" strokeWidth={2} aria-hidden="true" />
+        New resume
+      </Link>
 
-      <SidebarNav mode={mode} counts={counts} />
+      <SidebarNav counts={counts} />
 
       <div className="mt-auto flex flex-col gap-3">
-        {!isOrg && plan && (
+        {plan && (
           <div className="flex flex-col gap-2 border border-line-strong bg-canvas p-3">
             <div className="flex justify-between text-[13px]">
               <span className="font-semibold">{plan.name} plan</span>
@@ -104,23 +98,20 @@ function SidebarContent({
 
 /**
  * The frame around every signed-in screen: a sticky side menu from 1024px up, a
- * top bar with a menu drawer below that. `mode="org"` swaps the menu for the
- * staff console one.
+ * top bar with a menu drawer below that.
  */
 export function AppShell({
-  mode = 'user',
   viewer,
   counts = noCounts,
   plan = null,
   children,
 }: {
-  mode?: 'user' | 'org'
   viewer: Viewer
   counts?: NavCounts
   plan?: ShellPlan | null
   children: ReactNode
 }) {
-  const content = <SidebarContent mode={mode} viewer={viewer} counts={counts} plan={plan} />
+  const content = <SidebarContent viewer={viewer} counts={counts} plan={plan} />
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -139,18 +130,16 @@ export function AppShell({
         <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-canvas px-4 py-2 lg:hidden">
           <MobileNav>{content}</MobileNav>
           <div className="flex-1 px-1">
-            <Logo href={mode === 'org' ? '/org/keys' : '/dashboard'} size="sm" badge={mode === 'org' ? 'STAFF' : undefined} />
+            <Logo href="/dashboard" size="sm" />
           </div>
-          {mode === 'user' && (
-            <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md', 'px-3.5')}>
-              <Plus className="size-4" strokeWidth={2} aria-hidden="true" />
-              New<span className="sr-only"> resume</span>
-            </Link>
-          )}
+          <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md', 'px-3.5')}>
+            <Plus className="size-4" strokeWidth={2} aria-hidden="true" />
+            New<span className="sr-only"> resume</span>
+          </Link>
         </header>
 
         <main id="content" className="px-4 pb-16 pt-6 sm:px-8 lg:px-10 lg:pt-8">
-          <div className={`mx-auto flex w-full flex-col gap-8 ${mode === 'org' ? 'max-w-[1120px]' : 'max-w-[1080px]'}`}>
+          <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-8">
             {children}
           </div>
         </main>

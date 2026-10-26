@@ -29,13 +29,13 @@ export default async function SettingsPage({
     }
   }
 
-  const [me, billing, consents] = await Promise.all([api.me.get(), api.billing.get(), api.me.consents()])
+  const [me, billing] = await Promise.all([api.me.get(), api.billing.get()])
   const planLabel = me.plan === 'pro' ? 'Pro' : 'Free'
 
   return (
     <div className="flex flex-col">
       <PageHeader eyebrow={`Account · ${planLabel} plan`} title="Settings and plan" />
-      <SettingsForm me={me} billing={billing} consents={consents} notice={notice} />
+      <SettingsForm me={me} billing={billing} notice={notice} />
     </div>
   )
 }

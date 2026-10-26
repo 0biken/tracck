@@ -32,21 +32,12 @@ function userItems(counts: NavCounts): Item[] {
   ]
 }
 
-const orgItems: Item[] = [
-  { head: 'STAFF CONSOLE' },
-  { href: '/org/keys', label: 'API keys', match: (p) => p.startsWith('/org/keys') },
-  { href: '/org/usage', label: 'Usage and audit', match: (p) => p.startsWith('/org/usage') },
-  { head: 'DOCS' },
-  { href: '/org/docs', label: 'API reference', match: (p) => p.startsWith('/org/docs') },
-]
-
-export function SidebarNav({ mode, counts }: { mode: 'user' | 'org'; counts: NavCounts }) {
+export function SidebarNav({ counts }: { counts: NavCounts }) {
   const pathname = usePathname()
-  const items = mode === 'org' ? orgItems : userItems(counts)
 
   return (
-    <nav aria-label={mode === 'org' ? 'Staff console' : 'App'} className="flex flex-col gap-0.5">
-      {items.map((item) => {
+    <nav aria-label="App" className="flex flex-col gap-0.5">
+      {userItems(counts).map((item) => {
         if ('head' in item) {
           return (
             <div key={item.head} className="px-2 pb-1.5 pt-[18px] font-mono text-[11px] tracking-[0.16em] text-ink-muted" aria-hidden="true">

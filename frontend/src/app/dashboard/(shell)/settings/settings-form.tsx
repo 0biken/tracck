@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
-import { PLAN_CARDS, ROLES, type BillingView, type ConsentsView, type CvRetention, type MeView, type Preferences } from '@tracck/shared'
+import { PLAN_CARDS, ROLES, type BillingView, type CvRetention, type MeView, type Preferences } from '@tracck/shared'
 import { ErrorNotice } from '@/components/sources/dialogs'
 import { Tag } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -60,12 +60,10 @@ type Confirm = 'resumes' | 'account' | 'cancel' | null
 export function SettingsForm({
   me,
   billing,
-  consents,
   notice,
 }: {
   me: MeView
   billing: BillingView
-  consents: ConsentsView
   notice: Notice | null
 }) {
   const router = useRouter()
@@ -76,7 +74,6 @@ export function SettingsForm({
   const [dateOfBirth, setDateOfBirth] = useState(me.dateOfBirth ?? '')
   const [nationality, setNationality] = useState(me.nationality ?? '')
   const [prefs, setPrefs] = useState<Preferences>(me.preferences)
-  const [orgs, setOrgs] = useState(consents.granted)
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [saving, setSaving] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -115,16 +112,6 @@ export function SettingsForm({
       say('Saved.')
     } catch (failure) {
       setPrefs(previous)
-      fail(failure)
-    }
-  }
-
-  async function revoke(id: string) {
-    try {
-      await api.me.revokeConsent(id)
-      setOrgs((list) => list.filter((org) => org.id !== id))
-      say('Access revoked. That organisation can no longer read your data.')
-    } catch (failure) {
       fail(failure)
     }
   }
@@ -356,31 +343,12 @@ export function SettingsForm({
             <span>
               <strong>Delete account</strong>
               <br />
-              <span className="text-[13px] text-ink-muted">Removes sources, entries, resumes and consents. Cannot be undone.</span>
+              <span className="text-[13px] text-ink-muted">Removes sources, entries, resumes and policy agreements. Cannot be undone.</span>
             </span>
             <Button variant="danger-solid" onClick={() => setConfirm('account')}>
               Delete account
             </Button>
           </div>
-        </div>
-      </Section>
-
-      <Section id="s-org" title="Organisations with access" hint="Organisations can read your data only with your consent. Revoke at any time.">
-        <div className="flex flex-col">
-          {orgs.length === 0 && <p className="m-0 py-3.5 text-[15px] text-ink-muted">No organisation has access.</p>}
-          {orgs.map((org) => (
-            <div key={org.id} className={row}>
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <strong>{org.orgName}</strong>
-                <span className="font-mono text-xs uppercase text-ink-muted">
-                  {org.scopes.join(', ')} · granted {formatDate(org.grantedAt)}
-                </span>
-              </span>
-              <Button variant="secondary" onClick={() => revoke(org.id)}>
-                Revoke
-              </Button>
-            </div>
-          ))}
         </div>
       </Section>
 
@@ -399,7 +367,7 @@ export function SettingsForm({
           </h2>
           <p className="m-0 text-[15px] leading-[22px] text-ink-muted">
             {confirm === 'account'
-              ? 'This removes your sources, entries, resumes, files and consents, and ends any subscription. It cannot be undone.'
+              ? 'This removes your sources, entries, resumes, files and policy agreements, and ends any subscription. It cannot be undone.'
               : confirm === 'cancel'
                 ? `Your plan will not renew. You keep Pro until ${formatDate(billing.currentPeriodEnd)}.`
                 : 'This removes every resume and its saved job description. Your sources and entries stay.'}
