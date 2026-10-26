@@ -125,38 +125,7 @@ export class ResumesService {
     }
     return this.start(userId, resumeId, idempotencyKey, correlationId);
   }
-
-  /**
-   * A resume an organisation asked for, for a person who agreed to it. It is written the same way and
-   * checked the same way, counts against the organisation's quota rather than the person's plan, and
-   * shows up in the person's own list.
-   */
-  async createForOrg(
-    userId: string,
-    org: { clientId: string; keyId: string },
-    input: Pick<CreateResumeRequest, 'jobDescription' | 'length' | 'roleId'>,
-    idempotencyKey: string,
-    correlationId: string,
-  ) {
-    const scoped = `org:${org.clientId}:${idempotencyKey}`;
-    const resumeId = stableId(userId, scoped, 'resume');
-    const [existing] = await this.db.select({ id: resumeDocuments.id }).from(resumeDocuments).where(eq(resumeDocuments.id, resumeId));
-    if (!existing) {
-      try {
-        await this.assertPolicyAccepted(userId);
-      } catch {
-        throw new ApiError(409, 'CONFLICT', 'This person has not finished setting up Tracck yet.');
-      }
-      await this.assertHasEvidence(userId);
-      const [account] = rowsOf<{ email: string | null }>(await this.db.execute(sql`select email from auth.users where id = ${userId}`));
-      await this.insertResume(userId, account?.email ?? null, resumeId, input, { orgClientId: org.clientId, orgKeyId: org.keyId });
-      await this.audit.record({ userId, clientId: org.clientId, keyId: org.keyId, eventType: 'resume.created_by_org', subjectType: 'resume', subjectId: resumeId, actor: 'api', correlationId });
-    }
-    const started = await this.start(userId, resumeId, scoped, correlationId, undefined, { orgClientId: org.clientId });
-    return { ...started, created: !existing };
-  }
-
-  private async insertResume(userId: string, email: string | null, resumeId: string, input: CreateResumeRequest, extraFocus: Record<string, unknown> = {}) {
+  private async insertResume(userId: string, email: string | null, resumeId: string, input: CreateResumeRequest) {
     const [profile] = await this.db.select().from(profiles).where(eq(profiles.id, userId));
     const person: PersonDetails = {
       name: profile?.displayName ?? 'Your name',
@@ -204,14 +173,13 @@ export class ResumesService {
           templateId: template.id,
           person,
           contact: contactLine(person),
-          ...extraFocus,
         },
       });
     });
   }
 
   /** Puts a queued run on the queue. A repeat of the same request finds the job it already made. */
-  private async start(userId: string, resumeId: string, idempotencyKey: string, correlationId: string, runId?: string, extraInput: Record<string, unknown> = {}) {
+  private async start(userId: string, resumeId: string, idempotencyKey: string, correlationId: string, runId?: string) {
     const run =
       runId ??
       rowsOf<{ id: string }>(
@@ -221,7 +189,7 @@ export class ResumesService {
       userId,
       jobType: 'resume_generation',
       idempotencyKey: `resume:${idempotencyKey}`,
-      input: { resumeId, runId: run, ...extraInput },
+      input: { resumeId, runId: run },
       correlationId,
     });
     await this.db.update(generationRuns).set({ backgroundJobId: job.id }).where(eq(generationRuns.id, run));

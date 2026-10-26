@@ -724,7 +724,8 @@ export const payments = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     subscriptionId: uuid('subscription_id').references(() => subscriptions.id, { onDelete: 'set null' }),
-    userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+    /** Kept when the account is deleted: payment records are not personal data we may erase. */
+    userId: uuid('user_id').references(() => profiles.id, { onDelete: 'set null' }),
     provider: text('provider').notNull(),
     providerReference: text('provider_reference').notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),

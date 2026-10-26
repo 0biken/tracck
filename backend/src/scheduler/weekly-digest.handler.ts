@@ -15,10 +15,12 @@ export class WeeklyDigestHandler {
 
   handle: JobHandler = async (ctx) => {
     const userId = ctx.job.userId;
+    // The window is set by the scheduler, so the digest covers the week it was planned for.
+    const since = String(ctx.job.inputRef.since);
     const [row] = (
       (await this.db.execute(sql`
         select count(*)::int as n from public.candidate_evidence
-         where user_id = ${userId} and not excluded and created_at > now() - interval '7 days'`)) as unknown as { rows: { n: number }[] }
+         where user_id = ${userId} and not excluded and created_at > ${since}`)) as unknown as { rows: { n: number }[] }
     ).rows;
     const entries = row?.n ?? 0;
     if (entries === 0) return { sent: false };

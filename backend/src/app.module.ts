@@ -11,7 +11,6 @@ import { HealthController } from './health/health.controller';
 import { RolesController } from './roles/roles.controller';
 import { TemplatesController } from './templates/templates.controller';
 import { JobsModule } from './jobs/jobs.module';
-import { OrgModule } from './org/org.module';
 import { MeModule } from './me/me.module';
 import { SourcesModule } from './sources/sources.module';
 import { StorageModule } from './storage/storage.module';
@@ -29,7 +28,6 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     MeModule,
     SourcesModule,
     BillingModule,
-    OrgModule,
     WaitlistModule,
   ],
   controllers: [HealthController, RolesController, TemplatesController],

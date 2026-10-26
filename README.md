@@ -2,73 +2,78 @@
 
 Tracck builds resumes from work a person can show. It keeps a record of entries drawn from their sources, and every claim on a resume traces back to an entry and the passage that supports it.
 
-**Status: early build.** Sign-in, the app shell and the background-job foundation exist. Importing sources, the AI engine and resume export are not built yet. See the [gap analysis](./docs/architecture/GAP_ANALYSIS.md) for exactly what is done.
+**Status:** the user-facing app is built end to end, but has not yet been run against real Supabase, GitHub, Paystack, Resend or Storage accounts. See [docs/GAP_ANALYSIS.md](./docs/GAP_ANALYSIS.md) for exactly what is verified and what is not.
 
 ## What is in the repository
 
 | Path | What it is |
 |---|---|
-| `frontend/` | Next.js 16 app: marketing and pricing, sign-in and signup, onboarding, the product screens (Home, Resumes and the editor, Career Graph, Evidence library, Sources, CV feedback, Settings) and the organisation API screens. Product screens run on sample data in `src/lib/mock/` until the API has endpoints for them |
-| `backend/` | NestJS app: the HTTPS API and the background jobs (BullMQ), in one process. Verifies Supabase tokens, creates jobs, serves job status and a server-sent event stream, runs jobs with retries, and recovers lost ones. Modules: `config`, `connections`, `auth`, `jobs`, `health`. Job handlers live in `backend/src/jobs/handlers/` |
-| `shared/` | Source-only code used by both apps: job states, the PostgreSQL job store, queue contract, labels, error codes |
-| `backend/src/db/schema.ts`, `backend/drizzle/` | Database schema (Drizzle) and its generated migrations |
-| `docs/` | Architecture, design system, audit and gap analysis |
+| `frontend/` | Next.js 16 app: marketing and pricing, sign-in, onboarding, and the product screens (Home, Sources, Evidence, Career Graph, CV feedback, Resumes and the editor, Settings). Calls the backend API |
+| `backend/` | NestJS app: the HTTPS API and the background jobs (BullMQ) in one process. Modules are in `backend/src/`, one folder per area |
+| `shared/` | Code used by both apps: API contracts, job states and the job store, error codes. Source only, with no `node_modules` of its own |
+| `docs/` | Product requirements (architecture in `docs/prd/03-architecture.md`), gap analysis and the design system |
 
-The frontend and backend are separate apps. Each has its own `package.json`, lockfile and `node_modules`, and none of them depends on a root install. `shared/` is linked into each one as a local dependency (`"@tracck/shared": "file:../shared"`). It has no `node_modules` of its own: each app compiles it, 
+The frontend and backend are separate apps. Each has its own `package.json`, lockfile and `node_modules`. `shared/` is linked into each one as a local dependency (`"@tracck/shared": "file:../shared"`).
 
 PostgreSQL is the source of truth for job state. Redis only carries job IDs from the API to the job runner.
 
 ## Documentation
 
-- [Technical Architecture v2](./docs/architecture/Tracck_Technical_Architecture_v2.md): the target architecture and phased plan.
-- [Design system](./docs/design/tracck-design-system.html): tokens, components, patterns and the review checklist.
-- [Gap analysis](./docs/architecture/GAP_ANALYSIS.md): what is built, what is open, what is blocked.
-- [Implementation audit](./docs/architecture/IMPLEMENTATION_AUDIT.md): the Phase 0 audit of the starting point.
-- [`docs/archive/v1/`](./docs/archive/v1/): the superseded first design.
+- [Product requirements](./docs/prd/index.md): overview, architecture (`docs/prd/03-architecture.md`), requirements and open questions.
+- [Deferred scope](./docs/prd/06-deferred-scope.md): what is out of this release.
+- [Gap analysis](./docs/GAP_ANALYSIS.md): what is built, what is verified, what is still open.
+- [Design system](./docs/design/tracck-design-system.html): tokens, components and patterns.
 
 ## Local setup
-
-Requires Node.js 22.12 or later (the test runner needs it; the frontend alone runs on 20.9+).
 
 Install each app on its own:
 
 ```bash
-cd frontend && npm install
+cd backend && pnpm install
 ```
 
 ```bash
-cd backend && npm install
+cd frontend && pnpm install
 ```
 
-Each app has its own `.env.example`. Copy it next to itself and fill it in: `frontend/.env.local` and `backend/.env`. The frontend needs the two `NEXT_PUBLIC_SUPABASE_*` values to sign in. Without them the sign-in page loads and explains what is missing. The backend needs `DATABASE_URL` and `REDIS_URL`.
+Copy each app's `.env.example` to `.env` (backend) or `.env.local` (frontend) and fill it in. The variables are listed in the example files, each with a comment.
 
-The schema lives in `backend/src/db/schema.ts`. After changing it, run `pnpm db:generate` in `backend/` to write a migration, and `pnpm db:migrate` to apply pending migrations to `DATABASE_URL`. Do not edit generated migrations.
+- **Frontend:** the two `NEXT_PUBLIC_SUPABASE_*` values let people sign in. Without them, sign-in explains what is missing. `NEXT_PUBLIC_API_URL` points at the backend.
+- **Backend:** `DATABASE_URL`, `REDIS_URL` and `SUPABASE_URL` are required. The others enable integrations; a feature whose settings are missing answers `503 NOT_CONFIGURED` and the rest of the API keeps working.
 
-Run each app in its own terminal. The backend serves the API and runs background jobs:
+Run each app in its own terminal:
 
 ```bash
-cd frontend && npm run dev
+cd backend && pnpm dev
 ```
 
 ```bash
-cd backend && npm run dev
+cd frontend && pnpm dev
 ```
 
-To check the job path end to end, set `ENABLE_DIAGNOSTIC_JOBS=true` for the backend and `NEXT_PUBLIC_API_URL` for the frontend. The Overview page then shows a "Start test job" button in development.
+## Database
+
+The schema is `backend/src/db/schema.ts`. Migrations are generated from it into `backend/drizzle/`:
+
+- `pnpm db:generate` writes a new migration file from schema changes. It does not apply it.
+- `pnpm db:migrate` applies pending migrations to `DATABASE_URL`. Run it only when you intend to change the database.
+
+Do not edit an existing migration file.
 
 ## Checks
 
-Run these inside each app folder. `backend` has `typecheck` and `test`; `frontend` has `lint`, `typecheck` and `build`.
+Run inside each app folder:
 
 ```bash
-npm run typecheck
+pnpm typecheck
 ```
 
 ```bash
-npm test
+pnpm lint          # frontend
+pnpm test          # backend
 ```
 
-The tests need no database or Redis. They run the real migrations against an in-process PostgreSQL.
+The backend tests need no database or Redis: they run the real migrations against an in-process PostgreSQL (PGlite) and fake the outside services.
 
 ## License
 

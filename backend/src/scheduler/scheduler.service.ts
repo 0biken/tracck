@@ -93,20 +93,20 @@ export class SchedulerService implements OnApplicationBootstrap, BeforeApplicati
   /** On Mondays, to people with something new and who have not turned the digest off. */
   async sendDigests(now: Date): Promise<number> {
     if (now.getUTCDay() !== 1 || now.getUTCHours() < DIGEST_HOUR) return 0;
-    const people = rowsOf<{ user_id: string; n: number }>(
+    const people = rowsOf<{ user_id: string }>(
       await this.db.execute(sql`
-        select e.user_id, count(*)::int as n
+        select distinct e.user_id
           from public.candidate_evidence e join public.profiles p on p.id = e.user_id
          where e.created_at > ${ago(now, 7)} and not e.excluded and p.deleted_at is null
            and coalesce(p.preferences_json -> 'notifications' ->> 'weekly', 'true') <> 'false'
-         group by e.user_id order by e.user_id limit ${BATCH * 2}`),
+         order by e.user_id limit ${BATCH * 2}`),
     );
     for (const person of people) {
       await this.jobs.dispatch({
         userId: person.user_id,
         jobType: 'weekly_digest',
         idempotencyKey: `digest:${person.user_id}:${weekOf(now)}`,
-        input: { entries: person.n },
+        input: { since: ago(now, 7) },
       });
     }
     return people.length;

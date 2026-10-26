@@ -29,6 +29,13 @@
       "when": 1792762852953,
       "tag": "0003_profile_contact_details",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793035374743,
+      "tag": "0004_charming_maggott",
+      "breakpoints": true
     }
   ]
 }

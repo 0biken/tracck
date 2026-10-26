@@ -2,7 +2,7 @@
 // requests with zod, and the frontend uses these to read responses. Dates are
 // ISO 8601 strings in UTC and numbers are raw; screens format them.
 
-import type { KeyScope, PlanId, RoleId } from './catalog';
+import type { PlanId, RoleId } from './catalog';
 
 export interface Page<T> {
   items: T[];
@@ -35,8 +35,6 @@ export interface MeView {
   plan: PlanId;
   onboardingCompleted: boolean;
   policyAccepted: boolean;
-  /** Part of the Tracck team: may open the staff console. */
-  staff: boolean;
   preferences: Preferences;
 }
 
@@ -428,129 +426,6 @@ export interface VerifyPaymentResponse {
   plan: PlanId;
 }
 
-// ─── Consent (the person's side) ─────────────────────────────────────────────
-
-export interface ConsentRequestView {
-  orgName: string;
-  scopes: { id: KeyScope; label: string }[];
-  status: 'pending' | 'granted' | 'denied' | 'expired';
-  requestedAt: string;
-  expiresAt: string;
-}
-
-export interface GrantConsentRequest {
-  scopes: KeyScope[];
-}
-
-export interface GrantedConsentView {
-  id: string;
-  orgName: string;
-  scopes: KeyScope[];
-  grantedAt: string;
-}
-
-export interface ConsentsView {
-  granted: GrantedConsentView[];
-  requested: { token: string; orgName: string; scopes: KeyScope[] }[];
-}
-
-// ─── Staff console and organisation API ──────────────────────────────────────
-
-export interface ClientView {
-  id: string;
-  name: string;
-  status: 'pending' | 'active' | 'suspended';
-  contactEmail: string | null;
-  monthlyQuota: number;
-  createdAt: string;
-}
-
-export type KeyState = 'active' | 'rotating' | 'revoked';
-
-export interface ApiKeyView {
-  id: string;
-  label: string;
-  mode: 'live' | 'test';
-  /** For example "trk_live_8f2a…". The secret is never shown again. */
-  display: string;
-  scopes: KeyScope[];
-  rateLimitPerMin: number;
-  monthlyQuota: number | null;
-  lastUsedAt: string | null;
-  lastUsedIp: string | null;
-  expiresAt: string | null;
-  stopsAt: string | null;
-  revokedAt: string | null;
-  state: KeyState;
-  createdAt: string;
-}
-
-export interface CreateKeyRequest {
-  label: string;
-  mode: 'live' | 'test';
-  scopes: KeyScope[];
-  rateLimitPerMin?: number;
-  monthlyQuota?: number | null;
-  /** Days until it expires; omit for never. */
-  expiresInDays?: number | null;
-}
-
-export interface CreatedKeyResponse {
-  key: ApiKeyView;
-  /** Shown once. */
-  secret: string;
-}
-
-export interface UsageView {
-  period: { from: string; to: string };
-  client: ClientView;
-  resumesGenerated: number;
-  quota: number;
-  apiRequests: number;
-  successRate: number;
-  studentsConsented: number;
-  consentsRevoked: number;
-  rateLimited: number;
-  perDay: number[];
-  quotaUsedPercent: number;
-  monthElapsedPercent: number;
-  alerts: { keyPrefix: string; message: string; at: string }[];
-}
-
-export interface AuditEventView {
-  at: string;
-  event: string;
-  keyPrefix: string | null;
-  by: string | null;
-  ip: string | null;
-  alert: boolean;
-}
-
-export interface CreateConsentLinkRequest {
-  scopes: KeyScope[];
-  /** Your own reference for the person, returned with the grant. */
-  externalRef?: string;
-}
-
-export interface CreateConsentLinkResponse {
-  url: string;
-  expiresAt: string;
-}
-
-export interface OrgProfileView {
-  name: string | null;
-  headline: string | null;
-  location: string | null;
-  roles: RoleId[];
-  skills: string[];
-}
-
-export interface OrgCreateResumeRequest {
-  jobDescription: string;
-  length: ResumeLength;
-  roleId?: RoleId;
-}
-
 // ─── Public ──────────────────────────────────────────────────────────────────
 
 export interface WaitlistRequest {
@@ -562,20 +437,3 @@ export interface WaitlistRequest {
   message?: string;
 }
 
-/** A resume job started through the organisation API. */
-export interface OrgJobView {
-  id: string;
-  status: 'queued' | 'running' | 'retry_wait' | 'needs_user_action' | 'succeeded' | 'failed' | 'cancelled';
-  step: string | null;
-  progressPercent: number | null;
-  error: { code: string; message: string } | null;
-  createdAt: string;
-  completedAt: string | null;
-  /** Present once the resume is written. */
-  result: { resumeId: string; score: number | null; content: ResumeContent } | null;
-}
-
-export interface OrgCreateResumeResponse {
-  jobId: string;
-  statusUrl: string;
-}

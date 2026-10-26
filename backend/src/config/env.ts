@@ -58,8 +58,6 @@ const schema = z.object({
   AI_MAX_REVISIONS: z.coerce.number().int().min(0).max(4).default(2),
   /** Entries given to the writer after retrieval. */
   AI_EVIDENCE_LIMIT: z.coerce.number().int().min(5).max(120).default(40),
-  /** Comma-separated Supabase user IDs allowed to use the staff console. */
-  STAFF_USER_IDS: optional(z.string()),
 });
 
 export type ApiEnv = z.infer<typeof schema>;

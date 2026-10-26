@@ -5,8 +5,6 @@ import {
   POLICY_PURPOSES,
   POLICY_TEXT_VERSION,
   ROLE_IDS,
-  type ConsentsView,
-  type KeyScope,
   type MeView,
   type NotificationView,
   type Page,
@@ -17,19 +15,15 @@ import {
   type SummaryView,
   type UpdateMeRequest,
 } from '@tracck/shared';
-import type { ApiEnv } from '../config/env';
-import { AuditService } from '../core/audit.service';
 import { EntitlementsService, periodResetsOn } from '../core/entitlements.service';
-import { isStaff } from '../org/staff.guard';
 import type { Database } from '../db';
 import {
   apiClients,
-  consents,
   notifications,
   profiles,
   userPolicyConsents,
 } from '../db/schema';
-import { DB, ENV } from '../tokens';
+import { DB } from '../tokens';
 
 export const DEFAULT_PREFERENCES: Preferences = {
   notifications: { done: true, weekly: true, attention: true },
@@ -48,8 +42,6 @@ export class MeService {
   constructor(
     @Inject(DB) private readonly db: Database,
     @Inject(EntitlementsService) private readonly entitlements: EntitlementsService,
-    @Inject(ENV) private readonly env: ApiEnv,
-    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async view(userId: string, email: string | null): Promise<MeView> {
@@ -78,7 +70,6 @@ export class MeService {
       primaryRole: isRole(profile.primaryRole ?? '') ? (profile.primaryRole as RoleId) : (roles[0] ?? null),
       plan: profile.plan as PlanId,
       onboardingCompleted: profile.onboardingCompletedAt !== null,
-      staff: isStaff(this.env, userId),
       policyAccepted: POLICY_PURPOSES.every((purpose) => accepted.some((row) => row.purpose === purpose)),
       preferences: {
         notifications: { ...DEFAULT_PREFERENCES.notifications, ...stored.notifications },
@@ -236,43 +227,6 @@ export class MeService {
       .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
       .returning({ id: notifications.id });
     if (updated.length === 0) throw new ApiError(404, 'NOT_FOUND', 'We could not find that notification.');
-  }
-
-  // ─── Organisations with access ─────────────────────────────────────────────
-
-  async consents(userId: string): Promise<ConsentsView> {
-    const rows = await this.db
-      .select({
-        id: consents.id,
-        scope: consents.scope,
-        grantedAt: consents.grantedAt,
-        client: apiClients.name,
-        clientId: consents.clientId,
-      })
-      .from(consents)
-      .innerJoin(apiClients, eq(apiClients.id, consents.clientId))
-      .where(and(eq(consents.userId, userId), isNull(consents.revokedAt)))
-      .orderBy(desc(consents.grantedAt));
-
-    // One entry per organisation, with every scope it holds.
-    const byClient = new Map<string, ConsentsView['granted'][number]>();
-    for (const row of rows) {
-      const existing = byClient.get(row.clientId);
-      if (existing) existing.scopes.push(row.scope as KeyScope);
-      else byClient.set(row.clientId, { id: row.clientId, orgName: row.client, scopes: [row.scope as KeyScope], grantedAt: row.grantedAt.toISOString() });
-    }
-    return { granted: [...byClient.values()], requested: [] };
-  }
-
-  /** Revokes everything one organisation holds. Takes effect on their next request. */
-  async revokeConsent(userId: string, clientId: string): Promise<void> {
-    const revoked = await this.db
-      .update(consents)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(consents.userId, userId), eq(consents.clientId, clientId), isNull(consents.revokedAt)))
-      .returning({ id: consents.id });
-    if (revoked.length === 0) throw new ApiError(404, 'NOT_FOUND', 'That organisation does not have access.');
-    await this.audit.record({ eventType: 'consent.revoked', clientId, userId, actor: userId, metadata: { scopes: revoked.length } });
   }
 }
 

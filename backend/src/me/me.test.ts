@@ -142,27 +142,6 @@ describe('notifications', () => {
   });
 });
 
-describe('organisations with access', () => {
-  it('lists what each organisation holds and revokes it', async () => {
-    const { rows } = await ctx.db.query<{ id: string }>(
-      `insert into public.api_clients (name, status) values ('UNILAG Careers Office', 'active') returning id`,
-    );
-    const clientId = rows[0].id;
-    for (const scope of ['read:profile', 'read:resume']) {
-      await ctx.db.query(`insert into public.consents (user_id, client_id, scope) values ($1, $2, $3)`, [userId, clientId, scope]);
-    }
-
-    const { body } = await get('/v1/me/consents');
-    expect(body.granted).toHaveLength(1);
-    expect(body.granted[0]).toMatchObject({ id: clientId, orgName: 'UNILAG Careers Office' });
-    expect(body.granted[0].scopes.sort()).toEqual(['read:profile', 'read:resume']);
-
-    expect((await send('delete', `/v1/me/consents/${clientId}`, undefined, otherId)).status).toBe(404);
-    expect((await send('delete', `/v1/me/consents/${clientId}`)).status).toBe(204);
-    expect((await get('/v1/me/consents')).body.granted).toHaveLength(0);
-  });
-});
-
 describe('waitlist', () => {
   const entry = (email: string) => ({
     orgName: 'UNILAG Careers',

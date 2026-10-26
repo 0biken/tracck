@@ -51,17 +51,6 @@ export class MeController {
     return { ok: true };
   }
 
-  @Get('me/consents')
-  consents(@UserId() userId: string) {
-    return this.me.consents(userId);
-  }
-
-  @Delete('me/consents/:id')
-  @HttpCode(204)
-  async revokeConsent(@UserId() userId: string, @Param('id', new ZodPipe(uuidParam)) id: string) {
-    await this.me.revokeConsent(userId, id);
-  }
-
   @Get('roles')
   roles() {
     return ROLES;

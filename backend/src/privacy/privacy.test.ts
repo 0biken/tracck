@@ -87,6 +87,7 @@ describe('deleting your account', () => {
 
   it('removes the person, their files and their data, stops billing, and leaves everyone else alone', async () => {
     expect([...ctx.storage.objects.keys()].some((k) => k.startsWith(`users/${tolu}/`))).toBe(true);
+    await ctx.db.query(`insert into public.payments (user_id, provider, provider_reference, amount_minor, currency, status) values ($1, 'paystack', 'trk_kept_record', 250000, 'NGN', 'succeeded')`, [tolu]);
 
     const response = await del('/v1/me?confirm=delete-my-account');
     expect(response.status).toBe(202);
@@ -105,6 +106,9 @@ describe('deleting your account', () => {
     expect(rows[0].status).toBe('completed');
     expect(rows[0].completed_at).not.toBeNull();
     expect(ctx.email.sent.at(-1)).toMatchObject({ subject: 'Your Tracck account was deleted' });
+
+    // Payment records are kept for accounting, but no longer tied to the deleted person.
+    expect(await ctx.db.query(`select user_id, amount_minor::int as amount from public.payments where provider_reference = 'trk_kept_record'`)).toMatchObject({ rows: [{ user_id: null, amount: 250000 }] });
 
     expect(await count('auth.users', other, 'id')).toBe(1);
     expect((await get('/v1/evidence', other)).body.counts.all).toBe(1);

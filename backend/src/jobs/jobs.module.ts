@@ -6,8 +6,6 @@ import { CvReviewService } from '../evidence/cv-review.service';
 import { EvidenceModule } from '../evidence/evidence.module';
 import { AccountDeletionHandler } from '../privacy/deletion.handler';
 import { DataExportHandler } from '../privacy/export.handler';
-import { OrgModule } from '../org/org.module';
-import { WebhookDeliveryHandler } from '../org/webhook.handler';
 import { PrivacyModule } from '../privacy/privacy.module';
 import { ResumeExportHandler } from '../resumes/export.handler';
 import { ResumeGenerationHandler } from '../resumes/generation.handler';
@@ -26,7 +24,7 @@ import { JobsService } from './jobs.service';
 
 /** The job API (create, read, cancel, retry, stream) and the worker that runs jobs. */
 @Module({
-  imports: [AuthModule, SourcesModule, EvidenceModule, ResumesModule, EmailModule, PrivacyModule, SchedulerModule, OrgModule],
+  imports: [AuthModule, SourcesModule, EvidenceModule, ResumesModule, EmailModule, PrivacyModule, SchedulerModule],
   controllers: [JobsController],
   providers: [
     JobsService,
@@ -45,7 +43,6 @@ import { JobsService } from './jobs.service';
         DataExportHandler,
         AccountDeletionHandler,
         WeeklyDigestHandler,
-        WebhookDeliveryHandler,
       ],
       // One handler per job type. Each feature module exports the handlers it owns.
       useFactory: (
@@ -58,7 +55,6 @@ import { JobsService } from './jobs.service';
         dataExport: DataExportHandler,
         deletion: AccountDeletionHandler,
         digest: WeeklyDigestHandler,
-        webhook: WebhookDeliveryHandler,
       ) => ({
         ...jobHandlers,
         source_import: sourceImport.handle,
@@ -71,7 +67,6 @@ import { JobsService } from './jobs.service';
         data_export: dataExport.handle,
         account_deletion: deletion.handle,
         weekly_digest: digest.handle,
-        webhook_delivery: webhook.handle,
       }),
     },
     { provide: STREAM_POLL_MS, useValue: 5_000 },

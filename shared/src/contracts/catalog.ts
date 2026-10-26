@@ -100,16 +100,7 @@ export const PLAN_CARDS: Record<PlanCard['id'], PlanCard> = {
   },
 };
 
-// ─── Organisation API ────────────────────────────────────────────────────────
-
-export const KEY_SCOPES = ['generate:resume', 'read:resume', 'read:profile'] as const;
-export type KeyScope = (typeof KEY_SCOPES)[number];
-
-export const SCOPE_LABELS: Record<KeyScope, string> = {
-  'generate:resume': 'Generate resumes for jobs',
-  'read:resume': 'Read resumes you create through them',
-  'read:profile': 'Read your profile and skills summary',
-};
+// ─── Waitlist ────────────────────────────────────────────────────────────────
 
 export const ORG_TYPES = [
   { value: 'university', label: 'University or careers office' },

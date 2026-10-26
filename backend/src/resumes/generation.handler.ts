@@ -156,7 +156,6 @@ export class ResumeGenerationHandler {
       payload: { resumeId, title: doc.title, company: doc.company },
       idempotencyKey: `resume_ready:${ctx.job.id}`,
     });
-    await this.tellOrganisation(ctx, runId, 'resume.completed', resumeId);
     return { resumeId, versionId };
   }
 
@@ -172,26 +171,9 @@ export class ResumeGenerationHandler {
       .update(resumeDocuments)
       .set({ status: doc?.current ? 'draft' : 'failed' })
       .where(eq(resumeDocuments.id, resumeId));
-    // Organisation-made resumes are not on the person's plan, so there is nothing to give back.
-    const [run] = await this.db.select({ focus: generationRuns.userFocusJson }).from(generationRuns).where(eq(generationRuns.id, runId));
-    if (!run?.focus.orgClientId) await this.entitlements.refundResume(ctx.job.userId);
-    await this.tellOrganisation(ctx, runId, 'resume.failed', resumeId);
+    await this.entitlements.refundResume(ctx.job.userId);
   }
 
-  /** When an organisation asked for this resume, it hears how it went through its webhook. */
-  private async tellOrganisation(ctx: JobContext, runId: string, event: 'resume.completed' | 'resume.failed', resumeId: string) {
-    const [run] = await this.db.select({ focus: generationRuns.userFocusJson }).from(generationRuns).where(eq(generationRuns.id, runId));
-    const clientId = run?.focus.orgClientId;
-    if (typeof clientId !== 'string') return;
-    await this.jobs
-      .dispatch({
-        userId: ctx.job.userId,
-        jobType: 'webhook_delivery',
-        idempotencyKey: `webhook:${event}:${ctx.job.id}`,
-        input: { clientId, event, jobId: ctx.job.id, resumeId },
-      })
-      .catch(() => {});
-  }
 }
 
 function toJobError(error: unknown): JobError {
