@@ -246,6 +246,7 @@ describe('GitHub', () => {
       repo('consistent-hash-go', { language: 'Go', description: 'Consistent hashing ring with virtual nodes.' }),
     ];
     ctx.github.readmes.set('toluadebayo/lemni-billing', 'Retries failed card charges through BullMQ queues backed by Postgres ledger tables.');
+    ctx.github.readmes.set('toluadebayo/toluadebayo', `${'Builder notes. '.repeat(400)}Owner works on payments infrastructure in Lagos.`);
     ctx.github.releases.set('toluadebayo/lemni-billing', [
       { id: 7, name: 'v1.2.0', tag: 'v1.2.0', body: 'Webhook idempotency with Redis locks so a redelivered event never charges twice.', publishedAt: '2026-09-02T09:00:00Z', url: 'https://github.com/x/y/releases/7' },
     ]);
@@ -263,7 +264,7 @@ describe('GitHub', () => {
   it('turns GitHub’s redirect into a connected, encrypted source and a job', async () => {
     const response = await ctx.http().get('/v1/sources/github/callback').query({ code: 'good-code', state }).redirects(0);
     expect(response.status).toBe(302);
-    expect(response.headers.location).toBe('http://localhost:3000/onboarding/status?connected=github');
+    expect(response.headers.location).toBe('http://localhost:3000/onboarding/sources?connected=github');
 
     const [source] = (await get('/v1/sources', user)).body;
     expect(source).toMatchObject({ provider: 'github', name: 'GitHub', detail: '@toluadebayo', state: 'collecting' });
@@ -286,6 +287,16 @@ describe('GitHub', () => {
     expect(lemni.skills).toEqual(expect.arrayContaining(['TypeScript', 'BullMQ']));
     expect(rows.some((row) => row.claim_text.includes('Webhook idempotency'))).toBe(true);
     expect((await get('/v1/sources', user)).body[0]).toMatchObject({ state: 'ready' });
+  });
+
+  it('reads the profile README in full, as its own document', async () => {
+    const { rows } = await ctx.db.query<{ source_type: string; body_text: string }>(
+      `select source_type, body_text from public.source_items where user_id = $1 and provider_item_id = 'profile-readme'`,
+      [user],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].body_text).toContain('payments infrastructure in Lagos');
+    expect(rows[0].body_text.length).toBeGreaterThan(4000);
   });
 
   it('reading again links to the same entries instead of adding copies', async () => {

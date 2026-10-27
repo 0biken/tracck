@@ -60,17 +60,23 @@ const MAX_ENTRIES_PER_DOCUMENT = 60;
 /** Critic problems of these kinds ask for a rewrite even when the verdict says pass. */
 const SERIOUS = new Set(['unsupported', 'role_rule']);
 
-/** Splits long text at paragraph breaks so no model call gets more than it can use well. */
+/** Splits long text at paragraph breaks so no model call gets more than it can use well. Nothing is dropped. */
 function chunk(text: string): string[] {
   if (text.length <= CHUNK_CHARS) return [text];
+  // A paragraph longer than one chunk is cut into windows, so its tail is still read.
+  const pieces = text.split(/\n\s*\n/).flatMap((paragraph) => {
+    const windows: string[] = [];
+    for (let start = 0; start < paragraph.length; start += CHUNK_CHARS) windows.push(paragraph.slice(start, start + CHUNK_CHARS));
+    return windows;
+  });
   const chunks: string[] = [];
   let current = '';
-  for (const paragraph of text.split(/\n\s*\n/)) {
-    if (current && current.length + paragraph.length > CHUNK_CHARS) {
+  for (const piece of pieces) {
+    if (current && current.length + piece.length + 2 > CHUNK_CHARS) {
       chunks.push(current);
       current = '';
     }
-    current += `${current ? '\n\n' : ''}${paragraph.slice(0, CHUNK_CHARS)}`;
+    current += `${current ? '\n\n' : ''}${piece}`;
   }
   if (current) chunks.push(current);
   return chunks;

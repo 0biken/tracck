@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { AccountMenu } from '@/components/marketing/account-menu'
 import { Logo } from '@/components/logo'
 import { buttonClass } from '@/components/ui/button'
+import type { Viewer } from '@/lib/viewer'
 
 const links = [
   { href: '/#how', label: 'How it works' },
@@ -12,7 +14,7 @@ const links = [
   { href: '/pricing', label: 'Pricing' },
 ]
 
-export function MarketingHeader() {
+export function MarketingHeader({ viewer }: { viewer: Viewer | null }) {
   const pathname = usePathname()
 
   return (
@@ -39,12 +41,18 @@ export function MarketingHeader() {
         </div>
 
         <div className="ml-auto flex gap-2 sm:ml-0">
-          <Link href="/login" className={buttonClass('secondary', 'md')}>
-            Log in
-          </Link>
-          <Link href="/signup" className={buttonClass('primary', 'md')}>
-            Get started
-          </Link>
+          {viewer ? (
+            <AccountMenu viewer={viewer} />
+          ) : (
+            <>
+              <Link href="/login" className={buttonClass('secondary', 'md')}>
+                Log in
+              </Link>
+              <Link href="/signup" className={buttonClass('primary', 'md')}>
+                Get started
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </header>

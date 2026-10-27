@@ -181,7 +181,9 @@ List what the job requires and what it prefers as short skill or qualification n
 export function extractSystem(): string {
   return `You turn source material about one person (a CV, repository, profile or notes) into separate evidence entries for a resume library. ${DATA_RULE}
 
-Each entry is one self-contained statement of something the person did, built or achieved, using only facts in the source. Keep every number, name and date exactly as written. Do not add praise, guess at results, or merge unrelated facts. Skip boilerplate, contact details and anything that is not a fact about the person. Tag the tools they name as skills and the themes they show as topics.`;
+Each entry is one self-contained statement of something the person did, built or achieved, using only facts in the source. Keep every number, name and date exactly as written. Do not add praise, guess at results, or merge unrelated facts. Skip boilerplate, contact details and anything that is not a fact about the person. Tag the tools they name as skills and the themes they show as topics.
+
+A source of kind "github_profile" is the person's own introduction. Read all of it and turn every fact there about who they are, their role, their work and their skills into entries, ahead of anything else.`;
 }
 
 export function reviewSystem(roleId: RoleId | null): string {

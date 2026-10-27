@@ -17,19 +17,16 @@ export function viewerFromMe(me: Pick<MeView, 'name' | 'email'>): Viewer {
   return { name, email, initials: initialsOf(name) }
 }
 
-/** The signed-in person from their Supabase session, for pages that do not load the profile. */
-export async function getViewer(): Promise<Viewer> {
-  if (isSupabaseConfigured()) {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      return viewerFromMe({
-        name: (user.user_metadata?.full_name as string | undefined) ?? null,
-        email: user.email ?? null,
-      })
-    }
-  }
-  return { name: 'You', email: '', initials: 'Y' }
+/** The signed-in person from their Supabase session, or null when nobody is signed in. */
+export async function getViewer(): Promise<Viewer | null> {
+  if (!isSupabaseConfigured()) return null
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+  return viewerFromMe({
+    name: (user.user_metadata?.full_name as string | undefined) ?? null,
+    email: user.email ?? null,
+  })
 }

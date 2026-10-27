@@ -34,6 +34,9 @@ interface Connection {
 
 type RawRows = { rows: Record<string, unknown>[] };
 
+/** Most of a README is kept. Longer ones are read in chunks during extraction, so nothing is lost. */
+const README_CHARS = 30_000;
+
 /** Shared by the two import handlers: loading the connection, saving items, and reporting the outcome. */
 abstract class ImportHandler {
   protected constructor(
@@ -217,13 +220,35 @@ export class SourceImportHandler extends ImportHandler {
 
     const token = { current: this.box.decrypt(secret.token) };
     const login = (connection.displayHandle ?? '').replace(/^@/, '');
-    const repos = (await this.githubCall(connection.id, token, (access) => this.github.listRepos(access, login))).slice(0, 30);
+    // The profile repository (named after the account) is read as the introduction below, not as a project.
+    const repos = (await this.githubCall(connection.id, token, (access) => this.github.listRepos(access, login)))
+      .filter((repo) => repo.name.toLowerCase() !== login.toLowerCase())
+      .slice(0, 30);
     const items: IngestItem[] = [];
+
+    const profile = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, `${login}/${login}`));
+    if (profile?.trim()) {
+      const text = profile.trim().slice(0, README_CHARS);
+      const title = `${login} profile`;
+      const url = `https://github.com/${login}/${login}`;
+      const id = await this.saveItem(connection, {
+        providerItemId: 'profile-readme',
+        sourceType: 'github_repo',
+        title,
+        text,
+        url,
+        metadata: { profile: true },
+      });
+      items.push({
+        sourceItemId: id,
+        document: { id, provider: 'github', kind: 'github_profile', title, text, url, date: null, where: login },
+      });
+    }
 
     for (const [index, repo] of repos.entries()) {
       await ctx.setStep('download_source', 5 + Math.round((index / Math.max(repos.length, 1)) * 60));
       const readme = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, repo.fullName));
-      const text = [repo.description, repo.topics.length ? `Topics: ${repo.topics.join(', ')}` : null, readme?.slice(0, 4000)]
+      const text = [repo.description, repo.topics.length ? `Topics: ${repo.topics.join(', ')}` : null, readme?.slice(0, README_CHARS)]
         .filter(Boolean)
         .join('\n\n');
       if (!text.trim()) continue;

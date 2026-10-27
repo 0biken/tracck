@@ -10,7 +10,6 @@ import { useSourceDialogs, type AddKind } from '@/components/sources/use-source-
 import { useSources } from '@/components/sources/use-sources'
 import { Tag } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckField } from '@/components/ui/field'
 import { api, messageOf } from '@/lib/api/client'
 
 const rowClass =
@@ -53,7 +52,6 @@ export function OnboardingSources({
 }) {
   const router = useRouter()
   const { sources, reload } = useSources(initial)
-  const [agreed, setAgreed] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
   const [continuing, setContinuing] = useState(false)
   const [error, setError] = useState<unknown>(null)
@@ -141,12 +139,10 @@ export function OnboardingSources({
       </div>
 
       <div className="flex flex-col gap-4 pt-6">
-        <CheckField checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="items-start text-[15px] leading-[22px]">
-          <span>
-            I agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>, and that the
-            entries relevant to a job are sent to AI providers to write my resume.
-          </span>
-        </CheckField>
+        <p className="m-0 text-[13px] leading-[20px] text-ink-muted">
+          By continuing you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>, and that
+          the entries relevant to a job are sent to AI providers to write your resume.
+        </p>
 
         {error !== null && <ErrorNotice error={error} />}
         {count === 0 && <p className="m-0 text-[13px] text-ink-muted">Add at least one source to continue.</p>}
@@ -155,7 +151,7 @@ export function OnboardingSources({
           <Link href="/onboarding/role" className="inline-flex min-h-11 items-center text-sm font-semibold">
             Back
           </Link>
-          <Button size="lg" disabled={count === 0 || !agreed} loading={continuing} onClick={next}>
+          <Button size="lg" disabled={count === 0} loading={continuing} onClick={next}>
             Continue with {count} {count === 1 ? 'source' : 'sources'}
           </Button>
         </div>

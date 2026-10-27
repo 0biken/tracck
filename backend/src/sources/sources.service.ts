@@ -154,7 +154,8 @@ export class SourcesService {
     } catch {
       return `${this.env.APP_ORIGIN}/dashboard/sources?error=github`;
     }
-    const back = (query: string) => `${this.env.APP_ORIGIN}${from === 'onboarding' ? '/onboarding/status' : '/dashboard/sources'}?${query}`;
+    // Onboarding returns to the sources step, where the person agrees and continues. Status comes after that.
+    const back = (query: string) => `${this.env.APP_ORIGIN}${from === 'onboarding' ? '/onboarding/sources' : '/dashboard/sources'}?${query}`;
     if (!code) return back('error=github');
 
     try {
