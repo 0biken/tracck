@@ -3,3 +3,6 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: true
   protobufjs: true
+minimumReleaseAgeExclude:
+  - '@langchain/langgraph-sdk@1.12.8'
+  - '@langchain/langgraph@1.5.3'

@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { ApiEnv } from '../config/env';
 import * as schema from '../db/schema';
 import { EMBEDDING_DIMENSIONS } from '../db/schema';
 import { createTestDatabase, createTestUser, type PGlite } from '../testing';
 import type { Database } from '../db';
 import type { EvidenceCandidate, GenerateInput } from './ai-engine';
+import type { AiSettings } from './ai.config';
 import { ContextService } from './context.service';
 import { ExampleStore } from './examples';
 import { EXAMPLE_SEEDS } from './examples-seed';
@@ -56,16 +56,14 @@ class FakeLlm implements LlmClient {
   }
 }
 
-const env = {
-  AI_WRITER_MODEL: 'writer',
-  AI_CRITIC_MODEL: 'critic',
-  AI_EXTRACT_MODEL: 'extract',
-  AI_EMBEDDING_MODEL: 'fake-embedding',
-  AI_WRITER_THINKING: 'off',
-  AI_CRITIC_THINKING: 'off',
-  AI_MAX_REVISIONS: 2,
-  AI_EVIDENCE_LIMIT: 40,
-} as ApiEnv;
+const settings: AiSettings = {
+  writer: { model: 'writer', thinking: 'off' },
+  critic: { model: 'critic', thinking: 'off' },
+  extract: { model: 'extract' },
+  embedding: { model: 'fake-embedding' },
+  maxRevisions: 2,
+  evidenceLimit: 40,
+};
 
 describe('verifyBullet', () => {
   const pool = new Map<string, PoolEntry>([
@@ -109,7 +107,7 @@ describe('database retrieval', () => {
     userId = await createTestUser(pg);
     other = await createTestUser(pg, 'Someone Else');
     const llm = new FakeLlm();
-    context = new ContextService(db, env, llm);
+    context = new ContextService(db, settings, llm);
 
     const add = async (owner: string, key: string, values: Partial<typeof schema.candidateEvidence.$inferInsert> & { claimText: string }) => {
       const [row] = await db
@@ -205,8 +203,8 @@ describe('GeminiEngine.generateResume', () => {
   });
   const pass = { verdict: 'pass', score: 88, issues: [], uncoveredRequirements: [] };
 
-  const engineWith = (llm: FakeLlm, overrides: Partial<ApiEnv> = {}) =>
-    new GeminiEngine({ ...env, ...overrides }, llm, { forRole: async () => ({ good: [], rewrites: [] }) } as unknown as ExampleStore, new PlaceholderEngine());
+  const engineWith = (llm: FakeLlm, overrides: Partial<AiSettings> = {}) =>
+    new GeminiEngine({ ...settings, ...overrides }, llm, { forRole: async () => ({ good: [], rewrites: [] }) } as unknown as ExampleStore, new PlaceholderEngine());
 
   it('writes a resume whose bullets all trace to evidence, and drops unsupported skills', async () => {
     const llm = new FakeLlm({
@@ -269,7 +267,7 @@ describe('GeminiEngine.generateResume', () => {
         ]),
       check: () => ({ verdict: 'revise', score: 40, issues: [{ bullet: 'b1', kind: 'unsupported', reason: 'no source', fix: 'remove it' }], uncoveredRequirements: ['TypeScript'] }),
     });
-    const draft = await engineWith(llm, { AI_MAX_REVISIONS: 1 }).generateResume(input);
+    const draft = await engineWith(llm, { maxRevisions: 1 }).generateResume(input);
     const text = JSON.stringify(draft.content);
     expect(text).not.toContain('900%');
     expect(text).toContain('meetups');
@@ -278,7 +276,7 @@ describe('GeminiEngine.generateResume', () => {
 
   it('skips the critic entirely when revisions are set to 0', async () => {
     const llm = new FakeLlm({ write: () => draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]) });
-    const draft = await engineWith(llm, { AI_MAX_REVISIONS: 0 }).generateResume(input);
+    const draft = await engineWith(llm, { maxRevisions: 0 }).generateResume(input);
     expect(llm.calls.map((c) => c.purpose)).toEqual(['write', 'write']);
     expect(draft.review?.score).toBeNull();
   });
@@ -288,7 +286,7 @@ describe('GeminiEngine.generateResume', () => {
       write: () => draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]),
       check: () => pass,
     });
-    await engineWith(llm, { AI_WRITER_THINKING: 'high', AI_CRITIC_THINKING: 'low' }).generateResume(input);
+    await engineWith(llm, { writer: { model: 'writer', thinking: 'high' }, critic: { model: 'critic', thinking: 'low' } }).generateResume(input);
     expect(llm.calls.map((c) => [c.model, c.thinking])).toEqual([
       ['writer', 'high'],
       ['critic', 'low'],
@@ -313,7 +311,7 @@ describe('GeminiEngine.generateResume', () => {
 describe('GeminiEngine reading', () => {
   it('falls back to the plain reader when the model fails', async () => {
     const llm = new FakeLlm({ extract: () => { throw new Error('model down'); } });
-    const engine = new GeminiEngine(env, llm, {} as ExampleStore, new PlaceholderEngine());
+    const engine = new GeminiEngine(settings, llm, {} as ExampleStore, new PlaceholderEngine());
     const entries = await engine.extractEvidence({
       id: 'd', provider: 'CV' as never, kind: 'uploaded_cv', title: null, url: null, date: null, where: null,
       text: 'Built a billing service in TypeScript and PostgreSQL that handles 12,000 requests a day for three clients.',
@@ -331,7 +329,7 @@ describe('GeminiEngine reading', () => {
         ],
       }),
     });
-    const review = await new GeminiEngine(env, llm, {} as ExampleStore, new PlaceholderEngine()).reviewCv({ text: 'Worked on stuff at Acme.', file: 'cv.pdf', roleId: 'dev' });
+    const review = await new GeminiEngine(settings, llm, {} as ExampleStore, new PlaceholderEngine()).reviewCv({ text: 'Worked on stuff at Acme.', file: 'cv.pdf', roleId: 'dev' });
     expect(review.issues[0].quote).toBe('Worked on stuff');
     expect(review.issues[1].quote).toBeUndefined();
   });

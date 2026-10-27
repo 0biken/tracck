@@ -1,7 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import type { ApiEnv } from '../config/env';
 import { notConfigured } from '../common/not-configured';
-import { AI_ENGINE, ENV, LLM_CLIENT, USAGE_SINK } from '../tokens';
+import { AI_ENGINE, AI_SETTINGS, ENV, LLM_CLIENT, USAGE_SINK } from '../tokens';
+import { AI_CONFIG } from './ai.config';
 import { ContextService } from './context.service';
 import { EmbeddingSyncService } from './embedding-sync.service';
 import { ExampleStore } from './examples';
@@ -34,6 +35,7 @@ const unconfiguredLlm: LlmClient = {
     GeminiEngine,
     DbUsageSink,
     { provide: USAGE_SINK, useExisting: DbUsageSink },
+    { provide: AI_SETTINGS, useValue: AI_CONFIG },
     {
       provide: LLM_CLIENT,
       inject: [ENV, USAGE_SINK],
@@ -41,7 +43,7 @@ const unconfiguredLlm: LlmClient = {
         env.GEMINI_API_KEY
           ? new GeminiLlm({
               apiKey: env.GEMINI_API_KEY,
-              embeddingModel: env.AI_EMBEDDING_MODEL,
+              embeddingModel: AI_CONFIG.embedding.model,
               usage,
             })
           : unconfiguredLlm,
@@ -52,6 +54,6 @@ const unconfiguredLlm: LlmClient = {
       useFactory: (env: ApiEnv, gemini: GeminiEngine, placeholder: PlaceholderEngine) => (env.GEMINI_API_KEY ? gemini : placeholder),
     },
   ],
-  exports: [AI_ENGINE, LLM_CLIENT, ContextService, EmbeddingSyncService, ProfileIndexHandler, ExampleStore],
+  exports: [AI_ENGINE, AI_SETTINGS, LLM_CLIENT, ContextService, EmbeddingSyncService, ProfileIndexHandler, ExampleStore],
 })
 export class AiModule {}

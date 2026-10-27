@@ -19,13 +19,14 @@ import {
   type ResumeSection,
   type RoleId,
 } from '@tracck/shared';
-import type { ApiEnv } from '../config/env';
-import { ENV, LLM_CLIENT } from '../tokens';
+import { AI_SETTINGS, LLM_CLIENT } from '../tokens';
 import type { TemplateDefinition } from '../templates/template';
 import { getTemplate } from '../templates/registry';
 import type { AiEngine, DraftReview, EvidenceCandidate, ExtractedEvidence, GenerateInput, JobReading, ResumeDraft, SourceDocument } from './ai-engine';
 import { type ExampleSet, ExampleStore, renderExamples } from './examples';
+import type { AiSettings } from './ai.config';
 import type { LlmClient } from './llm';
+import { buildRevisionGraph } from './revision-graph';
 import { contactLine, defaultLayout, layoutFrom, skillUses, traitsOf, type SkillUse } from './layout';
 import { PlaceholderEngine } from './placeholder-engine';
 import {
@@ -121,12 +122,12 @@ export class GeminiEngine implements AiEngine {
   private readonly logger = new Logger('AiEngine');
 
   constructor(
-    @Inject(ENV) private readonly env: ApiEnv,
+    @Inject(AI_SETTINGS) private readonly settings: AiSettings,
     @Inject(LLM_CLIENT) private readonly llm: LlmClient,
     @Inject(ExampleStore) private readonly examples: ExampleStore,
     @Inject(PlaceholderEngine) private readonly fallback: PlaceholderEngine,
   ) {
-    this.name = `gemini:${env.AI_WRITER_MODEL}`;
+    this.name = `gemini:${settings.writer.model}`;
   }
 
   // ─── Reading sources ───────────────────────────────────────────────────────
@@ -139,7 +140,7 @@ export class GeminiEngine implements AiEngine {
       for (const part of chunk(document.text)) {
         const { data } = await this.llm.json({
           purpose: 'extract',
-          model: this.env.AI_EXTRACT_MODEL,
+          model: this.settings.extract.model,
           system: extractSystem(),
           prompt: `<source kind="${document.kind}"${document.title ? ` title="${document.title}"` : ''}>\n${part}\n</source>`,
           schema: extractionSchema,
@@ -174,7 +175,7 @@ export class GeminiEngine implements AiEngine {
     try {
       const { data } = await this.llm.json({
         purpose: 'extract',
-        model: this.env.AI_EXTRACT_MODEL,
+        model: this.settings.extract.model,
         system: jobSystem(),
         prompt: `<job_description>\n${description.slice(0, 8000)}\n</job_description>`,
         schema: jobReadingSchema,
@@ -203,7 +204,7 @@ export class GeminiEngine implements AiEngine {
 
     const roleId = input.roleId ?? input.job.roleId;
     const template = getTemplate(input.templateId);
-    const pool = input.evidence.slice(0, this.env.AI_EVIDENCE_LIMIT).map((entry, index) => ({ entry, ref: `E${index + 1}` }));
+    const pool = input.evidence.slice(0, this.settings.evidenceLimit).map((entry, index) => ({ entry, ref: `E${index + 1}` }));
     const lookup = new Map<string, PoolEntry>(
       pool.map(({ entry, ref }) => [ref, { ref, id: entry.id, text: `${entry.title} ${entry.claimText}`, skills: entry.skills }]),
     );
@@ -215,40 +216,38 @@ export class GeminiEngine implements AiEngine {
       (
         await this.llm.json({
           purpose: 'write',
-          model: this.env.AI_WRITER_MODEL,
+          model: this.settings.writer.model,
           system,
           prompt,
           schema: draftSchema,
-          thinking: this.env.AI_WRITER_THINKING,
+          thinking: this.settings.writer.thinking,
           maxOutputTokens: 5000,
           userId: input.userId,
         })
       ).data;
 
-    let raw = await write(basePrompt);
-    let numbered = number(raw);
-    let critique: Critique | null = null;
-    let revisions = 0;
-    let findings: Finding[] = [];
+    // Write, then check and revise in a LangGraph loop until the draft passes or the budget runs out.
+    const loop = buildRevisionGraph<DraftOutput, Numbered, Finding, Critique>(
+      {
+        check: async (numbered) => {
+          const findings = verifyBullets(allBullets(numbered), lookup);
+          const blocking = findings.filter((finding) => finding.severity === 'blocking');
+          const critique = this.settings.maxRevisions > 0 ? await this.review(input, roleId, numbered, lookup, findings) : null;
+          const serious = critique?.issues.filter((issue) => SERIOUS.has(issue.kind)) ?? [];
+          const passed = blocking.length === 0 && serious.length === 0 && (critique === null || critique.verdict === 'pass');
+          return { findings, critique, passed };
+        },
+        revise: async (numbered, findings, critique) => {
+          const raw = await write(basePrompt + reviseSuffix(renderDraft(numbered.sections), toIssues(findings, critique)));
+          return { raw, draft: number(raw) };
+        },
+      },
+      this.settings.maxRevisions,
+    );
+    const firstRaw = await write(basePrompt);
+    const state = await loop.invoke({ raw: firstRaw, draft: number(firstRaw) });
 
-    // Write, check, review, and send back until it passes or the budget runs out.
-    // The budget is what keeps a hard job from looping and spending without end.
-    for (;;) {
-      findings = verifyBullets(allBullets(numbered), lookup);
-      const blocking = findings.filter((finding) => finding.severity === 'blocking');
-
-      critique = this.env.AI_MAX_REVISIONS > 0 ? await this.review(input, roleId, numbered, lookup, findings) : null;
-      const serious = critique?.issues.filter((issue) => SERIOUS.has(issue.kind)) ?? [];
-      const passed = blocking.length === 0 && serious.length === 0 && (critique === null || critique.verdict === 'pass');
-
-      if (passed || revisions >= this.env.AI_MAX_REVISIONS) break;
-
-      revisions += 1;
-      raw = await write(basePrompt + reviseSuffix(renderDraft(numbered.sections), toIssues(findings, critique)));
-      numbered = number(raw);
-    }
-
-    const draft = this.assemble(input, pool, lookup, raw, numbered, findings, critique, revisions);
+    const draft = this.assemble(input, pool, lookup, state.raw, state.draft, state.findings, state.critique, state.revisions);
     const entries = pool.map(({ entry }) => entry);
     const layout = await this.format(input, template, draft.content.sections, skillUses(entries), traitsOf(entries));
     return { ...draft, content: { ...draft.content, layout } };
@@ -277,7 +276,7 @@ export class GeminiEngine implements AiEngine {
     try {
       const { data } = await this.llm.json({
         purpose: 'write',
-        model: this.env.AI_WRITER_MODEL,
+        model: this.settings.writer.model,
         system: formatterSystem(template.formatterRules),
         prompt: formatterPrompt({ job: input.job, groups, skills: [...uses.values()].map((use) => use.name), strengths: [...traits.values()] }),
         schema: layoutChoiceSchema,
@@ -304,7 +303,7 @@ export class GeminiEngine implements AiEngine {
     const refs = [...new Set(allBullets(draft).flatMap((bullet) => bullet.evidence))].filter((ref) => lookup.has(ref));
     const { data } = await this.llm.json({
       purpose: 'check',
-      model: this.env.AI_CRITIC_MODEL,
+      model: this.settings.critic.model,
       system: criticSystem(roleId),
       prompt: criticPrompt({
         job: input.job,
@@ -314,7 +313,7 @@ export class GeminiEngine implements AiEngine {
         findings,
       }),
       schema: critiqueSchema,
-      thinking: this.env.AI_CRITIC_THINKING,
+      thinking: this.settings.critic.thinking,
       temperature: 0,
       maxOutputTokens: 2500,
       userId: input.userId,
@@ -414,11 +413,11 @@ export class GeminiEngine implements AiEngine {
   async reviewCv(input: { text: string; file: string | null; roleId: RoleId | null }): ReturnType<AiEngine['reviewCv']> {
     const { data } = await this.llm.json({
       purpose: 'check',
-      model: this.env.AI_CRITIC_MODEL,
+      model: this.settings.critic.model,
       system: reviewSystem(input.roleId),
       prompt: `<cv>\n${input.text.slice(0, 20_000)}\n</cv>`,
       schema: cvReviewSchema,
-      thinking: this.env.AI_CRITIC_THINKING,
+      thinking: this.settings.critic.thinking,
       temperature: 0.2,
       maxOutputTokens: 3000,
     });

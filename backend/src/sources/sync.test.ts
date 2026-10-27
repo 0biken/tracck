@@ -94,17 +94,30 @@ describe('reading a source', () => {
 });
 
 describe('resetting a source', () => {
-  it('clears everything the source produced, pinned entries included, and disconnects it', async () => {
-    await ctx.db.query(`update public.candidate_evidence set pinned = true where user_id = $1 and id = (select id from public.candidate_evidence where user_id = $1 and source_provider = 'github' limit 1)`, [user]);
+  it('clears everything imported from the source, pinned entries included, and keeps the connection', async () => {
+    await ctx.db.query(
+      `update public.candidate_evidence set pinned = true
+        where user_id = $1 and id = (select id from public.candidate_evidence where user_id = $1 and source_provider = 'github' limit 1)`,
+      [user],
+    );
     expect(await githubEvidence()).toBeGreaterThan(0);
 
-    const response = await post(`/v1/sources/${sourceId}/reset`).send();
+    const response = await post(`/v1/sources/${sourceId}/reset`);
     expect(response.status).toBe(204);
 
     expect(await githubEvidence()).toBe(0);
-    expect((await get('/v1/sources')).body).toEqual([]);
+    const [source] = (await get('/v1/sources')).body;
+    expect(source).toMatchObject({ id: sourceId, provider: 'github', state: 'ready', entries: 0, lastCollectedAt: null });
     const { rows } = await ctx.db.query<{ n: number }>(`select count(*)::int as n from public.source_items where connection_id = $1`, [sourceId]);
     expect(rows[0].n).toBe(0);
+  });
+
+  it('keeps the connection usable: a refresh reads the source again', async () => {
+    const reads = await readsDuring(async () => {
+      expect((await post(`/v1/sources/${sourceId}/refresh`)).status).toBe(202);
+    });
+    expect(reads).toEqual(['toluadebayo/alpha', 'toluadebayo/beta']);
+    expect(await githubEvidence()).toBeGreaterThan(0);
   });
 
   it('is only for the person who owns the source', async () => {

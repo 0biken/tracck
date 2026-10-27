@@ -36,7 +36,8 @@ export const extractionSchema = z.object({
         date: z.string().nullable().describe('YYYY-MM-DD or YYYY-MM if the source dates it, else null.'),
       }),
     )
-    .max(40),
+    // No maxItems here: Gemini rejects the schema (400) when it is combined with these item fields.
+    // The engine caps the entries it keeps per document.
 });
 export type Extraction = z.infer<typeof extractionSchema>;
 

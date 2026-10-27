@@ -28,7 +28,7 @@ Uploaded and pasted sources are never read again on their own. They change only 
 | Resume generation | `POST /v1/resumes` and regeneration. The resume job calls `syncChanged` first | Reads GitHub and portfolio sources last read more than 6 hours ago. Unchanged items are skipped |
 | Refresh | `POST /v1/sources/:id/refresh` (button on each source) | Forces a full read of that source, and removes its old embeddings so the next index rebuilds them |
 | Retry | `POST /v1/sources/:id/retry` (after a problem) | The same forced read as refresh |
-| Reset | `POST /v1/sources/:id/reset` (button on each source, with confirmation) | Deletes every entry and stored file the source produced, pinned and edited ones included, and disconnects the source. Returns 204 |
+| Reset | `POST /v1/sources/:id/reset` (button on each source, with confirmation) | Deletes every entry, stored file and read the source produced, pinned and edited entries included. The connection stays. GitHub and portfolio sources can be refreshed afterwards; an uploaded file must be uploaded again. Returns 204 |
 | Remove | `DELETE /v1/sources/:id?entries=keep\|delete` | Disconnects the source. `keep` leaves its entries; `delete` removes them, except pinned and edited ones |
 | Replace | Uploading a new CV, LinkedIn export or X archive | Removes what the old file produced, then reads the new one |
 

@@ -2,10 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type { EvidenceCandidate, JobReading } from '../ai/ai-engine';
 import { ContextService } from '../ai/context.service';
+import type { AiSettings } from '../ai/ai.config';
 import { EmbeddingSyncService } from '../ai/embedding-sync.service';
 import type { ApiEnv } from '../config/env';
 import type { Database } from '../db';
-import { DB, ENV } from '../tokens';
+import { AI_SETTINGS, DB, ENV } from '../tokens';
 
 const SOURCE_LABEL: Record<string, EvidenceCandidate['source']> = {
   github: 'GITHUB',
@@ -30,6 +31,7 @@ export class EvidenceSelector {
     @Inject(ENV) private readonly env: ApiEnv,
     @Inject(ContextService) private readonly context: ContextService,
     @Inject(EmbeddingSyncService) private readonly embeddings: EmbeddingSyncService,
+    @Inject(AI_SETTINGS) private readonly settings: AiSettings,
   ) {}
 
   async select(input: {
@@ -70,7 +72,7 @@ export class EvidenceSelector {
        order by e.pinned desc,
                 (select count(*) from unnest(e.skills) s where lower(s) = any(${wanted}::text[])) desc,
                 e.valid_from desc nulls last, e.created_at desc
-       limit ${this.env.AI_EVIDENCE_LIMIT}`);
+       limit ${this.settings.evidenceLimit}`);
 
     return (result as unknown as { rows: Record<string, unknown>[] }).rows.map((row) => ({
       id: row.id as string,

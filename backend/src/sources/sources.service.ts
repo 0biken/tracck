@@ -317,9 +317,18 @@ export class SourcesService {
     await this.disconnect(userId, connectionId, entries === 'delete' ? 'delete' : 'keep', 'source.removed', correlationId);
   }
 
-  /** Clears everything the source produced, pinned and edited entries included, and disconnects it. */
+  /**
+   * Clears all the data imported from a source: its entries, its stored file and its reads. The
+   * connection stays, so GitHub and portfolio sources can be read again with refresh.
+   */
   async reset(userId: string, connectionId: string, correlationId: string): Promise<void> {
-    await this.disconnect(userId, connectionId, 'reset', 'source.reset', correlationId);
+    const connection = await this.owned(userId, connectionId);
+    await this.purge(userId, connection.id, 'reset');
+    await this.db
+      .update(sourceConnections)
+      .set({ status: 'synced', lastSyncAt: null, lastErrorCode: null })
+      .where(eq(sourceConnections.id, connection.id));
+    await this.audit.record({ userId, eventType: 'source.reset', subjectType: 'source', subjectId: connection.id, correlationId });
   }
 
   private async disconnect(userId: string, connectionId: string, mode: PurgeMode, event: string, correlationId: string): Promise<void> {

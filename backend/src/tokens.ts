@@ -38,6 +38,8 @@ export const SAFE_FETCH = Symbol("SAFE_FETCH");
 
 /** Calls the language and embedding models. Throws NOT_CONFIGURED when no API key is set. */
 export const LLM_CLIENT = Symbol('LLM_CLIENT');
+/** The models and tuning for each AI task (see ai/ai.config.ts). Tests replace it. */
+export const AI_SETTINGS = Symbol('AI_SETTINGS');
 /** Records every model call (tokens, latency, status; never prompt text) in llm_calls. */
 export const USAGE_SINK = Symbol('USAGE_SINK');
 

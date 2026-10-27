@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { api } from '@/lib/api/client'
 
-/** Deletes everything a source produced and disconnects it. Asks first. */
+/** Deletes everything a source imported and keeps the connection. Asks first. */
 export function ResetSourceButton({ source, onReset }: { source: SourceView; onReset: () => void }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -36,8 +36,8 @@ export function ResetSourceButton({ source, onReset }: { source: SourceView; onR
         <div className="flex flex-col gap-4 pr-8">
           <h2 className="t-claim m-0">Reset {source.name}?</h2>
           <p className="m-0 text-[15px] leading-[22px] text-ink-muted">
-            This deletes everything {source.name} gave Tracck, including entries you pinned or edited, and its stored file.
-            It is removed from your sources. Connect it again to add it back.
+            This deletes everything {source.name} gave Tracck, including entries you pinned or edited, and any file you
+            uploaded. The source stays connected.
           </p>
           {error !== null && <ErrorNotice error={error} />}
           <div className="flex flex-wrap gap-2">

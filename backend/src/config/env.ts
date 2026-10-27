@@ -40,22 +40,9 @@ const schema = z.object({
   /** For example: Tracck <hello@tracck.app> */
   EMAIL_FROM: optional(z.string().min(1)),
   // ─── AI engine. Without GEMINI_API_KEY the placeholder engine is used.
+  // Which models run each task is set in src/ai/ai.config.ts.
 
   GEMINI_API_KEY: optional(z.string().min(1)),
-  /** Writes and revises the resume. */
-  AI_WRITER_MODEL: z.string().min(1).default('gemini-3.8-flash'),
-  /** Reviews the draft. Set to a different model than the writer for an independent check. */
-  AI_CRITIC_MODEL: z.string().min(1).default('gemini-3.8-flash'),
-  /** Reads sources and job descriptions into structured data. A small, cheap model is enough. */
-  AI_EXTRACT_MODEL: z.string().min(1).default('gemini-3.5-flash-lite'),
-  AI_EMBEDDING_MODEL: z.string().min(1).default('gemini-embedding-001'),
-  /** Extended thinking for the writer. "off" sends no thinking setting; models that cannot think ignore it. */
-  AI_WRITER_THINKING: z.enum(['off', 'minimal', 'low', 'medium', 'high']).default('off'),
-  AI_CRITIC_THINKING: z.enum(['off', 'minimal', 'low', 'medium', 'high']).default('low'),
-  /** How many times the critic may send the draft back to the writer. 0 skips the loop. */
-  AI_MAX_REVISIONS: z.coerce.number().int().min(0).max(4).default(2),
-  /** Entries given to the writer after retrieval. */
-  AI_EVIDENCE_LIMIT: z.coerce.number().int().min(5).max(120).default(40),
 });
 
 export type ApiEnv = z.infer<typeof schema>;

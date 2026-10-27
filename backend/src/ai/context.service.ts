@@ -8,9 +8,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Database } from '../db';
 import { EMBEDDING_DIMENSIONS, candidateEvidence, evidenceEmbeddings } from '../db/schema';
-import type { ApiEnv } from '../config/env';
-import { DB, ENV, LLM_CLIENT } from '../tokens';
+import { AI_SETTINGS, DB, LLM_CLIENT } from '../tokens';
 import type { EvidenceCandidate } from './ai-engine';
+import type { AiSettings } from './ai.config';
 import type { LlmClient } from './llm';
 
 export interface RetrieveRequest {
@@ -55,7 +55,7 @@ const sha = (text: string) => createHash('sha256').update(text).digest('hex');
 export class ContextService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    @Inject(ENV) private readonly env: ApiEnv,
+    @Inject(AI_SETTINGS) private readonly settings: AiSettings,
     @Inject(LLM_CLIENT) private readonly llm: LlmClient,
   ) {}
 
@@ -69,7 +69,7 @@ export class ContextService {
    * so import does not pay the embedding cost.
    */
   async index(userId: string): Promise<{ embedded: number }> {
-    const model = this.env.AI_EMBEDDING_MODEL;
+    const model = this.settings.embedding.model;
     const rows = await this.db
       .select({
         id: candidateEvidence.id,
@@ -129,7 +129,7 @@ export class ContextService {
          and not exists (
            select 1 from public.evidence_embeddings emb
             where emb.evidence_id = e.id
-              and emb.embedding_model = ${this.env.AI_EMBEDDING_MODEL}
+              and emb.embedding_model = ${this.settings.embedding.model}
               and emb.embedding_version = ${this.version})
        limit ${limit}`);
     // node-postgres and PGlite both answer with { rows }.
@@ -141,7 +141,7 @@ export class ContextService {
    * entries always do. Everything else is ranked by three signals and fused.
    */
   async retrieve(request: RetrieveRequest): Promise<EvidenceCandidate[]> {
-    const limit = request.limit ?? this.env.AI_EVIDENCE_LIMIT;
+    const limit = request.limit ?? this.settings.evidenceLimit;
     const [queryVector] = await this.llm.embed({ texts: [request.query.slice(0, 6000)], kind: 'query', userId: request.userId });
     const tags = [...new Set(request.tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
     const words = [...new Set(request.query.toLowerCase().match(/[a-z][a-z0-9+#.]{2,}/g) ?? [])].slice(0, 60);
@@ -149,7 +149,7 @@ export class ContextService {
     const providers = request.providers?.length ? pgArray(request.providers.map((p) => p.toLowerCase())) : null;
     const tagArray = pgArray(tags);
 
-    const model = this.env.AI_EMBEDDING_MODEL;
+    const model = this.settings.embedding.model;
     const dims = EMBEDDING_DIMENSIONS;
     const vec = `${vectorLiteral(queryVector)}`;
 
