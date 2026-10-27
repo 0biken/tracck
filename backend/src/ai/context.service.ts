@@ -120,6 +120,22 @@ export class ContextService {
     return { embedded };
   }
 
+  /** People with at least one entry that has no embedding for the current model and version. */
+  async usersNeedingIndex(limit: number): Promise<string[]> {
+    const result = await this.db.execute(sql`
+      select distinct e.user_id
+        from public.candidate_evidence e
+       where not e.excluded
+         and not exists (
+           select 1 from public.evidence_embeddings emb
+            where emb.evidence_id = e.id
+              and emb.embedding_model = ${this.env.AI_EMBEDDING_MODEL}
+              and emb.embedding_version = ${this.version})
+       limit ${limit}`);
+    // node-postgres and PGlite both answer with { rows }.
+    return (result as unknown as { rows: { user_id: string }[] }).rows.map((row) => row.user_id);
+  }
+
   /**
    * The entries to write from. Excluded and rejected entries never come back; pinned
    * entries always do. Everything else is ranked by three signals and fused.

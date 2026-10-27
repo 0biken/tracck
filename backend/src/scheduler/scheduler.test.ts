@@ -10,56 +10,12 @@ const at = (iso: string) => new Date(iso);
 const jobs = async (type: string) =>
   (await ctx.db.query<{ user_id: string; idempotency_key: string }>(`select user_id, idempotency_key from public.background_jobs where job_type = $1`, [type])).rows;
 
-const connect = async (user: string, provider: string, status: string, lastSync: string | null) =>
-  (
-    await ctx.db.query<{ id: string }>(
-      `insert into public.source_connections (user_id, provider, display_handle, status, last_sync_at, consent_version) values ($1, $2, '@someone', $3, $4, 'v1') returning id`,
-      [user, provider, status, lastSync],
-    )
-  ).rows[0].id;
-
 beforeAll(async () => {
   ctx = await createTestApp({ email: true });
   scheduler = ctx.app.get(SchedulerService);
 });
 
 afterAll(() => ctx.close());
-
-describe('refreshing sources', () => {
-  let user: string;
-  let github: string;
-
-  beforeAll(async () => {
-    user = await ctx.newUser('Refresher');
-    github = await connect(user, 'github', 'synced', '2026-10-19T06:30:00Z');
-    await connect(user, 'cv', 'synced', '2026-09-01T00:00:00Z');
-    await connect(user, 'portfolio', 'needs_reauth', '2026-09-01T00:00:00Z');
-  });
-
-  it('waits until the morning refresh time', async () => {
-    expect(await scheduler.refreshSources(at('2026-10-20T05:59:00Z'))).toBe(0);
-    expect(await jobs('source_sync')).toHaveLength(0);
-  });
-
-  it('queues a read for each GitHub or portfolio source not read today, and no other', async () => {
-    expect(await scheduler.refreshSources(at('2026-10-20T06:05:00Z'))).toBe(1);
-    expect(await jobs('source_sync')).toEqual([{ user_id: user, idempotency_key: `sync:${github}:2026-10-20` }]);
-    expect((await ctx.db.query<{ status: string }>(`select status from public.source_connections where id = $1`, [github])).rows[0].status).toBe('sync_queued');
-  });
-
-  it('does it once a day however often the clock ticks', async () => {
-    expect(await scheduler.refreshSources(at('2026-10-20T06:10:00Z'))).toBe(0);
-    expect(await scheduler.refreshSources(at('2026-10-20T18:00:00Z'))).toBe(0);
-    expect(await jobs('source_sync')).toHaveLength(1);
-  });
-
-  it('leaves a source that was already read this morning', async () => {
-    const fresh = await ctx.newUser('Fresh');
-    await connect(fresh, 'github', 'synced', '2026-10-21T06:20:00Z');
-    expect(await scheduler.refreshSources(at('2026-10-21T08:00:00Z'))).toBe(0);
-    expect((await jobs('source_sync')).filter((job) => job.user_id === fresh)).toHaveLength(0);
-  });
-});
 
 describe('the weekly digest', () => {
   let active: string;

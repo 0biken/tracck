@@ -95,6 +95,7 @@ export function createApi(call: Transport) {
       paste: (provider: Extract<SourceProvider, 'behance' | 'portfolio' | 'linkedin'>, text: string) =>
         post<UploadSourceResponse>('/v1/sources/paste', { provider, text }),
       refresh: (id: string) => post<UploadSourceResponse>(`/v1/sources/${id}/refresh`),
+      reset: (id: string) => post<void>(`/v1/sources/${id}/reset`),
       retry: (id: string) => post<UploadSourceResponse>(`/v1/sources/${id}/retry`),
       remove: (id: string, entries: 'keep' | 'delete') => del<void>(`/v1/sources/${id}`, { entries }),
     },

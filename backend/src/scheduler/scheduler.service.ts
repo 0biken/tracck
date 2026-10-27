@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger, type BeforeApplicationShutdown, type OnApplicationBootstrap } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { BillingService } from '../billing/billing.service';
+import { ContextService } from '../ai/context.service';
+import { EmbeddingSyncService } from '../ai/embedding-sync.service';
 import type { ApiEnv } from '../config/env';
 import { JobDispatcher } from '../core/job-dispatcher.service';
 import type { Database } from '../db';
@@ -8,9 +10,10 @@ import type { ObjectStorage } from '../storage/storage';
 import { DB, ENV, STORAGE } from '../tokens';
 
 const TICK_MS = 5 * 60_000;
-/** Sources are refreshed after this hour (UTC) each day, and the digest goes out after this hour on Mondays. */
-const SYNC_HOUR = 6;
+/** The digest goes out after this hour (UTC) on Mondays. */
 const DIGEST_HOUR = 7;
+/** Missing embeddings are looked for after this hour (UTC), once a day. */
+const INDEX_HOUR = 4;
 const CLEANUP_HOUR = 3;
 const BATCH = 200;
 const DAY_MS = 86_400_000;
@@ -42,6 +45,8 @@ export class SchedulerService implements OnApplicationBootstrap, BeforeApplicati
     @Inject(JobDispatcher) private readonly jobs: JobDispatcher,
     @Inject(BillingService) private readonly billing: BillingService,
     @Inject(STORAGE) private readonly storage: ObjectStorage,
+    @Inject(ContextService) private readonly context: ContextService,
+    @Inject(EmbeddingSyncService) private readonly embeddings: EmbeddingSyncService,
   ) {}
 
   onApplicationBootstrap() {
@@ -59,35 +64,24 @@ export class SchedulerService implements OnApplicationBootstrap, BeforeApplicati
 
   async tick(now = new Date()) {
     return {
-      synced: await this.refreshSources(now),
       digests: await this.sendDigests(now),
+      indexes: await this.indexMissing(now),
       cleanup: await this.cleanup(now),
     };
   }
 
-  /** Reads GitHub and portfolio sources again, once a day, for sources not read since this morning. */
-  async refreshSources(now: Date): Promise<number> {
-    if (now.getUTCHours() < SYNC_HOUR) return 0;
-    const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), SYNC_HOUR));
-    const due = rowsOf<{ id: string; user_id: string }>(
-      await this.db.execute(sql`
-        select c.id, c.user_id from public.source_connections c
-          join public.profiles p on p.id = c.user_id
-         where c.revoked_at is null and p.deleted_at is null
-           and c.provider in ('github', 'portfolio') and c.status in ('synced', 'partial')
-           and (c.last_sync_at is null or c.last_sync_at < ${since.toISOString()})
-         order by c.last_sync_at nulls first limit ${BATCH}`),
-    );
-    for (const connection of due) {
-      await this.jobs.dispatch({
-        userId: connection.user_id,
-        jobType: 'source_sync',
-        idempotencyKey: `sync:${connection.id}:${dayOf(now)}`,
-        input: { connectionId: connection.id },
-      });
-      await this.db.execute(sql`update public.source_connections set status = 'sync_queued' where id = ${connection.id} and status in ('synced', 'partial')`);
+  /**
+   * Once a day: people with entries that have no embedding for the current model are queued to be
+   * indexed. This is how a model change reaches existing records, and how an index that gave up is
+   * tried again. The key names the day, so each person is queued at most once a day.
+   */
+  async indexMissing(now: Date): Promise<number> {
+    if (now.getUTCHours() < INDEX_HOUR) return 0;
+    const people = await this.context.usersNeedingIndex(BATCH);
+    for (const userId of people) {
+      await this.embeddings.schedule(userId, `profile_index:${userId}:${dayOf(now)}`);
     }
-    return due.length;
+    return people.length;
   }
 
   /** On Mondays, to people with something new and who have not turned the digest off. */

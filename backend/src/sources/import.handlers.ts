@@ -35,6 +35,9 @@ interface Connection {
 type RawRows = { rows: Record<string, unknown>[] };
 
 /** Most of a README is kept. Longer ones are read in chunks during extraction, so nothing is lost. */
+/** A stable fingerprint of text, so a source item can tell whether its content changed. */
+const fingerprintOf = (text: string) => createHash('sha256').update(text).digest('hex');
+
 const README_CHARS = 30_000;
 
 /** Shared by the two import handlers: loading the connection, saving items, and reporting the outcome. */
@@ -45,8 +48,8 @@ abstract class ImportHandler {
     protected readonly notifications: NotificationsService,
   ) {}
 
-  protected async load(ctx: JobContext): Promise<Connection> {
-    const connectionId = String(ctx.job.inputRef.connectionId ?? '');
+  /** Loads a source for reading, and marks it as being read. */
+  protected async open(connectionId: string, userId: string): Promise<Connection> {
     const [row] = await this.db
       .select({
         id: sourceConnections.id,
@@ -55,10 +58,22 @@ abstract class ImportHandler {
         displayHandle: sourceConnections.displayHandle,
       })
       .from(sourceConnections)
-      .where(and(eq(sourceConnections.id, connectionId), eq(sourceConnections.userId, ctx.job.userId)));
+      .where(and(eq(sourceConnections.id, connectionId), eq(sourceConnections.userId, userId)));
     if (!row) throw new JobError('permanent', 'SOURCE_GONE', 'That source was removed.');
     await this.db.update(sourceConnections).set({ status: 'syncing', lastErrorCode: null }).where(eq(sourceConnections.id, row.id));
     return { ...row, provider: row.provider as SourceProvider };
+  }
+
+  protected load(ctx: JobContext): Promise<Connection> {
+    return this.open(String(ctx.job.inputRef.connectionId ?? ''), ctx.job.userId);
+  }
+
+  /** What each stored item was built from, by provider item id. */
+  protected async fingerprints(connectionId: string): Promise<Map<string, string>> {
+    const result = (await this.db.execute(sql`
+      select provider_item_id as id, coalesce(metadata_json ->> 'fingerprint', '') as fingerprint
+        from public.source_items where connection_id = ${connectionId} and provider_item_id is not null`)) as unknown as RawRows;
+    return new Map(result.rows.map((row) => [String(row.id), String(row.fingerprint)]));
   }
 
   /** Saves a source item (or updates it when it was read before) and returns its ID. */
@@ -72,6 +87,8 @@ abstract class ImportHandler {
       url?: string | null;
       date?: Date | null;
       metadata?: Record<string, unknown>;
+      /** What the item was built from. Unchanged fingerprints mean the item is not read again. */
+      fingerprint?: string;
     },
   ): Promise<string> {
     const result = (await this.db.execute(sql`
@@ -79,7 +96,7 @@ abstract class ImportHandler {
         (user_id, connection_id, source_type, provider_item_id, canonical_url, title, body_text, source_created_at, content_hash, metadata_json)
       values (${connection.userId}, ${connection.id}, ${item.sourceType}, ${item.providerItemId}, ${item.url ?? null}, ${item.title},
               ${item.text}, ${item.date?.toISOString() ?? null}, ${createHash('sha256').update(item.text).digest('hex')},
-              ${JSON.stringify(item.metadata ?? {})}::jsonb)
+              ${JSON.stringify({ ...item.metadata, ...(item.fingerprint !== undefined && { fingerprint: item.fingerprint }) })}::jsonb)
       on conflict (connection_id, provider_item_id) where connection_id is not null and provider_item_id is not null
       do update set body_text = excluded.body_text, title = excluded.title, canonical_url = excluded.canonical_url,
                     source_created_at = excluded.source_created_at, content_hash = excluded.content_hash,
@@ -95,7 +112,7 @@ abstract class ImportHandler {
       .update(sourceConnections)
       .set({ status: 'synced', lastSyncAt: new Date(), lastErrorCode: null })
       .where(eq(sourceConnections.id, connection.id));
-    await this.notifications.notify({
+    if (items.length > 0) await this.notifications.notify({
       userId: connection.userId,
       jobId: ctx.job.id,
       template: 'source_ready',
@@ -152,22 +169,66 @@ export class SourceImportHandler extends ImportHandler {
 
   handle: JobHandler = async (ctx) => {
     const connection = await this.load(ctx);
-    try {
-      const items =
-        connection.provider === 'github'
-          ? await this.collectGithub(connection, ctx)
-          : connection.provider === 'portfolio' && connection.displayHandle?.startsWith('http')
-            ? await this.collectPortfolio(connection, ctx)
-            : await this.collectStored(connection);
-      if (items.length === 0) {
-        throw new JobError('permanent', 'NOTHING_FOUND', 'We did not find anything to read in that source.');
-      }
-      return await this.finish(ctx, connection, items);
-    } catch (error) {
-      return this.fail(connection, ctx, error);
-    }
+    return this.run(connection, ctx, ctx.job.inputRef.force === true);
   };
 
+  /**
+   * Reads a source and stores what changed. A forced read (refresh, retry) reads everything and
+   * rebuilds the embeddings. An unforced read (resume generation) only reads what changed.
+   */
+  run(connection: Connection, ctx: JobContext, force: boolean): Promise<Record<string, unknown>> {
+    return this.readAndStore(connection, ctx, force).catch((error: unknown) => this.fail(connection, ctx, error));
+  }
+
+  private async readAndStore(connection: Connection, ctx: JobContext, force: boolean): Promise<Record<string, unknown>> {
+    if (force) await this.dropEmbeddings(connection.id);
+    const items =
+      connection.provider === 'github'
+        ? await this.collectGithub(connection, ctx, force)
+        : connection.provider === 'portfolio' && connection.displayHandle?.startsWith('http')
+          ? await this.collectPortfolio(connection, ctx, force)
+          : await this.collectStored(connection);
+    if (items.length === 0 && !(await this.hasItems(connection.id))) {
+      throw new JobError('permanent', 'NOTHING_FOUND', 'We did not find anything to read in that source.');
+    }
+    return this.finish(ctx, connection, items);
+  }
+
+  /**
+   * Before a resume is written, reads the sources that change on their own (GitHub, portfolio pages)
+   * if they were last read more than `maxAgeHours` ago. Sources that fail keep their old entries.
+   */
+  async syncChanged(userId: string, ctx: JobContext, maxAgeHours = 6): Promise<number> {
+    const due = (await this.db.execute(sql`
+      select id from public.source_connections
+       where user_id = ${userId} and revoked_at is null and status in ('synced', 'partial')
+         and (provider = 'github' or (provider = 'portfolio' and display_handle like 'http%'))
+         and (last_sync_at is null or last_sync_at < now() - make_interval(hours => ${maxAgeHours}))`)) as unknown as RawRows;
+    let synced = 0;
+    for (const row of due.rows) {
+      const connection = await this.open(String(row.id), userId);
+      await this.run(connection, ctx, false).catch(() => undefined);
+      synced += 1;
+    }
+    return synced;
+  }
+
+  private async hasItems(connectionId: string): Promise<boolean> {
+    const result = (await this.db.execute(sql`select 1 from public.source_items where connection_id = ${connectionId} limit 1`)) as unknown as RawRows;
+    return result.rows.length > 0;
+  }
+
+  /** A forced read rebuilds embeddings: the source's old ones are removed, and the next index writes new ones. */
+  private async dropEmbeddings(connectionId: string): Promise<void> {
+    await this.db.execute(sql`
+      delete from public.evidence_embeddings
+       where evidence_id in (
+         select es.evidence_id from public.evidence_sources es
+           join public.source_items si on si.id = es.source_item_id
+          where si.connection_id = ${connectionId})`);
+  }
+
+  /** Runs a GitHub call. When GitHub rejects the access token, refreshes it once and tries again. */
   /** Runs a GitHub call. When GitHub rejects the access token, refreshes it once and tries again. */
   private async githubCall<T>(connectionId: string, token: { current: string }, call: (accessToken: string) => Promise<T>): Promise<T> {
     try {
@@ -211,7 +272,11 @@ export class SourceImportHandler extends ImportHandler {
     });
   }
 
-  private async collectGithub(connection: Connection, ctx: JobContext): Promise<IngestItem[]> {
+  /**
+   * Reads GitHub. A repository is read again only when GitHub reports a newer push, and a release is
+   * read once: releases do not change after publishing. Anything else already stored is left alone.
+   */
+  private async collectGithub(connection: Connection, ctx: JobContext, force: boolean): Promise<IngestItem[]> {
     const [secret] = await this.db
       .select({ token: sourceConnectionSecrets.accessTokenEncrypted })
       .from(sourceConnectionSecrets)
@@ -220,6 +285,7 @@ export class SourceImportHandler extends ImportHandler {
 
     const token = { current: this.box.decrypt(secret.token) };
     const login = (connection.displayHandle ?? '').replace(/^@/, '');
+    const known = await this.fingerprints(connection.id);
     // The profile repository (named after the account) is read as the introduction below, not as a project.
     const repos = (await this.githubCall(connection.id, token, (access) => this.github.listRepos(access, login)))
       .filter((repo) => repo.name.toLowerCase() !== login.toLowerCase())
@@ -227,67 +293,79 @@ export class SourceImportHandler extends ImportHandler {
     const items: IngestItem[] = [];
 
     const profile = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, `${login}/${login}`));
-    if (profile?.trim()) {
-      const text = profile.trim().slice(0, README_CHARS);
+    const profileText = profile?.trim() ? profile.trim().slice(0, README_CHARS) : '';
+    if (profileText && (force || known.get('profile-readme') !== fingerprintOf(profileText))) {
       const title = `${login} profile`;
       const url = `https://github.com/${login}/${login}`;
       const id = await this.saveItem(connection, {
         providerItemId: 'profile-readme',
         sourceType: 'github_repo',
         title,
-        text,
+        text: profileText,
         url,
         metadata: { profile: true },
+        fingerprint: fingerprintOf(profileText),
       });
       items.push({
         sourceItemId: id,
-        document: { id, provider: 'github', kind: 'github_profile', title, text, url, date: null, where: login },
+        replace: known.has('profile-readme'),
+        document: { id, provider: 'github', kind: 'github_profile', title, text: profileText, url, date: null, where: login },
       });
     }
 
     for (const [index, repo] of repos.entries()) {
       await ctx.setStep('download_source', 5 + Math.round((index / Math.max(repos.length, 1)) * 60));
-      const readme = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, repo.fullName));
-      const text = [repo.description, repo.topics.length ? `Topics: ${repo.topics.join(', ')}` : null, readme?.slice(0, README_CHARS)]
-        .filter(Boolean)
-        .join('\n\n');
-      if (!text.trim()) continue;
-
       const projectKey = repo.name.toLowerCase();
       const date = repo.pushedAt ? new Date(repo.pushedAt) : null;
       const hint = [...new Set([repo.language ? findSkills(repo.language)[0] ?? repo.language : null, ...repo.topics.flatMap((topic) => findSkills(topic))].filter((skill): skill is string => Boolean(skill)))];
-      const id = await this.saveItem(connection, {
-        providerItemId: String(repo.id),
-        sourceType: 'github_repo',
-        title: repo.name,
-        text,
-        url: repo.url,
-        date,
-        metadata: { language: repo.language, topics: repo.topics, stars: repo.stars },
-      });
-      items.push({
-        sourceItemId: id,
-        document: { id, provider: 'github', kind: 'github_repo', title: repo.name, text, url: repo.url, date, where: repo.name, projectKey, skillsHint: hint },
-      });
+      const repoKey = String(repo.id);
+
+      const unchanged = !force && repo.pushedAt !== null && known.get(repoKey) === repo.pushedAt;
+      if (!unchanged) {
+        const readme = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, repo.fullName));
+        const text = [repo.description, repo.topics.length ? `Topics: ${repo.topics.join(', ')}` : null, readme?.slice(0, README_CHARS)]
+          .filter(Boolean)
+          .join('\n\n');
+        if (text.trim()) {
+          const id = await this.saveItem(connection, {
+            providerItemId: repoKey,
+            sourceType: 'github_repo',
+            title: repo.name,
+            text,
+            url: repo.url,
+            date,
+            metadata: { language: repo.language, topics: repo.topics, stars: repo.stars },
+            fingerprint: repo.pushedAt ?? '',
+          });
+          items.push({
+            sourceItemId: id,
+            replace: known.has(repoKey),
+            document: { id, provider: 'github', kind: 'github_repo', title: repo.name, text, url: repo.url, date, where: repo.name, projectKey, skillsHint: hint },
+          });
+        }
+      }
 
       // Releases show what shipped, for the most recent repositories.
       if (index < 8) {
         const releases = await this.githubCall(connection.id, token, (access) => this.github.listReleases(access, repo.fullName, 2));
         for (const release of releases) {
+          const releaseKey = `release-${release.id}`;
           const body = (release.body ?? '').trim();
-          if (body.length < 40) continue;
+          if (body.length < 40 || (!force && known.has(releaseKey))) continue;
           const releaseText = `${repo.name} ${release.name ?? release.tag}: ${body.slice(0, 1500)}`;
           const releaseDate = release.publishedAt ? new Date(release.publishedAt) : null;
           const releaseId = await this.saveItem(connection, {
-            providerItemId: `release-${release.id}`,
+            providerItemId: releaseKey,
             sourceType: 'github_contribution',
             title: `${repo.name} ${release.tag}`,
             text: releaseText,
             url: release.url,
             date: releaseDate,
+            fingerprint: releaseKey,
           });
           items.push({
             sourceItemId: releaseId,
+            replace: known.has(releaseKey),
             document: { id: releaseId, provider: 'github', kind: 'github_contribution', title: `${repo.name} ${release.tag}`, text: releaseText, url: release.url, date: releaseDate, where: repo.name, projectKey, skillsHint: hint },
           });
         }
@@ -296,26 +374,37 @@ export class SourceImportHandler extends ImportHandler {
     return items;
   }
 
-  private async collectPortfolio(connection: Connection, ctx: JobContext): Promise<IngestItem[]> {
+  /** Reads a portfolio page. Nothing is stored again when the page's text is the same as last time. */
+  private async collectPortfolio(connection: Connection, ctx: JobContext, force: boolean): Promise<IngestItem[]> {
     await ctx.setStep('download_source', 20);
     const response = await this.safeFetch.request(connection.displayHandle!);
     if (response.status >= 400) {
       throw new JobError('permanent', 'LINK_NOT_READABLE', 'The page returned an error. Check it is public, or paste the text instead.');
     }
     const isHtml = /html/i.test(response.contentType) || /<html|<body|<div/i.test(response.text.slice(0, 2000));
-    const text = isHtml ? htmlToText(response.text) : response.text.trim();
+    const text = (isHtml ? htmlToText(response.text) : response.text.trim()).slice(0, 60_000);
     if (text.length < 80) {
       throw new JobError('permanent', 'LINK_EMPTY', 'We could not find readable text on that page. Paste the text instead.');
     }
+    const known = await this.fingerprints(connection.id);
+    if (!force && known.get('page') === fingerprintOf(text)) return [];
+
     const title = response.text.match(/<title[^>]*>([^<]{1,200})<\/title>/i)?.[1]?.trim() ?? new URL(response.finalUrl).hostname;
     const id = await this.saveItem(connection, {
       providerItemId: 'page',
       sourceType: 'portfolio_page',
       title,
-      text: text.slice(0, 60_000),
+      text,
       url: response.finalUrl,
+      fingerprint: fingerprintOf(text),
     });
-    return [{ sourceItemId: id, document: { id, provider: 'portfolio', kind: 'portfolio_page', title, text: text.slice(0, 60_000), url: response.finalUrl, date: null, where: new URL(response.finalUrl).hostname } }];
+    return [
+      {
+        sourceItemId: id,
+        replace: known.has('page'),
+        document: { id, provider: 'portfolio', kind: 'portfolio_page', title, text, url: response.finalUrl, date: null, where: new URL(response.finalUrl).hostname },
+      },
+    ];
   }
 
   /** Text the person pasted: already stored, so it only needs reading. */

@@ -22,6 +22,9 @@ import type { ObjectStorage } from '../storage/storage';
 import { DB, ENV, GITHUB, SECRET_BOX, STORAGE } from '../tokens';
 import type { GithubClient } from './github.client';
 
+/** What happens to the entries a source produced when it is removed. */
+type PurgeMode = 'keep' | 'delete' | 'reset';
+
 export type UploadProvider = Extract<SourceProvider, 'cv' | 'linkedin' | 'portfolio' | 'x' | 'behance'>;
 
 export interface UploadInput {
@@ -235,7 +238,7 @@ export class SourcesService {
 
     if (existing) {
       // Replace: what the old file produced goes, and the new one takes its place.
-      await this.purge(userId, existing.id, true);
+      await this.purge(userId, existing.id, 'delete');
       await this.db
         .update(sourceConnections)
         .set({ displayHandle: handle, status: 'sync_queued', lastErrorCode: null })
@@ -297,11 +300,12 @@ export class SourcesService {
       .set({ status: 'sync_queued', lastErrorCode: null })
       .where(eq(sourceConnections.id, connection.id));
 
+    // Refresh and retry read the whole source again, and rebuild its embeddings.
     const { job } = await this.jobs.dispatch({
       userId,
       jobType: file ? 'cv_parse' : 'source_import',
       idempotencyKey,
-      input: { connectionId: connection.id },
+      input: { connectionId: connection.id, force: true },
       correlationId,
     });
     return this.response(userId, connection.id, job.id);
@@ -310,28 +314,31 @@ export class SourcesService {
   // ─── Removing ──────────────────────────────────────────────────────────────
 
   async remove(userId: string, connectionId: string, entries: 'keep' | 'delete', correlationId: string): Promise<void> {
+    await this.disconnect(userId, connectionId, entries === 'delete' ? 'delete' : 'keep', 'source.removed', correlationId);
+  }
+
+  /** Clears everything the source produced, pinned and edited entries included, and disconnects it. */
+  async reset(userId: string, connectionId: string, correlationId: string): Promise<void> {
+    await this.disconnect(userId, connectionId, 'reset', 'source.reset', correlationId);
+  }
+
+  private async disconnect(userId: string, connectionId: string, mode: PurgeMode, event: string, correlationId: string): Promise<void> {
     const connection = await this.owned(userId, connectionId);
-    await this.purge(userId, connection.id, entries === 'delete');
+    await this.purge(userId, connection.id, mode);
     await this.db.delete(sourceConnectionSecrets).where(eq(sourceConnectionSecrets.connectionId, connection.id));
     await this.db
       .update(sourceConnections)
       .set({ revokedAt: new Date(), status: 'not_connected' })
       .where(eq(sourceConnections.id, connection.id));
-    await this.audit.record({
-      userId,
-      eventType: 'source.removed',
-      subjectType: 'source',
-      subjectId: connection.id,
-      metadata: { entries },
-      correlationId,
-    });
+    await this.audit.record({ userId, eventType: event, subjectType: 'source', subjectId: connection.id, metadata: { mode }, correlationId });
   }
 
   /**
-   * Removes the stored files of a source and, when asked, the entries it produced.
-   * An entry that another source also supports is kept: only the link goes.
+   * Removes the stored files of a source and, unless kept, the entries it produced. An entry that
+   * another source also supports is kept: only the link goes. `keep` leaves entries; `delete` keeps
+   * the ones the person pinned or edited; `reset` removes every entry.
    */
-  private async purge(userId: string, connectionId: string, deleteEntries: boolean): Promise<void> {
+  private async purge(userId: string, connectionId: string, mode: PurgeMode): Promise<void> {
     const items = await this.db
       .select({ id: sourceItems.id, key: sourceItems.rawObjectKey })
       .from(sourceItems)
@@ -340,7 +347,7 @@ export class SourcesService {
     const keys = items.map((item) => item.key).filter((key): key is string => key !== null);
     if (keys.length > 0) await this.storage.remove(keys).catch(() => {});
 
-    if (deleteEntries) {
+    if (mode !== 'keep') {
       await this.db.execute(sql`
         delete from public.candidate_evidence e
          where e.user_id = ${userId}
@@ -350,7 +357,7 @@ export class SourcesService {
            and not exists (select 1 from public.evidence_sources es
                              join public.source_items si on si.id = es.source_item_id
                             where es.evidence_id = e.id and si.connection_id is distinct from ${connectionId})
-           and not e.pinned and not e.user_edited`);
+           and (${mode === 'delete'}::boolean = false or (not e.pinned and not e.user_edited))`);
       await this.db.delete(sourceItems).where(eq(sourceItems.connectionId, connectionId));
     } else if (keys.length > 0) {
       await this.db.update(sourceItems).set({ rawObjectKey: null }).where(eq(sourceItems.connectionId, connectionId));

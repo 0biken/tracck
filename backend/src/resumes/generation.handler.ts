@@ -4,6 +4,7 @@ import { ApiError, JobError, ROLE_IDS, type PersonDetails, type RoleId } from '@
 import type { AiEngine, JobReading } from '../ai/ai-engine';
 import { EntitlementsService } from '../core/entitlements.service';
 import { JobDispatcher } from '../core/job-dispatcher.service';
+import { SourceImportHandler } from '../sources/import.handlers';
 import { NotificationsService } from '../core/notifications.service';
 import type { Database } from '../db';
 import { generationRuns, resumeDocuments, resumeVersions, targetOpportunities } from '../db/schema';
@@ -33,6 +34,7 @@ export class ResumeGenerationHandler {
     @Inject(EntitlementsService) private readonly entitlements: EntitlementsService,
     @Inject(NotificationsService) private readonly notifications: NotificationsService,
     @Inject(JobDispatcher) private readonly jobs: JobDispatcher,
+    @Inject(SourceImportHandler) private readonly sources: SourceImportHandler,
   ) {}
 
   handle: JobHandler = async (ctx) => {
@@ -72,6 +74,10 @@ export class ResumeGenerationHandler {
     const instructions = (run.userFocusJson.instructions as string | null) ?? null;
     const person = run.userFocusJson.person as PersonDetails;
     const templateId = run.userFocusJson.templateId as string;
+
+    // Sources that change on their own are read again first, so the draft uses their latest work.
+    await ctx.setStep('download_source', 5);
+    await this.sources.syncChanged(userId, ctx);
 
     await ctx.setStep('retrieve', 15);
     const reading: JobReading = await this.ai.parseJob(opportunity.jobDescriptionText);

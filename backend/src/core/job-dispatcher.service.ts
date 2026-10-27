@@ -16,6 +16,8 @@ export interface DispatchInput {
   /** Small references only (IDs), never document contents. */
   input: Record<string, unknown>;
   correlationId?: string;
+  /** Attempts before the job fails for good. Retries back off exponentially. Defaults to 3. */
+  maxAttempts?: number;
 }
 
 export interface JobHandle {
@@ -42,6 +44,7 @@ export class JobDispatcher {
       idempotencyKey: input.idempotencyKey,
       inputRef: input.input,
       correlationId: input.correlationId,
+      maxAttempts: input.maxAttempts,
     });
     if (created) await this.enqueue(job);
     return { job, created };

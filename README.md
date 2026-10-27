@@ -21,6 +21,7 @@ PostgreSQL is the source of truth for job state. Redis only carries job IDs from
 
 - [Product requirements](./docs/prd/index.md): overview, architecture (`docs/prd/03-architecture.md`), requirements and open questions.
 - [Deferred scope](./docs/prd/06-deferred-scope.md): what is out of this release.
+- [How sources sync](./docs/sources-sync.md): when each source is read, what changes are detected, and what refresh, reset and remove do.
 - [Design system](./docs/design/tracck-design-system.html): tokens, components and patterns.
 
 ## Local setup

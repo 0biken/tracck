@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ProfileIndexHandler } from '../ai/profile-index.handler';
 import { AuthModule } from '../auth/auth.module';
 import { EmailSendHandler } from '../email/email.handler';
 import { EmailModule } from '../email/email.module';
@@ -43,6 +44,7 @@ import { JobsService } from './jobs.service';
         DataExportHandler,
         AccountDeletionHandler,
         WeeklyDigestHandler,
+        ProfileIndexHandler,
       ],
       // One handler per job type. Each feature module exports the handlers it owns.
       useFactory: (
@@ -55,6 +57,7 @@ import { JobsService } from './jobs.service';
         dataExport: DataExportHandler,
         deletion: AccountDeletionHandler,
         digest: WeeklyDigestHandler,
+        profileIndex: ProfileIndexHandler,
       ) => ({
         ...jobHandlers,
         source_import: sourceImport.handle,
@@ -67,6 +70,7 @@ import { JobsService } from './jobs.service';
         data_export: dataExport.handle,
         account_deletion: deletion.handle,
         weekly_digest: digest.handle,
+        profile_index: profileIndex.handle,
       }),
     },
     { provide: STREAM_POLL_MS, useValue: 5_000 },

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Meter } from '@/components/ui/meter'
 import { api, messageOf } from '@/lib/api/client'
 import { formatCount, formatStamp } from '@/lib/format'
+import { ResetSourceButton } from './reset-source-button'
 
 const rowGrid = 'grid grid-cols-1 items-center gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] md:gap-5'
 
@@ -146,6 +147,7 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                       Refresh
                     </Button>
                   )}
+                  {source.state !== 'collecting' && <ResetSourceButton source={source} onReset={afterChange} />}
                   {fileBased && (
                     <Button size="sm" variant="secondary" onClick={() => start(source.provider === 'cv' ? 'cv' : 'linkedin-file')}>
                       Replace file

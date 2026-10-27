@@ -8,6 +8,8 @@ export class FakeGithub implements GithubClient {
   user = { id: 4242, login: 'toluadebayo' };
   repos: GithubRepo[] = [];
   readmes = new Map<string, string>();
+  /** Every repository whose README was read, in order: tests use it to see what a sync skipped. */
+  reads: string[] = [];
   releases = new Map<string, GithubRelease[]>();
   /** The access token GitHub accepts. Null once it has expired or been revoked. */
   accepted: string | null = 'gh-test-token';
@@ -61,6 +63,7 @@ export class FakeGithub implements GithubClient {
   }
 
   async getReadme(token: string, fullName: string) {
+    this.reads.push(fullName);
     this.check(token);
     return this.readmes.get(fullName) ?? null;
   }

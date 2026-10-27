@@ -3,11 +3,13 @@ import type { ApiEnv } from '../config/env';
 import { notConfigured } from '../common/not-configured';
 import { AI_ENGINE, ENV, LLM_CLIENT, USAGE_SINK } from '../tokens';
 import { ContextService } from './context.service';
+import { EmbeddingSyncService } from './embedding-sync.service';
 import { ExampleStore } from './examples';
 import { GeminiEngine } from './gemini-engine';
 import { GeminiLlm } from './gemini-llm';
 import type { LlmClient } from './llm';
 import { PlaceholderEngine } from './placeholder-engine';
+import { ProfileIndexHandler } from './profile-index.handler';
 import { DbUsageSink, type UsageSink } from './usage';
 
 /** Answers 503 NOT_CONFIGURED for every call, so the API starts without a model key. */
@@ -27,6 +29,8 @@ const unconfiguredLlm: LlmClient = {
     PlaceholderEngine,
     ExampleStore,
     ContextService,
+    EmbeddingSyncService,
+    ProfileIndexHandler,
     GeminiEngine,
     DbUsageSink,
     { provide: USAGE_SINK, useExisting: DbUsageSink },
@@ -48,6 +52,6 @@ const unconfiguredLlm: LlmClient = {
       useFactory: (env: ApiEnv, gemini: GeminiEngine, placeholder: PlaceholderEngine) => (env.GEMINI_API_KEY ? gemini : placeholder),
     },
   ],
-  exports: [AI_ENGINE, LLM_CLIENT, ContextService, ExampleStore],
+  exports: [AI_ENGINE, LLM_CLIENT, ContextService, EmbeddingSyncService, ProfileIndexHandler, ExampleStore],
 })
 export class AiModule {}

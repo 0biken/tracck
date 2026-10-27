@@ -187,6 +187,14 @@ export class SourcesController {
     return this.sources.restart(userId, id, requireIdempotencyKey(key), request.id);
   }
 
+  /** Clears everything the source produced and disconnects it. Pinned and edited entries go too. */
+  @Post(':id/reset')
+  @HttpCode(204)
+  @UseGuards(AuthGuard)
+  async reset(@UserId() userId: string, @Param('id', uuid) id: string, @Req() request: ApiRequest) {
+    await this.sources.reset(userId, id, request.id);
+  }
+
   @Delete(':id')
   @HttpCode(204)
   @UseGuards(AuthGuard)

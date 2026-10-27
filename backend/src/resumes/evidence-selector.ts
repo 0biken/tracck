@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
-import { ApiError } from '@tracck/shared';
 import type { EvidenceCandidate, JobReading } from '../ai/ai-engine';
 import { ContextService } from '../ai/context.service';
+import { EmbeddingSyncService } from '../ai/embedding-sync.service';
 import type { ApiEnv } from '../config/env';
 import type { Database } from '../db';
 import { DB, ENV } from '../tokens';
@@ -29,6 +29,7 @@ export class EvidenceSelector {
     @Inject(DB) private readonly db: Database,
     @Inject(ENV) private readonly env: ApiEnv,
     @Inject(ContextService) private readonly context: ContextService,
+    @Inject(EmbeddingSyncService) private readonly embeddings: EmbeddingSyncService,
   ) {}
 
   async select(input: {
@@ -50,9 +51,9 @@ export class EvidenceSelector {
           providers: input.providers,
         });
         if (found.length > 0) return found;
-      } catch (error) {
-        // A model that is not set up falls back to the plain ranking; anything else is worth a retry.
-        if (!(error instanceof ApiError && error.code === 'NOT_CONFIGURED')) throw error;
+      } catch {
+        // The record could not be indexed now. A job retries it with backoff, and this resume uses the plain ranking.
+        await this.embeddings.schedule(input.userId);
       }
     }
     return this.rank(input.userId, tags, input.providers);

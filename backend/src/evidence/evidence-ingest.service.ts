@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { SourceProvider } from '@tracck/shared';
 import type { AiEngine, SourceDocument } from '../ai/ai-engine';
+import { EmbeddingSyncService } from '../ai/embedding-sync.service';
 import type { Database } from '../db';
 import { candidateEvidence, evidenceSources } from '../db/schema';
 import { AI_ENGINE, DB } from '../tokens';
@@ -11,6 +12,8 @@ import { DuplicateDetector } from './duplicate-detector.service';
 export interface IngestItem {
   sourceItemId: string;
   document: SourceDocument;
+  /** The item changed since it was read: entries only it supported are replaced, not kept. */
+  replace?: boolean;
 }
 
 const hashOf = (userId: string, claim: string) =>
@@ -27,6 +30,7 @@ export class EvidenceIngestService {
     @Inject(DB) private readonly db: Database,
     @Inject(AI_ENGINE) private readonly ai: AiEngine,
     @Inject(DuplicateDetector) private readonly duplicates: DuplicateDetector,
+    @Inject(EmbeddingSyncService) private readonly embeddings: EmbeddingSyncService,
   ) {}
 
   /** Reading the same source again never duplicates an entry: identical wording is linked, not added. */
@@ -41,6 +45,15 @@ export class EvidenceIngestService {
     for (const item of items) {
       const extracted = await this.ai.extractEvidence(item.document);
       await this.db.transaction(async (tx) => {
+        if (item.replace) {
+          await tx.execute(sql`
+            delete from public.candidate_evidence e
+             where e.user_id = ${userId}
+               and exists (select 1 from public.evidence_sources es where es.evidence_id = e.id and es.source_item_id = ${item.sourceItemId})
+               and not exists (select 1 from public.evidence_sources es where es.evidence_id = e.id and es.source_item_id <> ${item.sourceItemId})
+               and not e.pinned and not e.user_edited`);
+          await tx.execute(sql`delete from public.evidence_sources where source_item_id = ${item.sourceItemId}`);
+        }
         for (const entry of extracted) {
           total += 1;
           const contentHash = hashOf(userId, entry.claimText);
@@ -82,7 +95,10 @@ export class EvidenceIngestService {
       });
     }
 
-    if (created > 0) await this.duplicates.detect(userId);
+    if (created > 0) {
+      await this.duplicates.detect(userId);
+      await this.embeddings.schedule(userId);
+    }
     return { created, total };
   }
 }
