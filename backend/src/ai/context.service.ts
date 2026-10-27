@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Database } from '../db';
-import { candidateEvidence, evidenceEmbeddings } from '../db/schema';
+import { EMBEDDING_DIMENSIONS, candidateEvidence, evidenceEmbeddings } from '../db/schema';
 import type { ApiEnv } from '../config/env';
 import { DB, ENV, LLM_CLIENT } from '../tokens';
 import type { EvidenceCandidate } from './ai-engine';
@@ -60,12 +60,13 @@ export class ContextService {
   ) {}
 
   private get version() {
-    return `d${this.env.AI_EMBEDDING_DIMENSIONS}`;
+    return `d${EMBEDDING_DIMENSIONS}`;
   }
 
   /**
    * Embeds entries that are new or whose text changed since they were embedded.
-   * Safe to run again at any time, so it can be triggered after every import or edit.
+   * Safe to run again at any time. Called before retrieval when a resume is generated,
+   * so import does not pay the embedding cost.
    */
   async index(userId: string): Promise<{ embedded: number }> {
     const model = this.env.AI_EMBEDDING_MODEL;
@@ -133,7 +134,7 @@ export class ContextService {
     const tagArray = pgArray(tags);
 
     const model = this.env.AI_EMBEDDING_MODEL;
-    const dims = this.env.AI_EMBEDDING_DIMENSIONS;
+    const dims = EMBEDDING_DIMENSIONS;
     const vec = `${vectorLiteral(queryVector)}`;
 
     const eligible = sql`e.user_id = ${request.userId}

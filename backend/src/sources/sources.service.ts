@@ -32,7 +32,10 @@ export interface UploadInput {
 }
 
 /** Sources of which a person has one: uploading again replaces what was there. */
-const REPLACEABLE: UploadProvider[] = ['cv', 'linkedin'];
+const REPLACEABLE: UploadProvider[] = ['cv', 'linkedin', 'x'];
+
+/** What each uploaded file is stored as. */
+const FILE_TYPE = { cv: 'uploaded_cv', linkedin: 'linkedin_profile', x: 'social_post' } as const;
 
 const NAMES: Record<SourceProvider, string> = {
   github: 'GitHub',
@@ -245,7 +248,7 @@ export class SourcesService {
       await this.db.insert(sourceItems).values({
         userId,
         connectionId: id,
-        sourceType: input.provider === 'cv' ? 'uploaded_cv' : 'linkedin_profile',
+        sourceType: FILE_TYPE[input.provider as keyof typeof FILE_TYPE],
         title: input.file.name,
         rawObjectKey: objectKey,
         contentHash: createHash('sha256').update(input.file.buffer).digest('hex'),

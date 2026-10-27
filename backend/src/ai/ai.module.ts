@@ -38,7 +38,6 @@ const unconfiguredLlm: LlmClient = {
           ? new GeminiLlm({
               apiKey: env.GEMINI_API_KEY,
               embeddingModel: env.AI_EMBEDDING_MODEL,
-              embeddingDimensions: env.AI_EMBEDDING_DIMENSIONS,
               usage,
             })
           : unconfiguredLlm,

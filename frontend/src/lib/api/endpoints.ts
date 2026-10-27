@@ -89,9 +89,10 @@ export function createApi(call: Transport) {
         post<GithubConnectResponse>('/v1/sources/github/connect', { from }),
       uploadCv: (file: File) => call<UploadSourceResponse>('POST', '/v1/sources/cv', { form: fileForm(file) }),
       linkedinFile: (file: File) => call<UploadSourceResponse>('POST', '/v1/sources/linkedin', { form: fileForm(file) }),
+      xArchive: (file: File) => call<UploadSourceResponse>('POST', '/v1/sources/x', { form: fileForm(file) }),
       linkedinText: (text: string) => post<UploadSourceResponse>('/v1/sources/linkedin', { text }),
       portfolio: (url: string) => post<UploadSourceResponse>('/v1/sources/portfolio', { url }),
-      paste: (provider: Extract<SourceProvider, 'x' | 'behance' | 'portfolio' | 'linkedin'>, text: string) =>
+      paste: (provider: Extract<SourceProvider, 'behance' | 'portfolio' | 'linkedin'>, text: string) =>
         post<UploadSourceResponse>('/v1/sources/paste', { provider, text }),
       refresh: (id: string) => post<UploadSourceResponse>(`/v1/sources/${id}/refresh`),
       retry: (id: string) => post<UploadSourceResponse>(`/v1/sources/${id}/retry`),

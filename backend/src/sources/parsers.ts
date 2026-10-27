@@ -77,7 +77,14 @@ const MAX_ARCHIVE_ENTRIES = 300;
 const MAX_FILE_BYTES = 8_000_000;
 const WANTED = ['profile.csv', 'positions.csv', 'education.csv', 'skills.csv', 'projects.csv', 'certifications.csv', 'shares.csv'];
 
-function unzipSafely(buffer: Buffer): Unzipped {
+/** X's archive keeps posts in data/tweets.js, or in numbered parts when the account has many. */
+const X_POSTS_FILE = /^tweets?(-partd+)?.js$/;
+const X_MAX_POSTS = 300;
+
+/** The archive's own wrapper: `window.YTD.tweets.part0 = [ ... ];` */
+const X_WRAPPER = /^s*window.YTD.[w.]+s*=s*/;
+
+function unzipSafely(buffer: Buffer, wanted: (name: string) => boolean = (name) => WANTED.includes(name)): Unzipped {
   let entries = 0;
   try {
     return unzipSync(new Uint8Array(buffer), {
@@ -86,7 +93,7 @@ function unzipSafely(buffer: Buffer): Unzipped {
         if (entries > MAX_ARCHIVE_ENTRIES) throw new UnreadableFileError('That archive has too many files.');
         const name = file.name.split('/').pop()?.toLowerCase() ?? '';
         // Only the few files we use, and none large enough to be a decompression bomb.
-        return WANTED.includes(name) && file.originalSize <= MAX_FILE_BYTES;
+        return wanted(name) && file.originalSize <= MAX_FILE_BYTES;
       },
     });
   } catch (error) {
@@ -160,6 +167,57 @@ export function parseLinkedinExport(buffer: Buffer): ParsedDocument[] {
 }
 
 /** Plain text from a web page: scripts, styles and markup removed. */
+export interface XPost {
+  /** The post's own ID, so re-reading the same archive never adds a post twice. */
+  providerId: string;
+  title: string;
+  text: string;
+  date: Date | null;
+}
+
+interface XArchivePost {
+  id_str?: unknown;
+  full_text?: unknown;
+  created_at?: unknown;
+}
+
+/**
+ * Reads the posts from an X data archive. Only the posts file is opened: profile details,
+ * direct messages and everything else in the archive are never read. Retweets are not
+ * the person's own work, so they are skipped.
+ */
+export function parseXArchive(buffer: Buffer): XPost[] {
+  const files = unzipSafely(buffer, (name) => X_POSTS_FILE.test(name));
+  const posts: XPost[] = [];
+
+  for (const content of Object.values(files)) {
+    const json = Buffer.from(content).toString('utf8').replace(X_WRAPPER, '').replace(/;s*$/, '');
+    let items: unknown;
+    try {
+      items = JSON.parse(json);
+    } catch {
+      throw new UnreadableFileError('The posts file in that archive could not be read.');
+    }
+    if (!Array.isArray(items)) throw new UnreadableFileError('The posts file in that archive could not be read.');
+
+    for (const entry of items) {
+      // Newer exports wrap each post as { tweet: {...} }; older ones list the post directly.
+      const post = (typeof entry === 'object' && entry !== null && 'tweet' in entry ? entry.tweet : entry) as XArchivePost;
+      const text = typeof post?.full_text === 'string' ? post.full_text.trim() : '';
+      if (!text || text.startsWith('RT @') || typeof post.id_str !== 'string') continue;
+      const date = typeof post.created_at === 'string' ? new Date(post.created_at) : null;
+      posts.push({
+        providerId: post.id_str,
+        title: text.length > 80 ? `${text.slice(0, 77).trimEnd()}...` : text,
+        text,
+        date: date && !Number.isNaN(date.getTime()) ? date : null,
+      });
+      if (posts.length >= X_MAX_POSTS) return posts;
+    }
+  }
+  return posts;
+}
+
 export function htmlToText(html: string): string {
   return html
     .replace(/<(script|style|noscript|svg|head)[\s\S]*?<\/\1>/gi, ' ')

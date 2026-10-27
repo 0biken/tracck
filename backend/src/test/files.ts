@@ -2,6 +2,20 @@
 
 import { strToU8, zipSync } from 'fflate';
 
+/** An X data archive: posts in data/tweets.js, the account details in data/account.js. */
+export function makeXArchive(posts: { id: string; text: string; created?: string }[]): Buffer {
+  const tweets = posts.map((post) => ({
+    tweet: { id_str: post.id, full_text: post.text, created_at: post.created ?? 'Wed Oct 10 20:19:24 +0000 2018' },
+  }));
+  const retweet = { tweet: { id_str: 'rt-1', full_text: 'RT @someone: a post that is not theirs', created_at: 'Wed Oct 10 20:19:24 +0000 2018' } };
+  return Buffer.from(
+    zipSync({
+      'data/tweets.js': strToU8(`window.YTD.tweets.part0 = ${JSON.stringify([...tweets, retweet], null, 2)}`),
+      'data/account.js': strToU8('window.YTD.account.part0 = [{"account":{"email":"private@example.com"}}]'),
+    }),
+  );
+}
+
 export const CV_LINES = [
   'Built a NestJS subscription billing service that retries failed card charges through BullMQ queues.',
   'Designed idempotent webhook handling for Paystack events using Redis locks to prevent double charges.',

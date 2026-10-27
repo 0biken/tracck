@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ApiEnv } from '../config/env';
 import * as schema from '../db/schema';
+import { EMBEDDING_DIMENSIONS } from '../db/schema';
 import { createTestDatabase, createTestUser, type PGlite } from '../testing';
 import type { Database } from '../db';
 import type { EvidenceCandidate, GenerateInput } from './ai-engine';
@@ -15,7 +16,7 @@ import { PlaceholderEngine } from './placeholder-engine';
 import { layoutChoiceSchema } from './schemas';
 import { numbersIn, verifyBullet, type PoolEntry } from './verify';
 
-const DIMENSIONS = 1536;
+const DIMENSIONS = EMBEDDING_DIMENSIONS;
 
 /** A bag-of-words embedding: texts that share words are close, so retrieval is testable without a model. */
 function embedText(text: string): number[] {
@@ -60,7 +61,6 @@ const env = {
   AI_CRITIC_MODEL: 'critic',
   AI_EXTRACT_MODEL: 'extract',
   AI_EMBEDDING_MODEL: 'fake-embedding',
-  AI_EMBEDDING_DIMENSIONS: DIMENSIONS,
   AI_WRITER_THINKING: 'off',
   AI_CRITIC_THINKING: 'off',
   AI_MAX_REVISIONS: 2,

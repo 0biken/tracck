@@ -96,7 +96,6 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     AI_CRITIC_MODEL: 'test-critic',
     AI_EXTRACT_MODEL: 'test-extract',
     AI_EMBEDDING_MODEL: 'test-embedding',
-    AI_EMBEDDING_DIMENSIONS: 1536,
     AI_WRITER_THINKING: 'off',
     AI_CRITIC_THINKING: 'off',
     AI_MAX_REVISIONS: 2,

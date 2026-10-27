@@ -265,6 +265,9 @@ export const candidateEvidence = pgTable(
   ],
 );
 
+/** Size of every embedding vector. Changing it needs a migration that re-creates the column and its index. */
+export const EMBEDDING_DIMENSIONS = 1536;
+
 export const evidenceEmbeddings = pgTable(
   'evidence_embeddings',
   {
@@ -273,7 +276,7 @@ export const evidenceEmbeddings = pgTable(
     embeddingModel: text('embedding_model').notNull(),
     embeddingVersion: text('embedding_version').notNull(),
     contentHash: text('content_hash').notNull(),
-    embedding: halfvec('embedding', { dimensions: 1536 }).notNull(),
+    embedding: halfvec('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
     createdAt: createdAt(),
   },
   (t) => [

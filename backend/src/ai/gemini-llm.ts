@@ -1,12 +1,12 @@
 import { GoogleGenAI, ThinkingLevel as GeminiThinking } from '@google/genai';
 import { z } from 'zod';
+import { EMBEDDING_DIMENSIONS } from '../db/schema';
 import { emptyUsage, type EmbedRequest, type JsonRequest, type JsonResult, type LlmClient, type LlmUsage, type ThinkingLevel } from './llm';
 import type { UsageSink } from './usage';
 
 export interface GeminiOptions {
   apiKey: string;
   embeddingModel: string;
-  embeddingDimensions: number;
   usage: UsageSink;
 }
 
@@ -139,7 +139,7 @@ export class GeminiLlm implements LlmClient {
   }
 
   async embed({ texts, kind, userId }: EmbedRequest): Promise<number[][]> {
-    const { embeddingModel: model, embeddingDimensions: dimensions } = this.options;
+    const { embeddingModel: model } = this.options;
     // gemini-embedding-2 has no task type: the task is written into the text instead.
     const newModel = model.includes('embedding-2');
     const prepared = newModel
@@ -155,7 +155,7 @@ export class GeminiLlm implements LlmClient {
           model,
           contents: batch,
           config: {
-            outputDimensionality: dimensions,
+            outputDimensionality: EMBEDDING_DIMENSIONS,
             ...(newModel ? {} : { taskType: kind === 'query' ? 'RETRIEVAL_QUERY' : 'RETRIEVAL_DOCUMENT' }),
           },
         }),

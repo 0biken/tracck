@@ -49,8 +49,6 @@ const schema = z.object({
   /** Reads sources and job descriptions into structured data. A small, cheap model is enough. */
   AI_EXTRACT_MODEL: z.string().min(1).default('gemini-3.5-flash-lite'),
   AI_EMBEDDING_MODEL: z.string().min(1).default('gemini-embedding-001'),
-  /** Must match the halfvec size in the database. */
-  AI_EMBEDDING_DIMENSIONS: z.coerce.number().int().min(128).max(3072).default(1536),
   /** Extended thinking for the writer. "off" sends no thinking setting; models that cannot think ignore it. */
   AI_WRITER_THINKING: z.enum(['off', 'minimal', 'low', 'medium', 'high']).default('off'),
   AI_CRITIC_THINKING: z.enum(['off', 'minimal', 'low', 'medium', 'high']).default('low'),

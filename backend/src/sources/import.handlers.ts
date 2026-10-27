@@ -22,6 +22,7 @@ import {
   extractPdfText,
   htmlToText,
   parseLinkedinExport,
+  parseXArchive,
 } from './parsers';
 
 interface Connection {
@@ -62,7 +63,7 @@ abstract class ImportHandler {
     connection: Connection,
     item: {
       providerItemId: string;
-      sourceType: 'github_repo' | 'github_contribution' | 'portfolio_page' | 'uploaded_cv' | 'linkedin_profile' | 'pasted_text';
+      sourceType: 'github_repo' | 'github_contribution' | 'portfolio_page' | 'uploaded_cv' | 'linkedin_profile' | 'social_post' | 'pasted_text';
       title: string | null;
       text: string;
       url?: string | null;
@@ -302,7 +303,29 @@ export class CvParseHandler extends ImportHandler {
     }
   };
 
+  /** Each post is its own entry source, so one post can be checked on its own. */
+  private async readX(connection: Connection, buffer: Buffer): Promise<IngestItem[]> {
+    const posts = parseXArchive(buffer);
+    if (posts.length === 0) {
+      throw new JobError('permanent', 'FILE_EMPTY', 'We found no posts in that archive. Upload the ZIP from X’s “Download an archive of your data”.');
+    }
+    const items: IngestItem[] = [];
+    for (const post of posts) {
+      const id = await this.saveItem(connection, {
+        providerItemId: post.providerId,
+        sourceType: 'social_post',
+        title: post.title,
+        text: post.text,
+        date: post.date,
+      });
+      items.push({ sourceItemId: id, document: { id, provider: 'x', kind: 'social_post', title: post.title, text: post.text, url: null, date: post.date, where: 'X' } });
+    }
+    return items;
+  }
+
   private async read(connection: Connection, fileItemId: string, name: string, buffer: Buffer): Promise<IngestItem[]> {
+    if (connection.provider === 'x') return this.readX(connection, buffer);
+
     const kind = detectFileKind(buffer);
     const isLinkedin = connection.provider === 'linkedin';
 

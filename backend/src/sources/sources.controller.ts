@@ -34,7 +34,7 @@ const connectBody = z.strictObject({ from: z.enum(['onboarding', 'sources']).def
 const linkedinText = z.strictObject({ text: z.string().trim().min(20).max(90_000) });
 const portfolioBody = z.strictObject({ url: z.url({ protocol: /^https?$/ }).max(2000) });
 const pasteBody = z.strictObject({
-  provider: z.enum(['x', 'behance', 'portfolio', 'linkedin']),
+  provider: z.enum(['behance', 'portfolio', 'linkedin']),
   text: z.string().trim().min(20).max(90_000),
 });
 const removeQuery = z.strictObject({ entries: z.enum(['keep', 'delete']).default('keep') });
@@ -118,6 +118,20 @@ export class SourcesController {
     }
     const { text } = linkedinText.parse(body);
     return this.sources.create(userId, { provider: 'linkedin', text }, idempotencyKey, request.id);
+  }
+
+  /** X's data archive (ZIP). Only the posts are read; the rest of the archive is discarded. */
+  @Post('x')
+  @HttpCode(202)
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } }))
+  uploadX(
+    @UserId() userId: string,
+    @UploadedFile() file: UploadedFileLike,
+    @Headers('idempotency-key') key: string | undefined,
+    @Req() request: ApiRequest,
+  ) {
+    return this.sources.create(userId, { provider: 'x', file: checkFile(file, ['zip']) }, requireIdempotencyKey(key), request.id);
   }
 
   @Post('portfolio')

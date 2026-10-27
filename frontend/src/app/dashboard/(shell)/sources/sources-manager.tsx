@@ -21,7 +21,7 @@ const ADD: { provider: SourceProvider | 'manual'; name: string; body: string; ac
   { provider: 'cv', name: 'CV or resume', body: 'PDF or Word. Added to your record, with feedback for your role.', action: 'Upload CV', kind: 'cv' },
   { provider: 'linkedin', name: 'LinkedIn', body: 'Your data export ZIP or profile PDF.', action: 'Upload export', kind: 'linkedin-file' },
   { provider: 'portfolio', name: 'Portfolio', body: 'Any public page you want included.', action: 'Add link', kind: 'portfolio' },
-  { provider: 'x', name: 'X', body: 'Paste the posts that show your work.', action: 'Paste posts', kind: 'x' },
+  { provider: 'x', name: 'X', body: "Your posts from X's data archive. Only posts are read.", action: 'Upload archive', kind: 'x-archive' },
   { provider: 'behance', name: 'Behance', body: 'Paste your project titles, descriptions and links.', action: 'Paste projects', kind: 'behance' },
   { provider: 'manual', name: 'Manual entry', body: 'For work with no public trace. You write it; Tracck keeps it as yours.', action: 'Add manually' },
 ]

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { jwtVerify } from 'jose';
-import { CV_LINES, makeDocx, makeLinkedinZip, makePdf } from '../test/files';
+import { CV_LINES, makeDocx, makeLinkedinZip, makePdf, makeXArchive } from '../test/files';
 import { repo } from '../test/fakes';
 import { createTestApp, type TestApp } from '../test/harness';
 import { GITHUB, STORAGE } from '../tokens';
@@ -202,12 +202,35 @@ describe('portfolio links and pasted text', () => {
     expect((await post('/v1/sources/portfolio', user).send({ url: 'javascript:alert(1)' })).status).toBe(400);
   });
 
-  it('reads text pasted for X', async () => {
+  it('no longer takes X posts as pasted text', async () => {
     const user = await ctx.newUser();
-    const response = await post('/v1/sources/paste', user).send({ provider: 'x', text: 'Shipped v1.2.0 of our billing engine today with webhook idempotency built on Redis locks.\n\nGave a talk on queues at the Ibadan developer meetup.' });
+    expect((await post('/v1/sources/paste', user).send({ provider: 'x', text: 'Shipped v1.2.0 of our billing engine today with webhook idempotency built on Redis locks.' })).status).toBe(400);
+  });
+
+  it('reads the posts from an X archive, skips retweets, and never stores the account details', async () => {
+    const user = await ctx.newUser();
+    const archive = makeXArchive([
+      { id: '1001', text: 'Shipped v1.2.0 of our billing engine today with webhook idempotency built on Redis locks.' },
+      { id: '1002', text: 'Gave a talk on queues at the Ibadan developer meetup, the slides are in the repo for anyone curious.' },
+    ]);
+    const response = await ctx.http().post('/v1/sources/x').set(ctx.as(user)).set('Idempotency-Key', key()).attach('file', archive, { filename: 'twitter-archive.zip', contentType: 'application/zip' });
     expect(response.status).toBe(202);
+    expect(response.body.source).toMatchObject({ provider: 'x', name: 'X' });
     await ctx.drain();
+
+    const { rows } = await ctx.db.query<{ n: number }>(`select count(*)::int as n from public.source_items where user_id = $1 and source_type = 'social_post' and provider_item_id is not null`, [user]);
+    expect(rows[0].n).toBe(2);
     expect((await evidenceFor(user)).x).toBeGreaterThanOrEqual(1);
+
+    const stored = await ctx.db.query<{ body_text: string | null }>(`select body_text from public.source_items where user_id = $1`, [user]);
+    expect(JSON.stringify(stored.rows)).not.toContain('private@example.com');
+    expect(JSON.stringify(stored.rows)).not.toContain('a post that is not theirs');
+  });
+
+  it('refuses an X upload that is not a ZIP', async () => {
+    const user = await ctx.newUser();
+    const pdf = await ctx.http().post('/v1/sources/x').set(ctx.as(user)).set('Idempotency-Key', key()).attach('file', makePdf(), { filename: 'posts.pdf', contentType: 'application/pdf' });
+    expect(pdf.status).toBe(415);
   });
 });
 

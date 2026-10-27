@@ -40,7 +40,7 @@ const ROWS: Row[] = [
     replace: { label: 'Replace', kind: 'linkedin-file' },
   },
   { provider: 'portfolio', name: 'Portfolio or personal site', body: 'A public page Tracck can read.', add: [{ label: 'Add link', kind: 'portfolio' }] },
-  { provider: 'x', name: 'X', tag: 'LIMITED', body: 'Paste the posts that show your work.', add: [{ label: 'Paste posts', kind: 'x' }] },
+  { provider: 'x', name: 'X', body: "Your posts from X's data archive. Only posts are read.", add: [{ label: 'Upload archive', kind: 'x-archive' }] },
 ]
 
 /** The sources step of setup: connect what you have, then agree and continue. */

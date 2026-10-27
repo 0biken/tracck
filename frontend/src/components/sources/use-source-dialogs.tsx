@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { api } from '@/lib/api/client'
 import { LinkDialog, PasteDialog, UploadDialog } from './dialogs'
 
-export type AddKind = 'github' | 'cv' | 'linkedin-file' | 'linkedin-paste' | 'portfolio' | 'x' | 'behance'
+export type AddKind = 'github' | 'cv' | 'linkedin-file' | 'linkedin-paste' | 'portfolio' | 'x-archive' | 'behance'
 
 /**
  * The ways to add a source, as dialogs. A page shows its own buttons, calls
@@ -71,14 +71,14 @@ export function useSourceDialogs({ from, onChanged }: { from: 'onboarding' | 'so
         intro="Tracck reads the public page at this address. It never signs in as you."
         onSubmit={(url) => added(() => api.sources.portfolio(url))}
       />
-      <PasteDialog
-        open={open === 'x'}
+      <UploadDialog
+        open={open === 'x-archive'}
         onClose={close}
-        title="Paste posts from X"
-        intro="Paste the posts you want counted as evidence, one after another."
-        label="Posts"
-        help="Separate posts with a blank line."
-        onSubmit={(text) => added(() => api.sources.paste('x', text))}
+        title="Upload your X archive"
+        intro="Request your archive in X under Settings and privacy, then Your account, then Download an archive of your data. Upload the ZIP here."
+        accept=".zip,application/zip"
+        hint="ZIP file"
+        onUpload={(file) => added(() => api.sources.xArchive(file))}
       />
       <PasteDialog
         open={open === 'behance'}
