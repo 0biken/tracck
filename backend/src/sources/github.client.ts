@@ -22,11 +22,28 @@ export interface GithubRelease {
   url: string;
 }
 
+export interface GithubTokens {
+  accessToken: string;
+  /** Only sent when GitHub expires user tokens. Each refresh returns a new one, so the old one must be replaced. */
+  refreshToken: string | null;
+  /** Seconds until the access token expires, when it does. */
+  expiresIn: number | null;
+}
+
+/** GitHub no longer accepts the token. Whether it can be refreshed is decided by the caller. */
+export class GithubTokenRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GithubTokenRejectedError';
+  }
+}
+
 /** The slice of GitHub the product uses. Public data only: no repository scopes are requested. */
 export interface GithubClient {
   /** The page GitHub shows the person to approve access. */
   authorizeUrl(state: string): string;
-  exchangeCode(code: string): Promise<{ accessToken: string }>;
+  exchangeCode(code: string): Promise<GithubTokens>;
+  refreshAccessToken(refreshToken: string): Promise<GithubTokens>;
   getUser(token: string): Promise<{ id: number; login: string }>;
   /** Public repositories the person owns, most recently pushed first. Forks are left out. */
   listRepos(token: string, login: string): Promise<GithubRepo[]>;
@@ -39,7 +56,10 @@ export class UnconfiguredGithub implements GithubClient {
   authorizeUrl(): string {
     return notConfigured('GitHub connection');
   }
-  exchangeCode(): Promise<{ accessToken: string }> {
+  exchangeCode(): Promise<GithubTokens> {
+    return notConfigured('GitHub connection');
+  }
+  refreshAccessToken(): Promise<GithubTokens> {
     return notConfigured('GitHub connection');
   }
   getUser(): Promise<{ id: number; login: string }> {
@@ -71,6 +91,19 @@ interface RawRepo {
   private: boolean;
 }
 
+interface TokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  error?: string;
+}
+
+const tokensFrom = (accessToken: string, body: TokenResponse): GithubTokens => ({
+  accessToken,
+  refreshToken: body.refresh_token ?? null,
+  expiresIn: body.expires_in ?? null,
+});
+
 export class HttpGithubClient implements GithubClient {
   constructor(
     private readonly clientId: string,
@@ -85,15 +118,25 @@ export class HttpGithubClient implements GithubClient {
     return `https://github.com/login/oauth/authorize?${params}`;
   }
 
-  async exchangeCode(code: string) {
-    const response = await this.fetcher('https://github.com/login/oauth/access_token', {
+  async exchangeCode(code: string): Promise<GithubTokens> {
+    const body = await this.tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: this.redirectUri });
+    if (!body.access_token) throw new Error(`GitHub did not accept the code (${body.error ?? 'no token'}).`);
+    return tokensFrom(body.access_token, body);
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<GithubTokens> {
+    const body = await this.tokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken });
+    if (!body.access_token) throw new GithubTokenRejectedError(`GitHub did not accept the refresh token (${body.error ?? 'no token'}).`);
+    return tokensFrom(body.access_token, body);
+  }
+
+  private async tokenRequest(fields: Record<string, string>): Promise<TokenResponse> {
+    const params = new URLSearchParams({ client_id: this.clientId, client_secret: this.clientSecret, ...fields });
+    const response = await this.fetcher(`https://github.com/login/oauth/access_token?${params}`, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: this.clientId, client_secret: this.clientSecret, code, redirect_uri: this.redirectUri }),
+      headers: { Accept: 'application/json' },
     });
-    const body = (await response.json()) as { access_token?: string; error?: string };
-    if (!response.ok || !body.access_token) throw new Error(`GitHub did not accept the code (${body.error ?? response.status}).`);
-    return { accessToken: body.access_token };
+    return (await response.json()) as TokenResponse;
   }
 
   private async api<T>(token: string, path: string, accept = 'application/vnd.github+json'): Promise<T | null> {
@@ -101,7 +144,7 @@ export class HttpGithubClient implements GithubClient {
       headers: { Authorization: `Bearer ${token}`, Accept: accept, 'User-Agent': 'tracck', 'X-GitHub-Api-Version': '2022-11-28' },
     });
     if (response.status === 404) return null;
-    if (response.status === 401) throw new Error('GitHub rejected the access token.');
+    if (response.status === 401) throw new GithubTokenRejectedError('GitHub rejected the access token.');
     if (!response.ok) throw new Error(`GitHub request failed (${response.status}).`);
     return (accept.includes('raw') ? ((await response.text()) as unknown) : await response.json()) as T;
   }

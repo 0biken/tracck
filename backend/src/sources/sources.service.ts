@@ -158,8 +158,8 @@ export class SourcesService {
     if (!code) return back('error=github');
 
     try {
-      const { accessToken } = await this.github.exchangeCode(code);
-      const account = await this.github.getUser(accessToken);
+      const tokens = await this.github.exchangeCode(code);
+      const account = await this.github.getUser(tokens.accessToken);
 
       let connection = await this.findActive(userId, 'github');
       if (!connection) {
@@ -183,12 +183,19 @@ export class SourcesService {
           .where(eq(sourceConnections.id, connection.id));
       }
 
+      // A reconnect replaces every token, so an old refresh token is never kept alongside a new access token.
+      const secret = {
+        accessTokenEncrypted: this.box.encrypt(tokens.accessToken),
+        refreshTokenEncrypted: tokens.refreshToken ? this.box.encrypt(tokens.refreshToken) : null,
+        tokenExpiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : null,
+        keyVersion: this.box.keyVersion,
+      };
       await this.db
         .insert(sourceConnectionSecrets)
-        .values({ connectionId: connection.id, accessTokenEncrypted: this.box.encrypt(accessToken), keyVersion: this.box.keyVersion })
+        .values({ connectionId: connection.id, ...secret })
         .onConflictDoUpdate({
           target: sourceConnectionSecrets.connectionId,
-          set: { accessTokenEncrypted: this.box.encrypt(accessToken), keyVersion: this.box.keyVersion, updatedAt: new Date() },
+          set: { ...secret, updatedAt: new Date() },
         });
 
       await this.jobs.dispatch({

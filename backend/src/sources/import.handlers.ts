@@ -14,7 +14,7 @@ import { EvidenceIngestService, type IngestItem } from '../evidence/evidence-ing
 import type { JobContext, JobHandler } from '../jobs/runner';
 import type { ObjectStorage } from '../storage/storage';
 import { DB, GITHUB, SAFE_FETCH, SECRET_BOX, STORAGE } from '../tokens';
-import type { GithubClient } from './github.client';
+import { GithubTokenRejectedError, type GithubClient } from './github.client';
 import {
   UnreadableFileError,
   detectFileKind,
@@ -126,7 +126,7 @@ function toJobError(error: unknown, provider: SourceProvider): JobError {
   if (error instanceof JobError) return error;
   if (error instanceof UnsafeUrlError) return new JobError('permanent', 'LINK_NOT_READABLE', `${error.message} Check the page is public, or paste the text instead.`);
   if (error instanceof UnreadableFileError) return new JobError('permanent', 'FILE_UNREADABLE', `${error.message} Try a different file, or paste the text instead.`);
-  if (error instanceof Error && /rejected the access token/i.test(error.message)) {
+  if (error instanceof GithubTokenRejectedError) {
     return new JobError('needs_user_action', 'GITHUB_REAUTH', 'GitHub no longer lets us read your account. Reconnect GitHub to continue.');
   }
   return new JobError('retryable', 'SOURCE_FETCH_FAILED', `We could not reach ${provider}. We will try again.`);
@@ -165,6 +165,49 @@ export class SourceImportHandler extends ImportHandler {
     }
   };
 
+  /** Runs a GitHub call. When GitHub rejects the access token, refreshes it once and tries again. */
+  private async githubCall<T>(connectionId: string, token: { current: string }, call: (accessToken: string) => Promise<T>): Promise<T> {
+    try {
+      return await call(token.current);
+    } catch (error) {
+      if (!(error instanceof GithubTokenRejectedError)) throw error;
+      token.current = await this.refreshGithubToken(connectionId, token.current);
+      return call(token.current);
+    }
+  }
+
+  /**
+   * Exchanges the stored refresh token for a new access token, and stores the new refresh token
+   * GitHub returns. The row is locked, so two jobs do not spend the same refresh token. If another
+   * job already replaced the rejected token, that token is used instead.
+   */
+  private refreshGithubToken(connectionId: string, rejected: string): Promise<string> {
+    return this.db.transaction(async (tx) => {
+      const [secret] = await tx
+        .select({ access: sourceConnectionSecrets.accessTokenEncrypted, refresh: sourceConnectionSecrets.refreshTokenEncrypted })
+        .from(sourceConnectionSecrets)
+        .where(eq(sourceConnectionSecrets.connectionId, connectionId))
+        .for('update');
+
+      const current = secret?.access ? this.box.decrypt(secret.access) : null;
+      if (current && current !== rejected) return current;
+      if (!secret?.refresh) throw new GithubTokenRejectedError('GitHub rejected the access token, and there is no refresh token.');
+
+      const tokens = await this.github.refreshAccessToken(this.box.decrypt(secret.refresh));
+      await tx
+        .update(sourceConnectionSecrets)
+        .set({
+          accessTokenEncrypted: this.box.encrypt(tokens.accessToken),
+          refreshTokenEncrypted: tokens.refreshToken ? this.box.encrypt(tokens.refreshToken) : null,
+          tokenExpiresAt: tokens.expiresIn ? new Date(Date.now() + tokens.expiresIn * 1000) : null,
+          keyVersion: this.box.keyVersion,
+          updatedAt: new Date(),
+        })
+        .where(eq(sourceConnectionSecrets.connectionId, connectionId));
+      return tokens.accessToken;
+    });
+  }
+
   private async collectGithub(connection: Connection, ctx: JobContext): Promise<IngestItem[]> {
     const [secret] = await this.db
       .select({ token: sourceConnectionSecrets.accessTokenEncrypted })
@@ -172,14 +215,14 @@ export class SourceImportHandler extends ImportHandler {
       .where(eq(sourceConnectionSecrets.connectionId, connection.id));
     if (!secret?.token) throw new JobError('needs_user_action', 'GITHUB_REAUTH', 'Reconnect GitHub to continue.');
 
-    const token = this.box.decrypt(secret.token);
+    const token = { current: this.box.decrypt(secret.token) };
     const login = (connection.displayHandle ?? '').replace(/^@/, '');
-    const repos = (await this.github.listRepos(token, login)).slice(0, 30);
+    const repos = (await this.githubCall(connection.id, token, (access) => this.github.listRepos(access, login))).slice(0, 30);
     const items: IngestItem[] = [];
 
     for (const [index, repo] of repos.entries()) {
       await ctx.setStep('download_source', 5 + Math.round((index / Math.max(repos.length, 1)) * 60));
-      const readme = await this.github.getReadme(token, repo.fullName);
+      const readme = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, repo.fullName));
       const text = [repo.description, repo.topics.length ? `Topics: ${repo.topics.join(', ')}` : null, readme?.slice(0, 4000)]
         .filter(Boolean)
         .join('\n\n');
@@ -204,7 +247,8 @@ export class SourceImportHandler extends ImportHandler {
 
       // Releases show what shipped, for the most recent repositories.
       if (index < 8) {
-        for (const release of await this.github.listReleases(token, repo.fullName, 2)) {
+        const releases = await this.githubCall(connection.id, token, (access) => this.github.listReleases(access, repo.fullName, 2));
+        for (const release of releases) {
           const body = (release.body ?? '').trim();
           if (body.length < 40) continue;
           const releaseText = `${repo.name} ${release.name ?? release.tag}: ${body.slice(0, 1500)}`;

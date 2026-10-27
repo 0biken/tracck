@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PlaceholderEngine } from '../ai/placeholder-engine';
-import { makePdf } from '../test/files';
+import { makePdf, makeXArchive } from '../test/files';
 import { createTestApp, type TestApp } from '../test/harness';
 import { AI_ENGINE } from '../tokens';
 
@@ -213,8 +213,8 @@ describe('finding duplicates while reading a source', () => {
        values ($1, 'achievement', $2, 'x', 'cv')`,
       [user, said],
     );
-    const paste = await ctx.http().post('/v1/sources/paste').set(ctx.as(user)).set('Idempotency-Key', key()).send({ provider: 'x', text: `${said} last year.` });
-    expect(paste.status).toBe(202);
+    const archive = await ctx.http().post('/v1/sources/x').set(ctx.as(user)).set('Idempotency-Key', key()).attach('file', makeXArchive([{ id: '9001', text: `${said} last year.` }]), { filename: 'archive.zip', contentType: 'application/zip' });
+    expect(archive.status).toBe(202);
     expect(await ctx.drain()).toEqual(['succeeded']);
 
     const { body } = await get('/v1/evidence?show=duplicates', user);

@@ -78,11 +78,11 @@ const MAX_FILE_BYTES = 8_000_000;
 const WANTED = ['profile.csv', 'positions.csv', 'education.csv', 'skills.csv', 'projects.csv', 'certifications.csv', 'shares.csv'];
 
 /** X's archive keeps posts in data/tweets.js, or in numbered parts when the account has many. */
-const X_POSTS_FILE = /^tweets?(-partd+)?.js$/;
+const X_POSTS_FILE = /^tweets?(-part\d+)?\.js$/;
 const X_MAX_POSTS = 300;
 
 /** The archive's own wrapper: `window.YTD.tweets.part0 = [ ... ];` */
-const X_WRAPPER = /^s*window.YTD.[w.]+s*=s*/;
+const X_WRAPPER = /^\s*window\.YTD\.[\w.]+\s*=\s*/;
 
 function unzipSafely(buffer: Buffer, wanted: (name: string) => boolean = (name) => WANTED.includes(name)): Unzipped {
   let entries = 0;
@@ -191,7 +191,7 @@ export function parseXArchive(buffer: Buffer): XPost[] {
   const posts: XPost[] = [];
 
   for (const content of Object.values(files)) {
-    const json = Buffer.from(content).toString('utf8').replace(X_WRAPPER, '').replace(/;s*$/, '');
+    const json = Buffer.from(content).toString('utf8').replace(X_WRAPPER, '').replace(/;\s*$/, '');
     let items: unknown;
     try {
       items = JSON.parse(json);

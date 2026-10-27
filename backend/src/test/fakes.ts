@@ -2,39 +2,71 @@
 
 import { UnsafeUrlError, type SafeFetch, type SafeFetchOptions, type SafeFetchResult } from '../common/safe-fetch';
 import type { InitializeInput, PaystackCharge, PaystackClient } from '../billing/paystack';
-import type { GithubClient, GithubRelease, GithubRepo } from '../sources/github.client';
+import { GithubTokenRejectedError, type GithubClient, type GithubRelease, type GithubRepo, type GithubTokens } from '../sources/github.client';
 
 export class FakeGithub implements GithubClient {
   user = { id: 4242, login: 'toluadebayo' };
   repos: GithubRepo[] = [];
   readmes = new Map<string, string>();
   releases = new Map<string, GithubRelease[]>();
-  /** Makes every API call fail as GitHub does when a person revokes access. */
-  revoked = false;
+  /** The access token GitHub accepts. Null once it has expired or been revoked. */
+  accepted: string | null = 'gh-test-token';
+  /** Refresh tokens GitHub still exchanges. Each works once, because GitHub rotates them. */
+  refreshTokens = new Set<string>();
+  private issued = 0;
+
+  /** The access token expires; the refresh token still works. */
+  expireAccessToken() {
+    this.accepted = null;
+  }
+
+  /** The person revokes access: nothing works any more. */
+  revoke() {
+    this.accepted = null;
+    this.refreshTokens.clear();
+  }
 
   authorizeUrl(state: string) {
     return `https://github.test/login/oauth/authorize?state=${encodeURIComponent(state)}`;
   }
 
-  async exchangeCode(code: string) {
+  async exchangeCode(code: string): Promise<GithubTokens> {
     if (code !== 'good-code') throw new Error('GitHub did not accept the code (bad_verification_code).');
-    return { accessToken: 'gh-test-token' };
+    return this.issue('gh-test-token', 'ghr-test-1');
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<GithubTokens> {
+    if (!this.refreshTokens.delete(refreshToken)) throw new GithubTokenRejectedError('GitHub did not accept the refresh token.');
+    this.issued += 1;
+    return this.issue(`gh-test-${this.issued}`, `ghr-test-${this.issued}`);
+  }
+
+  private issue(accessToken: string, refreshToken: string): GithubTokens {
+    this.accepted = accessToken;
+    this.refreshTokens.add(refreshToken);
+    return { accessToken, refreshToken, expiresIn: null };
+  }
+
+  private check(token: string) {
+    if (token !== this.accepted) throw new GithubTokenRejectedError('GitHub rejected the access token.');
   }
 
   async getUser() {
     return this.user;
   }
 
-  async listRepos() {
-    if (this.revoked) throw new Error('GitHub rejected the access token.');
+  async listRepos(token: string) {
+    this.check(token);
     return this.repos;
   }
 
-  async getReadme(_token: string, fullName: string) {
+  async getReadme(token: string, fullName: string) {
+    this.check(token);
     return this.readmes.get(fullName) ?? null;
   }
 
-  async listReleases(_token: string, fullName: string) {
+  async listReleases(token: string, fullName: string) {
+    this.check(token);
     return this.releases.get(fullName) ?? [];
   }
 }

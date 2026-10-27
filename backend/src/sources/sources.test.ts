@@ -297,7 +297,7 @@ describe('GitHub', () => {
   });
 
   it('asks the person to reconnect when GitHub no longer allows access', async () => {
-    ctx.github.revoked = true;
+    ctx.github.revoke();
     await post(`/v1/sources/${sourceId}/retry`, user);
     expect(await ctx.drain()).toEqual(['needs_user_action']);
     const [source] = (await get('/v1/sources', user)).body;
@@ -305,7 +305,6 @@ describe('GitHub', () => {
     expect(source.problem).toMatch(/reconnect/i);
     const { rows } = await ctx.db.query<{ status: string }>(`select status from public.source_connections where id = $1`, [sourceId]);
     expect(rows[0].status).toBe('needs_reauth');
-    ctx.github.revoked = false;
   });
 
   it('sends the person back with an error when the code or the state is wrong', async () => {
@@ -324,6 +323,63 @@ describe('GitHub', () => {
     expect(response.status).toBe(503);
     expect(response.body.error.code).toBe('NOT_CONFIGURED');
     await bare.close();
+  });
+});
+
+describe('GitHub token refresh', () => {
+  const connectGithub = async (user: string) => {
+    const connect = await post('/v1/sources/github/connect', user).send({ from: 'sources' });
+    const state = new URL(connect.body.authorizeUrl).searchParams.get('state')!;
+    await ctx.http().get('/v1/sources/github/callback').query({ code: 'good-code', state }).redirects(0);
+    const [source] = (await get('/v1/sources', user)).body;
+    expect(await ctx.drain()).toEqual(['succeeded']);
+    return source.id as string;
+  };
+
+  const secretsOf = async (connectionId: string) =>
+    (
+      await ctx.db.query<{ access: string; refresh: string | null }>(
+        `select access_token_encrypted as access, refresh_token_encrypted as refresh from public.source_connection_secrets where connection_id = $1`,
+        [connectionId],
+      )
+    ).rows[0];
+
+  it('uses the refresh token when the access token expires, and stores the new pair', async () => {
+    const user = await ctx.newUser();
+    const sourceId = await connectGithub(user);
+    const before = await secretsOf(sourceId);
+
+    ctx.github.expireAccessToken();
+    expect((await post(`/v1/sources/${sourceId}/retry`, user)).status).toBe(202);
+    expect(await ctx.drain()).toEqual(['succeeded']);
+
+    const after = await secretsOf(sourceId);
+    expect(after.access).not.toBe(before.access);
+    expect(after.refresh).not.toBe(before.refresh);
+    expect((await get('/v1/sources', user)).body[0]).toMatchObject({ state: 'ready' });
+  });
+
+  it('asks the person to reconnect when there is no refresh token to use', async () => {
+    const user = await ctx.newUser();
+    const sourceId = await connectGithub(user);
+    await ctx.db.query(`update public.source_connection_secrets set refresh_token_encrypted = null where connection_id = $1`, [sourceId]);
+
+    ctx.github.expireAccessToken();
+    await post(`/v1/sources/${sourceId}/retry`, user);
+    expect(await ctx.drain()).toEqual(['needs_user_action']);
+    const [source] = (await get('/v1/sources', user)).body;
+    expect(source.problem).toMatch(/reconnect/i);
+  });
+
+  it('asks the person to reconnect when GitHub also refuses the refresh token', async () => {
+    const user = await ctx.newUser();
+    const sourceId = await connectGithub(user);
+
+    ctx.github.revoke();
+    await post(`/v1/sources/${sourceId}/retry`, user);
+    expect(await ctx.drain()).toEqual(['needs_user_action']);
+    const { rows } = await ctx.db.query<{ status: string }>(`select status from public.source_connections where id = $1`, [sourceId]);
+    expect(rows[0].status).toBe('needs_reauth');
   });
 });
 

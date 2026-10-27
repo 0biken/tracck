@@ -2,7 +2,7 @@
 
 Tracck builds resumes from work a person can show. It keeps a record of entries drawn from their sources, and every claim on a resume traces back to an entry and the passage that supports it.
 
-**Status:** the user-facing app is built end to end, but has not yet been run against real Supabase, GitHub, Paystack, Resend or Storage accounts. See [docs/GAP_ANALYSIS.md](./docs/GAP_ANALYSIS.md) for exactly what is verified and what is not.
+**Status:** the user-facing app is built end to end, but has not yet been run against real Supabase, GitHub, Paystack, Resend or Storage accounts.
 
 ## What is in the repository
 
@@ -11,7 +11,7 @@ Tracck builds resumes from work a person can show. It keeps a record of entries 
 | `frontend/` | Next.js 16 app: marketing and pricing, sign-in, onboarding, and the product screens (Home, Sources, Evidence, Career Graph, CV feedback, Resumes and the editor, Settings). Calls the backend API |
 | `backend/` | NestJS app: the HTTPS API and the background jobs (BullMQ) in one process. Modules are in `backend/src/`, one folder per area |
 | `shared/` | Code used by both apps: API contracts, job states and the job store, error codes. Source only, with no `node_modules` of its own |
-| `docs/` | Product requirements (architecture in `docs/prd/03-architecture.md`), gap analysis and the design system |
+| `docs/` | Product requirements (architecture in `docs/prd/03-architecture.md`) and the design system |
 
 The frontend and backend are separate apps. Each has its own `package.json`, lockfile and `node_modules`. `shared/` is linked into each one as a local dependency (`"@tracck/shared": "file:../shared"`).
 
@@ -21,7 +21,6 @@ PostgreSQL is the source of truth for job state. Redis only carries job IDs from
 
 - [Product requirements](./docs/prd/index.md): overview, architecture (`docs/prd/03-architecture.md`), requirements and open questions.
 - [Deferred scope](./docs/prd/06-deferred-scope.md): what is out of this release.
-- [Gap analysis](./docs/GAP_ANALYSIS.md): what is built, what is verified, what is still open.
 - [Design system](./docs/design/tracck-design-system.html): tokens, components and patterns.
 
 ## Local setup
