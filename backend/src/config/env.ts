@@ -14,6 +14,8 @@ const schema = z.object({
   /** The frontend origin allowed to call this API. */
   APP_ORIGIN: z.url(),
   ENABLE_DIAGNOSTIC_JOBS: z.enum(['true', 'false']).default('false'),
+  /** Temporary: when true, plan limits (sources, resumes, exports) are not enforced. Off in production. */
+  DISABLE_PAYMENT_RESTRICTIONS: z.enum(['true', 'false']).default('false'),
   /** Run background jobs in this process. Set to false for an API-only instance. */
   RUN_JOB_WORKER: z.enum(['true', 'false']).default('true'),
   /** How many background jobs this process runs at once. */

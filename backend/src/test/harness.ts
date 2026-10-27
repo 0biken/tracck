@@ -88,6 +88,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     SUPABASE_URL: 'https://example.supabase.co',
     APP_ORIGIN: TEST_ORIGIN,
     ENABLE_DIAGNOSTIC_JOBS: 'true',
+    DISABLE_PAYMENT_RESTRICTIONS: 'false',
     RUN_JOB_WORKER: 'false',
     WORKER_CONCURRENCY: 1,
     RECONCILE_INTERVAL_SECONDS: 30,

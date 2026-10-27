@@ -3,7 +3,8 @@ import { and, count, eq, isNull, sql, type AnyColumn } from 'drizzle-orm';
 import { ApiError, entitlementsFor, type Entitlements, type PlanId } from '@tracck/shared';
 import type { Database } from '../db';
 import { profiles, sourceConnections, usageCounters } from '../db/schema';
-import { DB } from '../tokens';
+import type { ApiEnv } from '../config/env';
+import { DB, ENV } from '../tokens';
 
 const RESUMES_METRIC = 'resumes';
 
@@ -23,7 +24,15 @@ export function periodResetsOn(now = new Date()): string {
  */
 @Injectable()
 export class EntitlementsService {
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    @Inject(ENV) private readonly env: ApiEnv,
+  ) {}
+
+  /** Temporary local gate: when DISABLE_PAYMENT_RESTRICTIONS is true, no plan limit is enforced. */
+  private get restrictionsOff(): boolean {
+    return this.env.DISABLE_PAYMENT_RESTRICTIONS === 'true';
+  }
 
   async planOf(userId: string): Promise<PlanId> {
     const [row] = await this.db.select({ plan: profiles.plan }).from(profiles).where(eq(profiles.id, userId));
@@ -58,6 +67,7 @@ export class EntitlementsService {
   }
 
   async assertCanAddSource(userId: string): Promise<void> {
+    if (this.restrictionsOff) return;
     const { entitlements } = await this.entitlementsOf(userId);
     if (entitlements.maxSources === null) return;
     if ((await this.activeSources(userId)) >= entitlements.maxSources) {
@@ -70,6 +80,7 @@ export class EntitlementsService {
   }
 
   async assertCanGenerate(userId: string, length: 'one_page' | 'full', now = new Date()): Promise<void> {
+    if (this.restrictionsOff) return;
     const { entitlements } = await this.entitlementsOf(userId);
     if (length === 'full' && !entitlements.fullLength) {
       throw new ApiError(402, 'PLAN_LIMIT_REACHED', 'Full length is on Pro. Your plan exports one page only.');
@@ -85,7 +96,7 @@ export class EntitlementsService {
   }
 
   async assertCanExport(userId: string, format: 'pdf' | 'docx'): Promise<void> {
-    if (format === 'pdf') return;
+    if (format === 'pdf' || this.restrictionsOff) return;
     const { entitlements } = await this.entitlementsOf(userId);
     if (!entitlements.docxExport) {
       throw new ApiError(402, 'PLAN_LIMIT_REACHED', 'Word export is on Pro. PDF export is included on every plan.');
