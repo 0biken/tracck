@@ -1,6 +1,7 @@
 // The model boundary. The engine asks for validated JSON and for embeddings and does
 // not know which provider answers, so a provider (or a test fake) is one class.
 
+import { JobError } from '@tracck/shared';
 import type { z } from 'zod';
 
 export type ThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high';
@@ -48,3 +49,24 @@ export interface LlmClient {
 }
 
 export const emptyUsage = (): LlmUsage => ({ inputTokens: 0, outputTokens: 0, cachedTokens: 0, thoughtTokens: 0 });
+
+/** How long to wait before trying again once the provider's token allowance is used up. */
+export const TOKENS_RETRY_MS = 5 * 60_000;
+
+/**
+ * The model's token allowance is used up. The job waits and runs again later, and
+ * callers must not fall back to a weaker answer, because the person would get less
+ * than they asked for without knowing why.
+ */
+export class TokensExhaustedError extends JobError {
+  constructor() {
+    super(
+      'retryable',
+      'AI_TOKENS_EXHAUSTED',
+      'We ran out of AI capacity before this could finish. It will be tried again in a few minutes, so check back shortly.',
+      TOKENS_RETRY_MS,
+    );
+  }
+}
+
+export const isTokensExhausted = (error: unknown): error is TokensExhaustedError => error instanceof TokensExhaustedError;

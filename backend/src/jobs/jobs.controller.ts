@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { UserId } from '../auth/current-user.decorator';
@@ -24,6 +24,12 @@ export class JobsController {
     @Req() request: ApiRequest,
   ) {
     return this.jobs.createDiagnostic(userId, idempotencyKey, body, request.id);
+  }
+
+  @Get('jobs')
+  @UseGuards(AuthGuard)
+  recent(@UserId() userId: string, @Query('limit') limit: string | undefined) {
+    return this.jobs.recent(userId, Math.min(Math.max(Number(limit) || 20, 1), 100));
   }
 
   @Get('jobs/:jobId')

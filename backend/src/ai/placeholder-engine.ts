@@ -47,6 +47,27 @@ function blocksOf(text: string): string[] {
     .filter((block) => block.length >= 40);
 }
 
+/** Whole sentences packed into claims of at most `max` characters, so nothing is dropped. */
+function packed(text: string, max: number): string[] {
+  const claims: string[] = [];
+  let current = '';
+  for (const part of text.split(/(?<=[.!?])\s+/)) {
+    if (current && `${current} ${part}`.length > max) {
+      claims.push(current);
+      current = part;
+    } else {
+      current = current ? `${current} ${part}` : part;
+    }
+  }
+  if (current) claims.push(current);
+  // A single run longer than the limit (no sentence breaks) is cut into windows.
+  return claims.flatMap((claim) => {
+    const windows: string[] = [];
+    for (let start = 0; start < claim.length; start += max) windows.push(claim.slice(start, start + max));
+    return windows;
+  });
+}
+
 /**
  * The stand-in for the AI engine. It reads nothing between the lines: it splits
  * source material into entries exactly as written, tags skills from a word list,
@@ -62,9 +83,9 @@ export class PlaceholderEngine implements AiEngine {
     const hint = document.skillsHint ?? [];
     const wholeDocument = ['github_repo', 'github_contribution', 'manual_experience'].includes(document.kind);
 
-    const blocks = wholeDocument ? [clean(document.text)].filter(Boolean) : blocksOf(document.text);
+    const blocks = wholeDocument ? packed(clean(document.text), MAX_CLAIM) : blocksOf(document.text).flatMap((block) => packed(block, MAX_CLAIM));
 
-    return blocks.slice(0, MAX_ENTRIES_PER_DOCUMENT).map((block) => {
+    return blocks.filter(Boolean).slice(0, MAX_ENTRIES_PER_DOCUMENT).map((block) => {
       const evidenceType: EvidenceType =
         document.kind === 'github_repo'
           ? 'project'

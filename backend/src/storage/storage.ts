@@ -34,19 +34,20 @@ export class UnconfiguredStorage implements ObjectStorage {
 
 const PAGE = 1000;
 
-/** Supabase Storage over its REST API, with the service role key. */
+/** Supabase Storage over its REST API, with the project's secret key (sb_secret_...). */
 export class SupabaseStorage implements ObjectStorage {
   private ensured = false;
 
   constructor(
     private readonly baseUrl: string,
-    private readonly serviceKey: string,
+    private readonly secretKey: string,
     private readonly bucket: string,
     private readonly fetcher: typeof fetch = fetch,
   ) {}
 
+  /** The secret key goes in the apikey header, as Supabase documents for secret keys. */
   private headers(extra: Record<string, string> = {}) {
-    return { Authorization: `Bearer ${this.serviceKey}`, apikey: this.serviceKey, ...extra };
+    return { apikey: this.secretKey, ...extra };
   }
 
   private url(path: string) {

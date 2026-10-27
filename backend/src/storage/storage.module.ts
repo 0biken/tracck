@@ -13,8 +13,8 @@ import { SupabaseStorage, UnconfiguredStorage } from './storage';
       provide: STORAGE,
       inject: [ENV],
       useFactory: (env: ApiEnv) =>
-        env.SUPABASE_SERVICE_ROLE_KEY
-          ? new SupabaseStorage(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, env.STORAGE_BUCKET)
+        env.SUPABASE_SECRET_KEY
+          ? new SupabaseStorage(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, env.STORAGE_BUCKET)
           : new UnconfiguredStorage(),
     },
     { provide: SECRET_BOX, inject: [ENV], useFactory: (env: ApiEnv) => new SecretBox(env.TOKEN_ENCRYPTION_KEY) },

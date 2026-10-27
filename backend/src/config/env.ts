@@ -29,7 +29,7 @@ const schema = z.object({
   /** The public address of this API, for links other services call back (GitHub, Paystack). */
   API_PUBLIC_URL: optional(z.url()),
   /** Supabase Storage (CV uploads, exports) and account deletion. Server only. */
-  SUPABASE_SERVICE_ROLE_KEY: optional(z.string().min(1)),
+  SUPABASE_SECRET_KEY: optional(z.string().min(1)),
   STORAGE_BUCKET: z.string().min(1).default('tracck-private'),
   /** 32 random bytes, base64. Encrypts provider tokens and webhook secrets. */
   TOKEN_ENCRYPTION_KEY: optional(z.string().min(1)),

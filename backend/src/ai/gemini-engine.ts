@@ -25,7 +25,7 @@ import { getTemplate } from '../templates/registry';
 import type { AiEngine, DraftReview, EvidenceCandidate, ExtractedEvidence, GenerateInput, JobReading, ResumeDraft, SourceDocument } from './ai-engine';
 import { type ExampleSet, ExampleStore, renderExamples } from './examples';
 import type { AiSettings } from './ai.config';
-import type { LlmClient } from './llm';
+import { isTokensExhausted, type LlmClient } from './llm';
 import { buildRevisionGraph } from './revision-graph';
 import { contactLine, defaultLayout, layoutFrom, skillUses, traitsOf, type SkillUse } from './layout';
 import { PlaceholderEngine } from './placeholder-engine';
@@ -145,7 +145,8 @@ export class GeminiEngine implements AiEngine {
           prompt: `<source kind="${document.kind}"${document.title ? ` title="${document.title}"` : ''}>\n${part}\n</source>`,
           schema: extractionSchema,
           temperature: 0,
-          maxOutputTokens: 6000,
+          // A long README can yield many entries; the model's limit is 65,536, so leave room.
+          maxOutputTokens: 16000,
         });
         for (const entry of data.entries) {
           const key = entry.claimText.trim().toLowerCase();
@@ -154,7 +155,7 @@ export class GeminiEngine implements AiEngine {
           found.push({
             evidenceType: entry.evidenceType,
             title: entry.title.slice(0, 90),
-            claimText: entry.claimText.trim().slice(0, 600),
+            claimText: entry.claimText.trim().slice(0, 1500),
             skills: [...new Set([...(document.skillsHint ?? []), ...entry.skills.map((skill) => skill.trim()).filter(Boolean)])],
             topics: [...new Set(entry.topics.map((topic) => topic.trim().toLowerCase()).filter(Boolean))],
             projectKey: entry.projectKey ?? document.projectKey ?? null,
@@ -165,6 +166,7 @@ export class GeminiEngine implements AiEngine {
       }
       return found.slice(0, MAX_ENTRIES_PER_DOCUMENT);
     } catch (error) {
+      if (isTokensExhausted(error)) throw error;
       // A model outage must not stop a person from importing their sources.
       this.logger.warn(`evidence extraction failed, using the plain reader: ${error instanceof Error ? error.message : error}`);
       return this.fallback.extractEvidence(document);
@@ -190,7 +192,8 @@ export class GeminiEngine implements AiEngine {
         themes: data.themes.map((theme) => theme.toLowerCase()),
       };
     } catch (error) {
-      this.logger.warn(`job reading failed, using the word list: ${error instanceof Error ? error.message : error}`);
+      if (isTokensExhausted(error)) throw error;
+      this.logger.warn(`job reading failed, using the word list:${error instanceof Error ? error.message : error}`);
       return this.fallback.parseJob(description);
     }
   }
@@ -287,7 +290,8 @@ export class GeminiEngine implements AiEngine {
       const layout = layoutFrom(data, sections, uses, traits);
       return layout.experienceGroupIds.length > 0 ? layout : fallback;
     } catch (error) {
-      this.logger.warn(`layout failed, using the default: ${error instanceof Error ? error.message : error}`);
+      if (isTokensExhausted(error)) throw error;
+      this.logger.warn(`layout failed, using the default:${error instanceof Error ? error.message : error}`);
       return fallback;
     }
   }

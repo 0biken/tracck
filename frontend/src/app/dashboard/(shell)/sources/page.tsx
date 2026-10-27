@@ -1,3 +1,4 @@
+import { BackgroundWork } from '@/components/jobs/background-work'
 import { PageHeader } from '@/components/page-header'
 import { serverApi } from '@/lib/api/server'
 import { formatStamp } from '@/lib/format'
@@ -11,7 +12,12 @@ export default async function SourcesPage({
   searchParams: Promise<{ connected?: string; error?: string }>
 }) {
   const api = serverApi()
-  const [sources, summary, params] = await Promise.all([api.sources.list(), api.me.summary(), searchParams])
+  const [sources, summary, jobs, params] = await Promise.all([
+    api.sources.list(),
+    api.me.summary(),
+    api.jobs.list(),
+    searchParams,
+  ])
 
   // GitHub sends the person back here with the outcome in the address.
   const notice =
@@ -30,6 +36,7 @@ export default async function SourcesPage({
         Where your evidence comes from. Collection runs in the background; you never need to wait here.
       </PageHeader>
       <SourcesManager initial={sources} notice={notice} />
+      <BackgroundWork initial={jobs} />
     </>
   )
 }

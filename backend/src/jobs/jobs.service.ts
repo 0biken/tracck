@@ -1,14 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   ApiError,
   QUEUE_SCHEMA_VERSION,
   toJobView,
   type JobQueue,
+  type JobListItem,
   type JobRecord,
+  type JobStatus,
+  type JobStep,
+  type JobType,
   type JobStore,
 } from '@tracck/shared';
-import { JOB_QUEUE, JOB_STORE } from '../tokens';
+import { backgroundJobs } from '../db/schema';
+import type { Database } from '../db';
+import { DB, JOB_QUEUE, JOB_STORE } from '../tokens';
 
 const jobId = z.uuid();
 const diagnosticBody = z.strictObject({ stepDelayMs: z.number().int().min(0).max(5000).optional() });
@@ -25,6 +32,7 @@ function jobUrls(id: string) {
 @Injectable()
 export class JobsService {
   constructor(
+    @Inject(DB) private readonly db: Database,
     @Inject(JOB_STORE) private readonly store: JobStore,
     @Inject(JOB_QUEUE) private readonly queue: JobQueue,
   ) {}
@@ -57,6 +65,29 @@ export class JobsService {
 
   async view(userId: string, id: string) {
     return toJobView(await this.load(userId, id));
+  }
+
+  /** The person's recent background work, newest first: what is running, and what failed and why. */
+  async recent(userId: string, limit: number): Promise<JobListItem[]> {
+    const rows = await this.db
+      .select()
+      .from(backgroundJobs)
+      .where(eq(backgroundJobs.userId, userId))
+      .orderBy(desc(backgroundJobs.createdAt))
+      .limit(limit);
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.jobType as JobType,
+      status: row.status as JobStatus,
+      step: row.step as JobStep | null,
+      progressPercent: row.progressPercent,
+      attempts: row.attemptCount,
+      maxAttempts: row.maxAttempts,
+      error: row.errorCode ? { code: row.errorCode, message: row.safeErrorMessage ?? 'This job did not finish.' } : null,
+      createdAt: row.createdAt.toISOString(),
+      startedAt: row.startedAt?.toISOString() ?? null,
+      completedAt: row.completedAt?.toISOString() ?? null,
+    }));
   }
 
   async cancel(userId: string, id: string) {

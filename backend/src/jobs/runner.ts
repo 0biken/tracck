@@ -63,6 +63,8 @@ export async function runJob(deps: RunnerDeps, message: QueueMessage): Promise<R
   const job = await store.markRunning(message.jobId);
   if (!job) return 'skipped';
   const attempt = job.attemptCount;
+  const startedAt = Date.now();
+  log('job started', { jobId: job.id, jobType: job.jobType, attempt });
   await notify();
 
   const heartbeat = setInterval(() => {
@@ -81,12 +83,15 @@ export async function runJob(deps: RunnerDeps, message: QueueMessage): Promise<R
       async setStep(step, progressPercent) {
         const updated = await store.setStep(job.id, attempt, step, progressPercent ?? null);
         if (!updated) throw new JobTakenOver();
+        log('job step', { jobId: job.id, jobType: job.jobType, attempt, step, progressPercent: progressPercent ?? null });
         await notify();
         if (updated.cancelRequestedAt) throw new CancelRequested();
       },
     });
 
-    return (await store.succeed(job.id, attempt, result)) ? 'succeeded' : 'skipped';
+    const succeeded = await store.succeed(job.id, attempt, result);
+    log(succeeded ? 'job succeeded' : 'job result not saved', { jobId: job.id, jobType: job.jobType, attempt, durationMs: Date.now() - startedAt });
+    return succeeded ? 'succeeded' : 'skipped';
   } catch (caught) {
     if (caught instanceof JobTakenOver) return 'skipped';
     if (caught instanceof CancelRequested) {
@@ -99,7 +104,10 @@ export async function runJob(deps: RunnerDeps, message: QueueMessage): Promise<R
       jobId: job.id,
       jobType: job.jobType,
       attempt,
+      durationMs: Date.now() - startedAt,
       errorCode: error.code,
+      // The safe message is written for the person, so it is safe to log.
+      message: error.safeMessage,
       errorName: caught instanceof Error ? caught.name : typeof caught,
     });
 

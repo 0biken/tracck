@@ -145,3 +145,18 @@ export function toJobView(job: JobRecord): JobView {
     completedAt: job.completedAt,
   };
 }
+
+/** One row of a person's recent background work, newest first. */
+export interface JobListItem {
+  id: string;
+  type: JobType;
+  status: JobStatus;
+  step: JobStep | null;
+  progressPercent: number | null;
+  attempts: number;
+  maxAttempts: number;
+  error: { code: string; message: string } | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+}

@@ -1,4 +1,4 @@
-import { Global, Inject, Injectable, Module, type OnApplicationShutdown } from '@nestjs/common';
+import { Global, Inject, Injectable, Logger, Module, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import pg from 'pg';
 import { JobStore, jobEventsChannel } from '@tracck/shared';
@@ -20,6 +20,31 @@ import {
 import { BullJobQueue, createRedis } from './bullmq';
 import { createRedisJobEvents } from './job-events';
 import { createRedisRateLimiter } from './rate-limiter';
+
+/**
+ * Background jobs are only safe when Redis never evicts keys: under memory pressure an evicted job
+ * key is a job that silently never runs. Says so at startup, so the setting is visible in the logs.
+ */
+@Injectable()
+class RedisPolicyCheck implements OnApplicationBootstrap {
+  private readonly logger = new Logger('Redis');
+
+  constructor(@Inject(QUEUE_REDIS) private readonly redis: Redis) {}
+
+  async onApplicationBootstrap() {
+    try {
+      const [, policy] = (await this.redis.config('GET', 'maxmemory-policy')) as string[];
+      if (policy === 'noeviction') {
+        this.logger.log('Redis eviction policy is noeviction');
+      } else {
+        this.logger.warn(`Redis eviction policy is ${policy}. Set maxmemory-policy to noeviction so queued jobs are never evicted.`);
+      }
+    } catch {
+      // Some hosted Redis services do not allow reading the configuration. Say so, and carry on.
+      this.logger.warn('Could not read the Redis eviction policy. Check it is noeviction on your Redis host.');
+    }
+  }
+}
 
 /** Closes every connection when the app stops, after the job worker has finished its jobs. */
 @Injectable()
@@ -71,6 +96,7 @@ class ConnectionsShutdown implements OnApplicationShutdown {
       },
     },
     ConnectionsShutdown,
+    RedisPolicyCheck,
   ],
   exports: [DB, JOB_STORE, JOB_QUEUE, JOB_EVENTS, NOTIFY_JOB, RATE_LIMITER],
 })

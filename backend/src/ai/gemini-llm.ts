@@ -1,7 +1,7 @@
 import { GoogleGenAI, ThinkingLevel as GeminiThinking } from '@google/genai';
 import { z } from 'zod';
 import { EMBEDDING_DIMENSIONS } from '../db/schema';
-import { emptyUsage, type EmbedRequest, type JsonRequest, type JsonResult, type LlmClient, type LlmUsage, type ThinkingLevel } from './llm';
+import { emptyUsage, TokensExhaustedError, type EmbedRequest, type JsonRequest, type JsonResult, type LlmClient, type LlmUsage, type ThinkingLevel } from './llm';
 import type { UsageSink } from './usage';
 
 export interface GeminiOptions {
@@ -20,17 +20,26 @@ const LEVELS: Record<Exclude<ThinkingLevel, 'off'>, GeminiThinking> = {
 const EMBED_BATCH = 100;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Rate limits and server errors are worth another try; bad requests are not. */
-function transient(error: unknown): boolean {
-  const status = (error as { status?: number })?.status;
-  return status === 429 || (typeof status === 'number' && status >= 500);
+function statusOf(error: unknown): number | undefined {
+  return (error as { status?: number })?.status;
 }
 
+/** Server errors are worth another try; bad requests are not. */
+function transient(error: unknown): boolean {
+  const status = statusOf(error);
+  return typeof status === 'number' && status >= 500;
+}
+
+/**
+ * Gemini answers 429 once the project's quota or token allowance is spent. Retrying
+ * straight away only spends more of it, so the job is parked for a while instead.
+ */
 async function withRetry<T>(run: () => Promise<T>): Promise<T> {
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await run();
     } catch (error) {
+      if (statusOf(error) === 429) throw new TokensExhaustedError();
       if (attempt >= 2 || !transient(error)) throw error;
       await sleep(500 * 2 ** attempt);
     }

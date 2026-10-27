@@ -20,6 +20,7 @@ import type {
   ExportResponse,
   GithubConnectResponse,
   GraphView,
+  JobListItem,
   JobView,
   MeView,
   NotificationView,
@@ -80,7 +81,8 @@ export function createApi(call: Transport) {
     },
 
     jobs: {
-      get: (id: string) => get<JobView>(`/v1/jobs/${id}`),
+      list: (limit = 20) => get<JobListItem[]>('/v1/jobs', { limit }),
+      get:(id: string) => get<JobView>(`/v1/jobs/${id}`),
     },
 
     sources: {
