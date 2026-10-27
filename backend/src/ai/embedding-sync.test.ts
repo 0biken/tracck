@@ -25,19 +25,19 @@ function dispatcher(sent: DispatchInput[]) {
 describe('embedding sync', () => {
   it('queues nothing when no model is configured', async () => {
     const sent: DispatchInput[] = [];
-    await new EmbeddingSyncService(activeRuns(0), env(), dispatcher(sent)).schedule('user-1');
+    await new EmbeddingSyncService(activeRuns(0), env(), dispatcher(sent), {} as never).schedule('user-1');
     expect(sent).toHaveLength(0);
   });
 
   it('queues one run with retries, and none while a run is already waiting or running', async () => {
     const sent: DispatchInput[] = [];
-    await new EmbeddingSyncService(activeRuns(0), env('key'), dispatcher(sent)).schedule('user-1');
+    await new EmbeddingSyncService(activeRuns(0), env('key'), dispatcher(sent), {} as never).schedule('user-1');
     expect(sent).toEqual([
       expect.objectContaining({ userId: 'user-1', jobType: 'profile_index', maxAttempts: INDEX_MAX_ATTEMPTS }),
     ]);
 
     const busy: DispatchInput[] = [];
-    await new EmbeddingSyncService(activeRuns(1), env('key'), dispatcher(busy)).schedule('user-1');
+    await new EmbeddingSyncService(activeRuns(1), env('key'), dispatcher(busy), {} as never).schedule('user-1');
     expect(busy).toHaveLength(0);
   });
 

@@ -1,3 +1,4 @@
+import { EmbeddingSyncService } from '../ai/embedding-sync.service';
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
@@ -163,35 +164,37 @@ export class SourceImportHandler extends ImportHandler {
     @Inject(SECRET_BOX) private readonly box: SecretBox,
     @Inject(GITHUB) private readonly github: GithubClient,
     @Inject(SAFE_FETCH) private readonly safeFetch: SafeFetch,
+    @Inject(EmbeddingSyncService) private readonly embeddings: EmbeddingSyncService,
   ) {
     super(db, ingest, notifications);
   }
 
   handle: JobHandler = async (ctx) => {
     const connection = await this.load(ctx);
-    return this.run(connection, ctx, ctx.job.inputRef.force === true);
+    return this.run(connection, ctx, ctx.job.inputRef.refresh === true);
   };
 
   /**
-   * Reads a source and stores what changed. A forced read (refresh, retry) reads everything and
-   * rebuilds the embeddings. An unforced read (resume generation) only reads what changed.
+   * Reads a source and stores what changed. A refresh also makes sure the person's embeddings are
+   * current, restarting an index run that is stuck.
    */
-  run(connection: Connection, ctx: JobContext, force: boolean): Promise<Record<string, unknown>> {
-    return this.readAndStore(connection, ctx, force).catch((error: unknown) => this.fail(connection, ctx, error));
+  run(connection: Connection, ctx: JobContext, refresh: boolean): Promise<Record<string, unknown>> {
+    return this.readAndStore(connection, ctx, refresh).catch((error: unknown) => this.fail(connection, ctx, error));
   }
 
-  private async readAndStore(connection: Connection, ctx: JobContext, force: boolean): Promise<Record<string, unknown>> {
-    if (force) await this.dropEmbeddings(connection.id);
+  private async readAndStore(connection: Connection, ctx: JobContext, refresh: boolean): Promise<Record<string, unknown>> {
     const items =
       connection.provider === 'github'
-        ? await this.collectGithub(connection, ctx, force)
+        ? await this.collectGithub(connection, ctx)
         : connection.provider === 'portfolio' && connection.displayHandle?.startsWith('http')
-          ? await this.collectPortfolio(connection, ctx, force)
+          ? await this.collectPortfolio(connection, ctx)
           : await this.collectStored(connection);
     if (items.length === 0 && !(await this.hasItems(connection.id))) {
       throw new JobError('permanent', 'NOTHING_FOUND', 'We did not find anything to read in that source.');
     }
-    return this.finish(ctx, connection, items);
+    const result = await this.finish(ctx, connection, items);
+    if (refresh) await this.embeddings.restartStalled(connection.userId);
+    return result;
   }
 
   /**
@@ -216,16 +219,6 @@ export class SourceImportHandler extends ImportHandler {
   private async hasItems(connectionId: string): Promise<boolean> {
     const result = (await this.db.execute(sql`select 1 from public.source_items where connection_id = ${connectionId} limit 1`)) as unknown as RawRows;
     return result.rows.length > 0;
-  }
-
-  /** A forced read rebuilds embeddings: the source's old ones are removed, and the next index writes new ones. */
-  private async dropEmbeddings(connectionId: string): Promise<void> {
-    await this.db.execute(sql`
-      delete from public.evidence_embeddings
-       where evidence_id in (
-         select es.evidence_id from public.evidence_sources es
-           join public.source_items si on si.id = es.source_item_id
-          where si.connection_id = ${connectionId})`);
   }
 
   /** Runs a GitHub call. When GitHub rejects the access token, refreshes it once and tries again. */
@@ -276,7 +269,7 @@ export class SourceImportHandler extends ImportHandler {
    * Reads GitHub. A repository is read again only when GitHub reports a newer push, and a release is
    * read once: releases do not change after publishing. Anything else already stored is left alone.
    */
-  private async collectGithub(connection: Connection, ctx: JobContext, force: boolean): Promise<IngestItem[]> {
+  private async collectGithub(connection: Connection, ctx: JobContext): Promise<IngestItem[]> {
     const [secret] = await this.db
       .select({ token: sourceConnectionSecrets.accessTokenEncrypted })
       .from(sourceConnectionSecrets)
@@ -294,7 +287,7 @@ export class SourceImportHandler extends ImportHandler {
 
     const profile = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, `${login}/${login}`));
     const profileText = profile?.trim() ? profile.trim().slice(0, README_CHARS) : '';
-    if (profileText && (force || known.get('profile-readme') !== fingerprintOf(profileText))) {
+    if (profileText && known.get('profile-readme') !== fingerprintOf(profileText)) {
       const title = `${login} profile`;
       const url = `https://github.com/${login}/${login}`;
       const id = await this.saveItem(connection, {
@@ -320,7 +313,7 @@ export class SourceImportHandler extends ImportHandler {
       const hint = [...new Set([repo.language ? findSkills(repo.language)[0] ?? repo.language : null, ...repo.topics.flatMap((topic) => findSkills(topic))].filter((skill): skill is string => Boolean(skill)))];
       const repoKey = String(repo.id);
 
-      const unchanged = !force && repo.pushedAt !== null && known.get(repoKey) === repo.pushedAt;
+      const unchanged = repo.pushedAt !== null && known.get(repoKey) === repo.pushedAt;
       if (!unchanged) {
         const readme = await this.githubCall(connection.id, token, (access) => this.github.getReadme(access, repo.fullName));
         const text = [repo.description, repo.topics.length ? `Topics: ${repo.topics.join(', ')}` : null, readme?.slice(0, README_CHARS)]
@@ -351,7 +344,7 @@ export class SourceImportHandler extends ImportHandler {
         for (const release of releases) {
           const releaseKey = `release-${release.id}`;
           const body = (release.body ?? '').trim();
-          if (body.length < 40 || (!force && known.has(releaseKey))) continue;
+          if (body.length < 40 || known.has(releaseKey)) continue;
           const releaseText = `${repo.name} ${release.name ?? release.tag}: ${body.slice(0, 1500)}`;
           const releaseDate = release.publishedAt ? new Date(release.publishedAt) : null;
           const releaseId = await this.saveItem(connection, {
@@ -375,7 +368,7 @@ export class SourceImportHandler extends ImportHandler {
   }
 
   /** Reads a portfolio page. Nothing is stored again when the page's text is the same as last time. */
-  private async collectPortfolio(connection: Connection, ctx: JobContext, force: boolean): Promise<IngestItem[]> {
+  private async collectPortfolio(connection: Connection, ctx: JobContext): Promise<IngestItem[]> {
     await ctx.setStep('download_source', 20);
     const response = await this.safeFetch.request(connection.displayHandle!);
     if (response.status >= 400) {
@@ -387,7 +380,7 @@ export class SourceImportHandler extends ImportHandler {
       throw new JobError('permanent', 'LINK_EMPTY', 'We could not find readable text on that page. Paste the text instead.');
     }
     const known = await this.fingerprints(connection.id);
-    if (!force && known.get('page') === fingerprintOf(text)) return [];
+    if (known.get('page') === fingerprintOf(text)) return [];
 
     const title = response.text.match(/<title[^>]*>([^<]{1,200})<\/title>/i)?.[1]?.trim() ?? new URL(response.finalUrl).hostname;
     const id = await this.saveItem(connection, {

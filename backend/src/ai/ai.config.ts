@@ -15,12 +15,14 @@ export interface AiSettings {
 }
 
 export const AI_CONFIG: AiSettings = {
+  // Cheapest supported text model: GA, no shutdown date (ai.google.dev/gemini-api/docs/deprecations).
+  // Gemini 2.5 rejects thinkingLevel (400), so thinking stays off for it.
   /** Writes and revises the resume. */
-  writer: { model: 'gemini-3.8-flash', thinking: 'off' },
-  /** Reviews the draft. A different model from the writer gives an independent check. */
-  critic: { model: 'gemini-3.8-flash', thinking: 'low' },
-  /** Reads sources and job descriptions into structured data. A small, cheap model is enough. */
-  extract: { model: 'gemini-3.5-flash-lite' },
+  writer: { model: 'gemini-2.5-flash-lite', thinking: 'off' },
+  /** Reviews the draft. */
+  critic: { model: 'gemini-2.5-flash-lite', thinking: 'off' },
+  /** Reads sources and job descriptions into structured data. */
+  extract: { model: 'gemini-2.5-flash-lite' },
   /** Turns entries into vectors. Its output size is EMBEDDING_DIMENSIONS in db/schema.ts. */
   embedding: { model: 'gemini-embedding-001' },
   maxRevisions: 2,

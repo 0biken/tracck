@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { EmbeddingSyncService } from '../ai/embedding-sync.service';
 import { JobDispatcher } from '../core/job-dispatcher.service';
 import type { JobContext } from '../jobs/runner';
 import { repo } from '../test/fakes';
@@ -71,12 +72,17 @@ describe('reading a source', () => {
     expect(await readsDuring(async () => undefined)).toEqual(['toluadebayo/alpha']);
   });
 
-  it('reads everything again when refreshed', async () => {
-    const reads = await readsDuring(async () => {
-      const response = await post(`/v1/sources/${sourceId}/refresh`);
-      expect(response.status).toBe(202);
+  it('refresh reads only what changed since the last read', async () => {
+    const unchanged = await readsDuring(async () => {
+      expect((await post(`/v1/sources/${sourceId}/refresh`)).status).toBe(202);
     });
-    expect(reads).toEqual(['toluadebayo/alpha', 'toluadebayo/beta']);
+    expect(unchanged).toEqual([]);
+
+    ctx.github.repos[1] = { ...ctx.github.repos[1], pushedAt: '2026-10-22T00:00:00Z' };
+    const changed = await readsDuring(async () => {
+      expect((await post(`/v1/sources/${sourceId}/refresh`)).status).toBe(202);
+    });
+    expect(changed).toEqual(['toluadebayo/beta']);
   });
 
   it('is read before a resume only when it is more than six hours old', async () => {
@@ -112,10 +118,13 @@ describe('resetting a source', () => {
     expect(rows[0].n).toBe(0);
   });
 
-  it('keeps the connection usable: a refresh reads the source again', async () => {
+  it('after a reset, a refresh reads the whole source again and restarts a stalled embedding run', async () => {
+    const restart = vi.spyOn(ctx.app.get(EmbeddingSyncService), 'restartStalled');
     const reads = await readsDuring(async () => {
       expect((await post(`/v1/sources/${sourceId}/refresh`)).status).toBe(202);
     });
+    expect(restart).toHaveBeenCalledWith(user);
+    restart.mockRestore();
     expect(reads).toEqual(['toluadebayo/alpha', 'toluadebayo/beta']);
     expect(await githubEvidence()).toBeGreaterThan(0);
   });

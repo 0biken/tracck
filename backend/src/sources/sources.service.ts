@@ -300,12 +300,12 @@ export class SourcesService {
       .set({ status: 'sync_queued', lastErrorCode: null })
       .where(eq(sourceConnections.id, connection.id));
 
-    // Refresh and retry read the whole source again, and rebuild its embeddings.
+    // Refresh and retry check the source for new or changed items, and make sure its embeddings are current.
     const { job } = await this.jobs.dispatch({
       userId,
       jobType: file ? 'cv_parse' : 'source_import',
       idempotencyKey,
-      input: { connectionId: connection.id, force: true },
+      input: { connectionId: connection.id, refresh: true },
       correlationId,
     });
     return this.response(userId, connection.id, job.id);
