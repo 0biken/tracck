@@ -15,7 +15,7 @@ export class TemplatesController {
         description: template.description,
         previewUrl: `/v1/templates/${template.id}/preview`,
         isDefault: template.id === DEFAULT_TEMPLATE.id,
-        sections: template.sections.map(({ id, heading, purpose }) => ({ id, heading, purpose })),
+        sections: template.sections.map(({ id, heading }) => ({ id, heading })),
         details: template.details,
       })),
     };

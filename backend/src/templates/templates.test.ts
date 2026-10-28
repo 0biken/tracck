@@ -23,7 +23,7 @@ describe('GET /v1/templates', () => {
         description: TEMPLATES[0].description,
         previewUrl: '/v1/templates/classic-red/preview',
         isDefault: true,
-        sections: TEMPLATES[0].sections.map(({ id, heading, purpose }) => ({ id, heading, purpose })),
+        sections: TEMPLATES[0].sections.map(({ id, heading }) => ({ id, heading })),
         details: TEMPLATES[0].details,
       },
     ]);

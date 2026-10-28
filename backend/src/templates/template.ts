@@ -3,6 +3,8 @@ import type { EvidenceType } from '../ai/ai-engine';
 
 /** A section of a template: what it is for, and the kinds of evidence it draws on. */
 export interface TemplateSection extends TemplateSectionView {
+  /** What the section is for, in one sentence. Given to the writer, never shown in the picker. */
+  purpose: string;
   /** Evidence types this section draws on, most useful first. */
   evidence: EvidenceType[];
 }

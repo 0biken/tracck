@@ -7,7 +7,7 @@ import { CLASSIC_RED_RULES } from './rules';
 export const classicRed: TemplateDefinition = {
   id: 'classic-red',
   name: 'Classic red',
-  description: 'Bold name, red section rules, skill ratings. Reads well on screen and on paper.',
+  description: 'Bold name, red section rules.',
   isDefault: true,
   previewPath: fileURLToPath(new URL('./preview.png', import.meta.url)),
   sections: [

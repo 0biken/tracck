@@ -297,8 +297,6 @@ export type TemplateSectionId = 'profile' | 'experience' | 'education' | 'skills
 export interface TemplateSectionView {
   id: TemplateSectionId;
   heading: string;
-  /** What the section is for, in one sentence. */
-  purpose: string;
 }
 
 export interface SkillRating {
