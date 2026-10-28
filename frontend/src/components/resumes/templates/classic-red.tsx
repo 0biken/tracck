@@ -55,7 +55,7 @@ function Entries({ groups, renderBullet }: { groups: ResumeGroup[]; renderBullet
 export function ClassicRed({ content, renderBullet }: TemplateProps) {
   const groups = new Map(content.sections.flatMap((section) => (section.kind === 'groups' ? section.groups.map((group) => [group.id, group] as const) : [])))
   const summary = content.sections.find((section): section is Extract<ResumeSection, { kind: 'text' }> => section.kind === 'text' && section.id === 's-summary')
-  const { layout, person } = content
+  const { layout } = content
 
   const pick = (ids: string[]) => ids.flatMap((id) => groups.get(id) ?? [])
   const experience = layout ? pick(layout.experienceGroupIds) : [...groups.values()]
@@ -65,13 +65,8 @@ export function ClassicRed({ content, renderBullet }: TemplateProps) {
 
   const words = content.header.name.trim().split(/\s+/)
   const surname = words.pop()
-  const details = [
-    ['Date of birth', person.dateOfBirth],
-    ['Nationality', person.nationality],
-    ['Address', person.address ?? person.location],
-    ['Phone number', person.phone],
-    ['Email address', person.email],
-  ].filter((entry): entry is [string, string] => entry[1] !== null)
+  // Older saved versions have no details; they show none.
+  const details = content.header.details ?? []
 
   return (
     <div className="font-[Arial,Helvetica,sans-serif] text-[#141310]">
@@ -80,12 +75,12 @@ export function ClassicRed({ content, renderBullet }: TemplateProps) {
           {words.join(' ')} <span style={{ color: RED }}>{surname}</span>
         </h1>
         <dl className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11.5px]">
-          {details.map(([label, value]) => (
-            <div key={label} className="flex gap-1">
+          {details.map((detail) => (
+            <div key={detail.label} className="flex gap-1">
               <dt className="font-bold" style={{ color: RED }}>
-                {label}:
+                {detail.label}:
               </dt>
-              <dd className="m-0">{value}</dd>
+              <dd className="m-0">{detail.value}</dd>
             </div>
           ))}
         </dl>

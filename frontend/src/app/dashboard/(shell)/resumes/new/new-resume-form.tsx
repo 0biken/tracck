@@ -263,6 +263,14 @@ export function NewResumeForm({
                   <Image src={`${apiBase()}${item.previewUrl}`} alt="" width={300} height={390} unoptimized className="aspect-[1/1.3] w-full object-cover object-top" />
                   <span className="text-sm font-bold">{item.name}</span>
                   <span className="text-xs leading-4 text-ink-muted">{item.description}</span>
+                  <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
+                    {item.sections.map((section) => (
+                      <li key={section.id} className="flex flex-col">
+                        <span className="text-xs font-semibold">{section.heading}</span>
+                        <span className="text-[11px] leading-[15px] text-ink-muted">{section.purpose}</span>
+                      </li>
+                    ))}
+                  </ol>
                 </button>
               )
             })}

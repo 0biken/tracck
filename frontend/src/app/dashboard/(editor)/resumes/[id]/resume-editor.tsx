@@ -205,7 +205,7 @@ export function ResumeEditor({ initial, plan }: { initial: ResumeDetailView; pla
             ) : (
               <>
                 <div className="text-2xl font-bold">{content.header.name}</div>
-                <div className="mt-1 text-xs leading-[17px]">{content.header.contact}</div>
+                <div className="mt-1 text-xs leading-[17px]">{(content.header.details ?? []).map((detail) => detail.value).join(' · ')}</div>
 
                 {content.sections.map((section) => (
                   <section key={section.id} aria-label={section.heading.toLowerCase()}>

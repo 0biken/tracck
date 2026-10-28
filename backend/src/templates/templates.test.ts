@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ROLE_IDS } from '@tracck/shared';
 import { createTestApp, type TestApp } from '../test/harness';
+import { templateBlock } from '../ai/prompts';
 import { TEMPLATES } from './registry';
 
 let ctx: TestApp;
@@ -60,6 +61,20 @@ describe('GET /v1/templates', () => {
           expect(sample.text.trim().length).toBeGreaterThan(0);
           expect(sample.intent.trim().length).toBeGreaterThan(20);
         }
+      }
+    }
+  });
+});
+
+describe('the template in the writer prompt', () => {
+  it('states each section purpose once, and every sample line with its move', () => {
+    for (const template of TEMPLATES) {
+      const block = templateBlock(template, 'dev');
+      for (const section of template.sections) {
+        expect(block.split(section.purpose).length - 1).toBe(1);
+      }
+      for (const sample of template.samples.dev) {
+        expect(block).toContain(`move: ${sample.intent}`);
       }
     }
   });
