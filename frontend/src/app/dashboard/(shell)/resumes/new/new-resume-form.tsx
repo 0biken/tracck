@@ -13,6 +13,7 @@ import { CheckField, SelectField, TextAreaField, TextField } from '@/components/
 import { Segmented } from '@/components/ui/segmented'
 import { api } from '@/lib/api/client'
 import { apiBase } from '@/lib/api/transport'
+import { TemplatePreview } from '@/components/resumes/template-preview'
 import { formatCount } from '@/lib/format'
 
 const MAX = 15000
@@ -54,6 +55,7 @@ export function NewResumeForm({
   const [focus, setFocus] = useState('')
   const [instructions, setInstructions] = useState('')
   const [templateId, setTemplateId] = useState(templates.find((item) => item.isDefault)?.id ?? '')
+  const [previewing, setPreviewing] = useState<TemplateView | null>(null)
   const [length, setLength] = useState<ResumeLength>('one_page')
   const [role, setRole] = useState<RoleId | ''>(defaultRole ?? '')
   const [roleTouched, setRoleTouched] = useState(false)
@@ -248,23 +250,31 @@ export function NewResumeForm({
 
         <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0">
           <legend className="t-label mb-2.5 p-0">Template</legend>
-          <div role="radiogroup" aria-label="Template" className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+          <div role="radiogroup" aria-label="Template" className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
             {templates.map((item) => {
               const on = item.id === templateId
               return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => setTemplateId(item.id)}
-                  className={`flex cursor-pointer flex-col gap-2 bg-canvas p-2.5 text-left text-ink ${on ? 'border-2 border-ink' : 'border border-line-input hover:border-ink'}`}
-                >
-                  <Image src={`${apiBase()}${item.previewUrl}`} alt="" width={300} height={390} unoptimized className="aspect-[1/1.3] w-full object-cover object-top" />
-                  <span className="text-sm font-bold">{item.name}</span>
-                  <span className="text-xs leading-4 text-ink-muted">{item.description}</span>
-                  <span className="text-[11px] leading-[15px] text-ink-muted">{item.sections.map((section) => section.heading).join(' · ')}</span>
-                </button>
+                <div key={item.id} className={`flex flex-col gap-3 bg-canvas p-3 text-ink ${on ? 'border-2 border-ink' : 'border border-line-input hover:border-ink'}`}>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewing(item)}
+                    aria-label={`Preview the ${item.name} template`}
+                    className="cursor-zoom-in"
+                  >
+                    <Image src={`${apiBase()}${item.previewUrl}`} alt="" width={300} height={390} unoptimized className="aspect-[1/1.3] w-full object-cover object-top" />
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setTemplateId(item.id)}
+                    className="flex cursor-pointer flex-col gap-2 text-left"
+                  >
+                    <span className="text-sm font-bold">{item.name}</span>
+                    <span className="text-xs leading-4 text-ink-muted">{item.description}</span>
+                    <span className="text-[11px] leading-[15px] text-ink-muted">{item.sections.map((section) => section.heading).join(' · ')}</span>
+                  </button>
+                </div>
               )
             })}
             <div aria-disabled="true" className="flex flex-col items-center justify-center gap-2 border border-dashed border-line-input p-4 text-center text-ink-muted opacity-60">
@@ -272,6 +282,7 @@ export function NewResumeForm({
               <span className="text-sm leading-5">Upload an example CV to copy its look</span>
             </div>
           </div>
+          {previewing && <TemplatePreview template={previewing} onClose={() => setPreviewing(null)} />}
         </fieldset>
 
         <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0" aria-describedby={touched && noSource ? 'src-error' : undefined}>
