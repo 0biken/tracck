@@ -131,7 +131,7 @@
 
 /* Print / Save PDF prints the resume page as it is shown: same colours, skill dots and layout. */
 @media print {
-  @page { size: A4; margin: 0; }
+  @page { size: A4 portrait; margin: 0; }
   body * { visibility: hidden; }
   .print-area, .print-area * {
     visibility: visible;

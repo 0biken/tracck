@@ -177,26 +177,34 @@ export interface ResolveDuplicateRequest {
 
 // ─── Career Graph ────────────────────────────────────────────────────────────
 
-export interface GraphProject {
+/** A heading (an employer, a certificate) with the entries that belong under it. */
+export interface GraphGroup {
   id: string;
   name: string;
   count: number;
   period: { from: string | null; to: string | null };
+  entries: { date: string | null; source: EntrySource; text: string }[];
+  more: number;
+}
+
+export interface GraphProject extends GraphGroup {
   sources: number;
   summary: string | null;
   skills: string[];
   usedInResumes: number;
   pinned: boolean;
-  entries: { date: string | null; source: EntrySource; text: string }[];
-  more: number;
 }
 
 export interface GraphView {
   entries: number;
   updatedAt: string | null;
   months: { month: string; count: number }[];
+  /** Work experience, by employer. Empty groups are left out of the page. */
+  experience: GraphGroup[];
   projects: GraphProject[];
   moreProjects: number;
+  /** Certifications, one group each. */
+  certifications: GraphGroup[];
   skills: { name: string; count: number }[];
 }
 

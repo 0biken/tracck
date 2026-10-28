@@ -4,3 +4,4 @@
 
 3. Produce clean code, that is easy to maintain
 4. When generating prompts for AI models, ensure it's concise & specific not verbose.
+5. Avoid creating fallbacks for legacy code except it's a production code, if you still must ask me.

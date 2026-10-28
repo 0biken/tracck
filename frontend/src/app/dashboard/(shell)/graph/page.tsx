@@ -3,7 +3,7 @@ import { ColumnHead, PageHeader } from '@/components/page-header'
 import { buttonClass } from '@/components/ui/button'
 import { serverApi } from '@/lib/api/server'
 import { formatCount, formatDate } from '@/lib/format'
-import { GraphExplorer } from './graph-explorer'
+import { GraphBrowser } from './graph-browser'
 import { RefreshButton } from './refresh-button'
 
 export const metadata = { title: 'Career Graph' }
@@ -63,7 +63,13 @@ export default async function CareerGraphPage() {
             </figure>
           </section>
 
-          {graph.projects.length > 0 && <GraphExplorer projects={graph.projects} more={graph.moreProjects} />}
+          <GraphBrowser
+            sections={[
+              { key: 'experience', label: 'Work experience', items: graph.experience },
+              { key: 'projects', label: 'Projects', items: graph.projects, moreItems: graph.moreProjects },
+              { key: 'certifications', label: 'Certifications', items: graph.certifications },
+            ].filter((section) => section.items.length > 0)}
+          />
 
           <section aria-label="Skills" className="flex flex-col gap-3">
             <ColumnHead>SKILLS BY EVIDENCE</ColumnHead>

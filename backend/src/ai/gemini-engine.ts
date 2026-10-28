@@ -158,7 +158,8 @@ export class GeminiEngine implements AiEngine {
             claimText: entry.claimText.trim().slice(0, 1500),
             skills: [...new Set([...(document.skillsHint ?? []), ...entry.skills.map((skill) => skill.trim()).filter(Boolean)])],
             topics: [...new Set(entry.topics.map((topic) => topic.trim().toLowerCase()).filter(Boolean))],
-            projectKey: entry.projectKey ?? document.projectKey ?? null,
+            // The source decides a project (a repository); otherwise only a project or a role names one, and never the file name.
+            projectKey: document.projectKey ?? (['project', 'role'].includes(entry.evidenceType) && entry.projectKey !== document.title ? entry.projectKey : null),
             validFrom: parseDate(entry.date) ?? document.date,
             where: document.where,
           });

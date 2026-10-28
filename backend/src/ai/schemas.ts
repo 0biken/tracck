@@ -32,7 +32,10 @@ export const extractionSchema = z.object({
         topics: z
           .array(z.string())
           .describe('Themes the statement shows, lower case: leadership, performance, mentoring, scale, testing, growth, research...'),
-        projectKey: z.string().nullable().describe('A short stable name if the statement belongs to a named project or employer, else null.'),
+        projectKey: z
+          .string()
+          .nullable()
+          .describe('Only for evidenceType project (the project name) or role (the employer name). Otherwise null. Never a file name.'),
         date: z.string().nullable().describe('YYYY-MM-DD or YYYY-MM if the source dates it, else null.'),
       }),
     )
