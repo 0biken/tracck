@@ -31,7 +31,7 @@ export const cloneContent = (content: ResumeContent): ResumeContent => structure
 
 /** The resume as plain text, for search and for the exports' text layer. */
 export function plainText(content: ResumeContent): string {
-  const lines = [content.header.name, content.header.contact, ''];
+  const lines = [content.header.name, headerContact(content), ''];
   for (const section of content.sections) {
     lines.push(section.heading.toUpperCase());
     if (section.kind === 'text') lines.push(section.text);
@@ -45,6 +45,9 @@ export function plainText(content: ResumeContent): string {
   }
   return lines.join('\n').trim();
 }
+
+/** The personal details printed under the name, on one line. */
+export const headerContact = (content: ResumeContent) => content.header.details.map((detail) => detail.value).join(' · ');
 
 const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 const ONE_PAGE_WORDS = 520;

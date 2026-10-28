@@ -65,7 +65,7 @@ export class EvidenceSelector {
     const wanted = pgArray(tags.map((tag) => tag.toLowerCase()));
     const only = providers.length ? pgArray(providers.map((provider) => provider.toLowerCase())) : null;
     const result = await this.db.execute(sql`
-      select e.id, e.title, e.claim_text, e.skills, e.topics, e.project_key, e.source_provider, e.source_where, e.valid_from, e.pinned
+      select e.id, e.title, e.claim_text, e.evidence_type, e.skills, e.topics, e.project_key, e.source_provider, e.source_where, e.valid_from, e.pinned
         from public.candidate_evidence e
        where e.user_id = ${userId} and not e.excluded and e.verification_status <> 'rejected'
          and (${only}::text[] is null or lower(e.source_provider) = any(${only}::text[]))
@@ -78,6 +78,7 @@ export class EvidenceSelector {
       id: row.id as string,
       title: (row.title as string | null) ?? '',
       claimText: row.claim_text as string,
+      evidenceType: row.evidence_type as EvidenceCandidate['evidenceType'],
       skills: (row.skills as string[]) ?? [],
       topics: (row.topics as string[]) ?? [],
       projectKey: (row.project_key as string | null) ?? null,

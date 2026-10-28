@@ -2,7 +2,15 @@
 // already has: group ids, skills and strengths the evidence supports. Skill levels come
 // from counting evidence, never from a model, so a rating can always be explained.
 
-import type { ClassicRedLayout, PersonDetails, ResumeSection, SkillRating } from '@tracck/shared';
+import {
+  PERSONAL_DETAIL_LABELS,
+  type HeaderDetail,
+  type PersonalDetail,
+  type PersonDetails,
+  type ResumeSection,
+  type SkillRating,
+  type TemplateLayout,
+} from '@tracck/shared';
 import type { LayoutChoice } from './schemas';
 
 export const MAX_SKILLS = 10;
@@ -43,21 +51,23 @@ export function traitsOf(entries: { topics: string[] }[]): Map<string, string> {
   return traits;
 }
 
-/** The contact line printed under the name, from the details the person filled in. */
-export function contactLine(person: PersonDetails): string {
-  return [person.email, person.phone, person.location].filter(Boolean).join(' · ');
+/** The personal details a template shows, labelled, leaving out any the person did not fill in. */
+export function headerDetails(person: PersonDetails, shown: PersonalDetail[]): HeaderDetail[] {
+  return shown.flatMap((key) => {
+    const value = person[key];
+    return value ? [{ label: PERSONAL_DETAIL_LABELS[key], value }] : [];
+  });
 }
 
 /** Groups in a Education section are education; every other group is experience. */
 const isEducation = (heading: string) => /education/i.test(heading);
 
 /** The layout used when the formatter is unavailable or returns nothing usable. */
-export function defaultLayout(sections: ResumeSection[], uses: Map<string, SkillUse>): ClassicRedLayout {
+export function defaultLayout(sections: ResumeSection[], uses: Map<string, SkillUse>): TemplateLayout {
   const groups = sections.flatMap((section) =>
     section.kind === 'groups' ? section.groups.map((group) => ({ id: group.id, education: isEducation(section.heading) })) : [],
   );
   return {
-    templateId: 'classic-red',
     experienceGroupIds: groups.filter((group) => !group.education).map((group) => group.id),
     educationGroupIds: groups.filter((group) => group.education).map((group) => group.id),
     skills: [...uses.values()]
@@ -77,7 +87,7 @@ export function layoutFrom(
   sections: ResumeSection[],
   uses: Map<string, SkillUse>,
   traits: Map<string, string>,
-): ClassicRedLayout {
+): TemplateLayout {
   const known = new Set(sections.flatMap((section) => (section.kind === 'groups' ? section.groups.map((group) => group.id) : [])));
   const experienceGroupIds = unique(choice.experienceGroupIds.filter((id) => known.has(id)));
   const educationGroupIds = unique(choice.educationGroupIds.filter((id) => known.has(id) && !experienceGroupIds.includes(id)));
@@ -88,7 +98,7 @@ export function layoutFrom(
   const strengths = unique(choice.strengths.map((name) => traits.get(name.trim().toLowerCase())))
     .filter((trait): trait is string => trait !== undefined)
     .slice(0, MAX_STRENGTHS);
-  return { templateId: 'classic-red', experienceGroupIds, educationGroupIds, skills, strengths };
+  return { experienceGroupIds, educationGroupIds, skills, strengths };
 }
 
 const unique = <T>(values: T[]): T[] => [...new Set(values)];

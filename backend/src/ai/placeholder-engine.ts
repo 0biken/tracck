@@ -10,7 +10,8 @@ import type {
   ResumeDraft,
   SourceDocument,
 } from './ai-engine';
-import { contactLine, defaultLayout, skillUses } from './layout';
+import { getTemplate } from '../templates/registry';
+import { defaultLayout, headerDetails, skillUses } from './layout';
 import { findSkills, guessRole } from './lexicon';
 
 const MAX_CLAIM = 600;
@@ -166,10 +167,10 @@ export class PlaceholderEngine implements AiEngine {
       { id: 's-experience', heading: 'Experience and projects', kind: 'groups', groups: [...groups.values()] },
       ...(skills.length ? [{ id: 's-skills', heading: 'Skills', kind: 'text' as const, text: skills.join(', ') }] : []),
     ];
+    const template = getTemplate(input.templateId);
     const content: ResumeContent = {
-      header: { name: input.person.name, contact: contactLine(input.person) },
-      person: input.person,
-      templateId: input.templateId,
+      header: { name: input.person.name, details: headerDetails(input.person, template.details) },
+      templateId: template.id,
       layout: defaultLayout(sections, skillUses(chosen)),
       sections,
       evidenceRefs,

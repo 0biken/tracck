@@ -396,8 +396,9 @@ function Actions({ resume, plan, onError }: { resume: ResumeDetailView; plan: Pl
           Export DOCX <span className="font-mono text-[11px] text-ink-muted">PRO</span>
         </Link>
       )}
-      <Button className="min-h-10" loading={busy('pdf')} onClick={() => start('pdf')}>
-        Export PDF
+      {/* Prints the page exactly as it is shown: the browser lays out the same markup the editor shows. */}
+      <Button className="min-h-10" variant="secondary" onClick={() => window.print()}>
+        Print / Save PDF
       </Button>
       {exporting && <ExportWatcher key={exporting.jobId} resumeId={resume.id} {...exporting} onDone={() => setExporting(null)} onError={onError} />}
     </div>

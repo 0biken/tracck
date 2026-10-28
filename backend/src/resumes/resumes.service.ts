@@ -23,7 +23,6 @@ import {
   type RoleId,
 } from '@tracck/shared';
 import type { AiEngine } from '../ai/ai-engine';
-import { contactLine } from '../ai/layout';
 import { AuditService } from '../core/audit.service';
 import { EntitlementsService } from '../core/entitlements.service';
 import { JobDispatcher } from '../core/job-dispatcher.service';
@@ -172,7 +171,6 @@ export class ResumesService {
           instructions: input.instructions?.trim() || null,
           templateId: template.id,
           person,
-          contact: contactLine(person),
         },
       });
     });

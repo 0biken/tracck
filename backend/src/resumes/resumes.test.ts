@@ -119,9 +119,11 @@ describe('writing and reading a resume', () => {
     expect(await ctx.drain()).toEqual(['succeeded']);
     const { body } = await get(`/v1/resumes/${resumeId}`);
     expect(body).toMatchObject({ status: 'draft', version: 1, engine: 'placeholder', jobId: null, length: 'one_page', job: { focus: 'payments' } });
-    expect(body.content.header).toEqual({ name: 'Tolu Adebayo', contact: `${tolu}@example.com · Lagos, Nigeria` });
-    expect(body.content).toMatchObject({ templateId: 'classic-red', person: { name: 'Tolu Adebayo', location: 'Lagos, Nigeria' } });
-    expect(body.content.layout).toMatchObject({ templateId: 'classic-red' });
+    // The classic-red header shows the personal details that template lists, and only those.
+    expect(body.content.header).toEqual({ name: 'Tolu Adebayo', details: [{ label: 'Email address', value: `${tolu}@example.com` }] });
+    expect(body.content).toMatchObject({ templateId: 'classic-red' });
+    expect(body.content).not.toHaveProperty('person');
+    expect(body.content.layout).not.toHaveProperty('templateId');
 
     const bullets = body.content.sections.flatMap((s: { groups?: { bullets: { id: string; text: string; evidence: string[] }[] }[] }) => (s.groups ?? []).flatMap((g) => g.bullets));
     expect(bullets.length).toBeGreaterThan(0);

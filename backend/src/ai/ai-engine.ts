@@ -59,6 +59,7 @@ export interface EvidenceCandidate {
   id: string;
   title: string;
   claimText: string;
+  evidenceType: EvidenceType;
   skills: string[];
   topics: string[];
   projectKey: string | null;

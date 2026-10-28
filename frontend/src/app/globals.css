@@ -129,23 +129,30 @@
   }
 }
 
-/* Export PDF prints only the resume page, in black on white. */
+/* Print / Save PDF prints the resume page as it is shown: same colours, skill dots and layout. */
 @media print {
+  @page { size: A4; margin: 0; }
   body * { visibility: hidden; }
-  .print-area, .print-area * { visibility: visible; }
+  .print-area, .print-area * {
+    visibility: visible;
+    /* Browsers drop background colours when printing unless told to keep them: the skill dots need them. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* The screen layout is 760px wide. Scaled to the printable width (A4 less 16mm each side, about 673px)
+     it keeps the same proportions, and the page is still wide enough for the same responsive rules. */
   .print-area {
     position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
+    inset: 16mm auto auto 16mm;
+    width: 760px;
     max-width: none;
     border: 0;
-    padding: 0;
     outline: 0;
+    zoom: 0.885;
   }
   .print-area [data-flag], .print-area [data-selected] {
     background: none !important;
     outline: 0 !important;
   }
   .print-area [data-flag-label] { display: none; }
-  @page { size: A4; margin: 16mm; }
 }

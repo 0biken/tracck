@@ -12,7 +12,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ApiError,
   type Bullet,
-  type ClassicRedLayout,
+  type TemplateLayout,
   type CvReviewView,
   type ResumeContent,
   type ResumeGroup,
@@ -27,7 +27,7 @@ import { type ExampleSet, ExampleStore, renderExamples } from './examples';
 import type { AiSettings } from './ai.config';
 import { isTokensExhausted, type LlmClient } from './llm';
 import { buildRevisionGraph } from './revision-graph';
-import { contactLine, defaultLayout, layoutFrom, skillUses, traitsOf, type SkillUse } from './layout';
+import { defaultLayout, headerDetails, layoutFrom, skillUses, traitsOf, type SkillUse } from './layout';
 import { PlaceholderEngine } from './placeholder-engine';
 import {
   criticPrompt,
@@ -40,6 +40,7 @@ import {
   renderDraft,
   reviewSystem,
   reviseSuffix,
+  templateBlock,
   toIssues,
   writerPrompt,
   writerSystem,
@@ -110,10 +111,9 @@ function number(draft: DraftOutput): Numbered {
 
 const allBullets = (draft: Numbered) => draft.sections.flatMap((section) => section.groups.flatMap((group) => group.bullets));
 
-/** The stored examples for the role, then the template's own sample for the same role. */
+/** The stored examples for the role, then the template: its sections and the role's sample lines. */
 function writerExamples(set: ExampleSet, template: TemplateDefinition, roleId: RoleId | null): string {
-  const sample = roleId ? `<template_example>\n${template.examples[roleId]}\n</template_example>` : '';
-  return [renderExamples(set), sample].filter(Boolean).join('\n\n');
+  return [renderExamples(set), templateBlock(template, roleId)].filter(Boolean).join('\n\n');
 }
 
 @Injectable()
@@ -263,7 +263,7 @@ export class GeminiEngine implements AiEngine {
     sections: ResumeSection[],
     uses: Map<string, SkillUse>,
     traits: Map<string, string>,
-  ): Promise<ClassicRedLayout> {
+  ): Promise<TemplateLayout> {
     const fallback = defaultLayout(sections, uses);
     const groups = sections.flatMap((section) =>
       section.kind === 'groups'
@@ -400,8 +400,7 @@ export class GeminiEngine implements AiEngine {
 
     return {
       content: {
-        header: { name: input.person.name, contact: contactLine(input.person) },
-        person: input.person,
+        header: { name: input.person.name, details: headerDetails(input.person, getTemplate(input.templateId).details) },
         templateId: input.templateId,
         layout: null,
         sections,

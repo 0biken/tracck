@@ -183,8 +183,8 @@ import { eq as sqlEq } from 'drizzle-orm';
 
 describe('GeminiEngine.generateResume', () => {
   const evidence: EvidenceCandidate[] = [
-    { id: 'ev-1', title: 'Billing API', claimText: 'Built a billing API in TypeScript and PostgreSQL handling 12,000 requests a day', skills: ['TypeScript', 'PostgreSQL'], topics: ['performance'], projectKey: null, source: 'GITHUB', where: 'acme/billing', date: '2024-03-01', pinned: false },
-    { id: 'ev-2', title: 'Meetups', claimText: 'Organised monthly meetups for 300 attendees', skills: [], topics: [], projectKey: null, source: 'CV', where: null, date: null, pinned: false },
+    { id: 'ev-1', title: 'Billing API', claimText: 'Built a billing API in TypeScript and PostgreSQL handling 12,000 requests a day', skills: ['TypeScript', 'PostgreSQL'], topics: ['performance'], projectKey: null, source: 'GITHUB', where: 'acme/billing', date: '2024-03-01', pinned: false, evidenceType: 'achievement' },
+    { id: 'ev-2', title: 'Meetups', claimText: 'Organised monthly meetups for 300 attendees', skills: [], topics: [], projectKey: null, source: 'CV', where: null, date: null, pinned: false, evidenceType: 'role' },
   ];
   const input: GenerateInput = {
     person: { name: 'Ada Obi', email: 'ada@example.com', phone: null, location: null, address: null, dateOfBirth: null, nationality: null },
@@ -231,14 +231,13 @@ describe('GeminiEngine.generateResume', () => {
     });
     const draft = await engineWith(llm).generateResume(input);
     expect(draft.content.layout).toEqual({
-      templateId: 'classic-red',
       experienceGroupIds: ['g1'],
       educationGroupIds: [],
       skills: [{ name: 'TypeScript', level: 1 }],
       strengths: ['Performance'],
     });
     expect(draft.content.templateId).toBe('classic-red');
-    expect(draft.content.person).toEqual(input.person);
+    expect(draft.content.header).toEqual({ name: 'Ada Obi', details: [{ label: 'Email address', value: 'ada@example.com' }] });
   });
 
   it('sends an invented figure back to the writer and keeps the corrected bullet', async () => {

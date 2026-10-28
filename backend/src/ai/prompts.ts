@@ -5,6 +5,7 @@
 
 import { ROLES, type ResumeLength, type RoleId } from '@tracck/shared';
 import type { EvidenceCandidate, GenerateInput } from './ai-engine';
+import type { TemplateDefinition } from '../templates/template';
 import type { Critique } from './schemas';
 import type { Finding, PoolEntry } from './verify';
 
@@ -39,7 +40,7 @@ Hard rules:
 6. Do not repeat a point across bullets.
 7. Length: ${limit.description}. Summary: at most ${limit.summaryWords} words.
 8. Plain text only: no markdown, no emoji. The resume is read by applicant tracking systems.
-9. The template example shows the tone, structure and feel to aim for. Copy how it sounds, never its facts.
+9. Write each section so it does its job in <template>. The sample lines show the move each line makes: copy the move, never the facts.
 
 ${roleGuidance(roleId)}
 
@@ -47,7 +48,7 @@ ${examples}`.trim();
 }
 
 const entryLine = (entry: EvidenceCandidate, ref: string) =>
-  `[${ref}]${entry.pinned ? ' [pinned]' : ''} ${entry.title ? `${entry.title}: ` : ''}${entry.claimText}` +
+  `[${ref}]${entry.pinned ? ' [pinned]' : ''} (${entry.evidenceType}) ${entry.title ? `${entry.title}: ` : ''}${entry.claimText}` +
   `${entry.skills.length ? ` | skills: ${entry.skills.join(', ')}` : ''}` +
   `${entry.where ? ` | ${entry.where}` : ''}${entry.date ? ` | ${entry.date.slice(0, 7)}` : ''}`;
 
@@ -195,3 +196,24 @@ ${roleGuidance(roleId)}`;
 }
 
 export type { PoolEntry };
+
+/**
+ * The template for the writer: what each section is for, then the chosen role's sample lines
+ * with the move each one makes. The purposes are given once, here, and nowhere else.
+ */
+export function templateBlock(template: TemplateDefinition, roleId: RoleId | null): string {
+  const sections = template.sections
+    .map((section) => `- ${section.heading}: ${section.purpose} Draws on: ${section.evidence.join(', ')}.`)
+    .join('\n');
+  const role = ROLES.find((entry) => entry.id === roleId);
+  const samples = roleId
+    ? template.samples[roleId]
+        .map((sample) => `[${sample.section}] ${sample.text}\n  move: ${sample.intent}`)
+        .join('\n')
+    : '';
+  return `<template name="${template.name}">
+Sections, in order:
+${sections}
+${samples ? `\nSample resume${role ? ` for ${role.name}` : ''}:\n${samples}` : ''}
+</template>`;
+}

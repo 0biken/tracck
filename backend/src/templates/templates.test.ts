@@ -16,7 +16,15 @@ describe('GET /v1/templates', () => {
     const { status, body } = await ctx.http().get('/v1/templates');
     expect(status).toBe(200);
     expect(body.templates).toEqual([
-      { id: 'classic-red', name: 'Classic red', description: TEMPLATES[0].description, previewUrl: '/v1/templates/classic-red/preview', isDefault: true },
+      {
+        id: 'classic-red',
+        name: 'Classic red',
+        description: TEMPLATES[0].description,
+        previewUrl: '/v1/templates/classic-red/preview',
+        isDefault: true,
+        sections: TEMPLATES[0].sections.map(({ id, heading, purpose }) => ({ id, heading, purpose })),
+        details: TEMPLATES[0].details,
+      },
     ]);
   });
 
@@ -32,9 +40,27 @@ describe('GET /v1/templates', () => {
     expect(body.error.code).toBe('NOT_FOUND');
   });
 
-  it('has a dummy example for every role, so the writer always has one to learn from', () => {
+  it('defines every section with a purpose and the evidence it draws on', () => {
     for (const template of TEMPLATES) {
-      for (const roleId of ROLE_IDS) expect(template.examples[roleId]).toMatch(/Profile:/);
+      expect(template.sections.length).toBeGreaterThan(0);
+      for (const section of template.sections) {
+        expect(section.purpose.length).toBeGreaterThan(20);
+        expect(section.evidence.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('gives every role a sample, and every line of it a section and an intent', () => {
+    for (const template of TEMPLATES) {
+      const sectionIds = new Set(template.sections.map((section) => section.id));
+      for (const roleId of ROLE_IDS) {
+        expect(template.samples[roleId].length).toBeGreaterThan(0);
+        for (const sample of template.samples[roleId]) {
+          expect(sectionIds.has(sample.section)).toBe(true);
+          expect(sample.text.trim().length).toBeGreaterThan(0);
+          expect(sample.intent.trim().length).toBeGreaterThan(20);
+        }
+      }
     }
   });
 });

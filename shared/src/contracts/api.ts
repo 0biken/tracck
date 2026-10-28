@@ -259,7 +259,7 @@ export type ResumeSection =
   | { id: string; heading: string; kind: 'text'; text: string }
   | { id: string; heading: string; kind: 'groups'; groups: ResumeGroup[] };
 
-/** Personal details the person gave us. Only the ones they filled in are shown. */
+/** Personal details the person gave us. A template decides which of them its resume shows. */
 export interface PersonDetails {
   name: string;
   email: string | null;
@@ -270,27 +270,54 @@ export interface PersonDetails {
   nationality: string | null;
 }
 
+/** The personal details a template can show. */
+export type PersonalDetail = 'dateOfBirth' | 'nationality' | 'address' | 'phone' | 'email' | 'location';
+
+/** How each personal detail is labelled on a resume. */
+export const PERSONAL_DETAIL_LABELS: Record<PersonalDetail, string> = {
+  dateOfBirth: 'Date of birth',
+  nationality: 'Nationality',
+  address: 'Address',
+  phone: 'Phone number',
+  email: 'Email address',
+  location: 'Location',
+};
+
+/** The sections a template can have. The ids are fixed, so the writer and the renderer agree on them. */
+export type TemplateSectionId = 'profile' | 'experience' | 'education' | 'skills' | 'strengths';
+
+export interface TemplateSectionView {
+  id: TemplateSectionId;
+  heading: string;
+  /** What the section is for, in one sentence. */
+  purpose: string;
+}
+
 export interface SkillRating {
   name: string;
   /** 1 to 5, from how many evidence entries use the skill. */
   level: number;
 }
 
-/** How the classic-red template lays out the sections. Ids point into the sections above. */
-export interface ClassicRedLayout {
-  templateId: 'classic-red';
+/** What a template shows of the resume. Ids point into the resume's sections. */
+export interface TemplateLayout {
   experienceGroupIds: string[];
   educationGroupIds: string[];
   skills: SkillRating[];
   strengths: string[];
 }
 
+/** One personal detail as printed on the resume. */
+export interface HeaderDetail {
+  label: string;
+  value: string;
+}
+
 export interface ResumeContent {
-  header: { name: string; contact: string };
-  person: PersonDetails;
-  /** Which template renders this resume, and its layout. */
+  header: { name: string; details: HeaderDetail[] };
+  /** Which template renders this resume. */
   templateId: string;
-  layout: ClassicRedLayout | null;
+  layout: TemplateLayout | null;
   sections: ResumeSection[];
   evidenceRefs: Record<string, EvidenceRef>;
 }
@@ -302,6 +329,9 @@ export interface TemplateView {
   /** Path on this API for the preview image. */
   previewUrl: string;
   isDefault: boolean;
+  sections: TemplateSectionView[];
+  /** The personal details this template shows, in the order it shows them. */
+  details: PersonalDetail[];
 }
 
 export interface Requirement {

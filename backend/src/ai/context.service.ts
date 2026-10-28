@@ -200,7 +200,7 @@ export class ContextService {
           from (select * from by_vector union all select * from by_text union all select * from by_tags) all_signals
           group by id
         )
-        select e.id, e.title, e.claim_text, e.skills, e.topics, e.project_key, e.source_provider, e.source_where,
+        select e.id, e.title, e.claim_text, e.evidence_type, e.skills, e.topics, e.project_key, e.source_provider, e.source_where,
                e.valid_from, e.pinned, coalesce(f.score, 0) as score
         from public.candidate_evidence e
         left join fused f on f.id = e.id
@@ -214,6 +214,7 @@ export class ContextService {
     return (result as unknown as { rows: Record<string, unknown>[] }).rows.map((r) => {
       return {
         id: r.id as string,
+        evidenceType: r.evidence_type as EvidenceCandidate['evidenceType'],
         title: (r.title as string | null) ?? '',
         claimText: r.claim_text as string,
         skills: (r.skills as string[]) ?? [],

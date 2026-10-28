@@ -72,7 +72,6 @@ export default function LandingPage() {
               See how it works
             </Link>
           </div>
-          <div className="font-mono text-[13px] text-ink-muted">Free: 1 source, 2 resumes a month. No card.</div>
         </div>
 
         <div

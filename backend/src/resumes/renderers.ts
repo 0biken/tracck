@@ -4,6 +4,7 @@
 import { AlignmentType, Document, HeadingLevel, LevelFormat, Packer, Paragraph, TextRun } from 'docx';
 import PDFDocument from 'pdfkit';
 import type { ResumeContent } from '@tracck/shared';
+import { headerContact } from './content';
 
 const MARGIN = 54;
 
@@ -16,7 +17,7 @@ export function renderPdf(content: ResumeContent): Promise<Buffer> {
     doc.on('error', reject);
 
     doc.font('Helvetica-Bold').fontSize(20).text(content.header.name);
-    if (content.header.contact) doc.font('Helvetica').fontSize(10).fillColor('#444444').text(content.header.contact);
+    if (headerContact(content)) doc.font('Helvetica').fontSize(10).fillColor('#444444').text(headerContact(content));
     doc.fillColor('#000000').moveDown(0.8);
 
     for (const section of content.sections) {
@@ -48,8 +49,8 @@ export async function renderDocx(content: ResumeContent): Promise<Buffer> {
   const children: Paragraph[] = [
     new Paragraph({ children: [new TextRun({ text: content.header.name, bold: true, size: 40 })] }),
   ];
-  if (content.header.contact) {
-    children.push(new Paragraph({ children: [new TextRun({ text: content.header.contact, color: '444444', size: 20 })], spacing: { after: 200 } }));
+  if (headerContact(content)) {
+    children.push(new Paragraph({ children: [new TextRun({ text: headerContact(content), color: '444444', size: 20 })], spacing: { after: 200 } }));
   }
 
   for (const section of content.sections) {
