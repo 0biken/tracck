@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Bullet, EditBulletRequest, EvidenceRef, PlanId, ResumeDetailView, ResumeSection } from '@tracck/shared'
 import type { ComponentType } from 'react'
+import { Markdown } from '@/components/markdown'
 import { ErrorNotice } from '@/components/sources/dialogs'
 import { TEMPLATE_RENDERERS } from '@/components/resumes/templates'
 import type { TemplateProps } from '@/components/resumes/templates/classic-red'
@@ -271,7 +272,7 @@ export function ResumeEditor({ initial, plan }: { initial: ResumeDetailView; pla
                         onCancel={() => setRewriting(null)}
                       />
                     ) : (
-                      <div className="text-[15px] leading-[22px]">{selected.text}</div>
+                      <Markdown className="text-[15px] leading-[22px]">{selected.text}</Markdown>
                     )}
                   </div>
 
@@ -335,7 +336,7 @@ export function ResumeEditor({ initial, plan }: { initial: ResumeDetailView; pla
           <TabPanel idBase="review" value="job" active={tab === 'job'}>
             <div className="flex flex-col gap-3 p-4 sm:p-6">
               <div className="t-eyebrow text-ink-muted">Job description · saved {formatDate(resume.createdAt)}</div>
-              <div className="whitespace-pre-line border border-line bg-sunken p-4 text-sm leading-[22px]">{resume.job.description}</div>
+              <Markdown className="whitespace-pre-line border border-line bg-sunken p-4 text-sm leading-[22px]">{resume.job.description}</Markdown>
               {resume.job.focus && (
                 <>
                   <div className="t-eyebrow mt-2 text-ink-muted">Your focus</div>
@@ -465,7 +466,7 @@ function Evidence({ bullet, refs }: { bullet: Bullet; refs: Record<string, Evide
               </span>
               <span className={`font-mono text-xs ${primary ? 'text-signal' : 'text-ink-muted'}`}>{formatDate(ref.date)}</span>
             </div>
-            <div className={primary ? 'font-mono text-[13px] leading-5' : 'text-sm leading-5'}>{ref.original}</div>
+            <Markdown className={primary ? 'font-mono text-[13px] leading-5' : 'text-sm leading-5'}>{ref.original}</Markdown>
             {primary && (
               <Link href="/dashboard/evidence" className="text-[13px] font-semibold">
                 Open in evidence library

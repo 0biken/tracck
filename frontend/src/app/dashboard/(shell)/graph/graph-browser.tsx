@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { GraphGroup, GraphProject } from '@tracck/shared'
 import { ColumnHead } from '@/components/page-header'
 import { Tag } from '@/components/ui/badge'
+import { Markdown } from '@/components/markdown'
 import { formatDate } from '@/lib/format'
 
 type Item = GraphGroup & Partial<Pick<GraphProject, 'skills' | 'usedInResumes'>>
@@ -111,7 +112,7 @@ export function GraphBrowser({ sections }: { sections: GraphSectionData[] }) {
                   <br />
                   {entry.source}
                 </span>
-                <span className="text-[15px] leading-[22px]">{entry.text}</span>
+                <Markdown className="text-[15px] leading-[22px]">{entry.text}</Markdown>
               </div>
             ))}
             {current.more > 0 && (

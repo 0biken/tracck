@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { JobStep, JobView, ResumeDetailView } from '@tracck/shared'
 import { Eyebrow } from '@/components/page-header'
+import { Markdown } from '@/components/markdown'
 import { ErrorNotice } from '@/components/sources/dialogs'
 import { Button, buttonClass } from '@/components/ui/button'
 import { api } from '@/lib/api/client'
@@ -242,7 +243,7 @@ function Evidence({ resume }: { resume: ResumeDetailView }) {
               {item.source}
               {item.where && ` · ${item.where}`}
             </span>
-            <span className="text-[15px] leading-[22px]">{item.original}</span>
+            <Markdown className="text-[15px] leading-[22px]">{item.original}</Markdown>
           </div>
         ))}
         {refs.length > 6 && <div className="py-3.5 font-mono text-xs text-ink-muted">+ {refs.length - 6} more</div>}

@@ -176,13 +176,15 @@ Supported strengths: ${args.strengths.join(', ') || 'none'}`;
 
 export function jobSystem(): string {
   return `You read job descriptions. ${DATA_RULE}
-List what the job requires and what it prefers as short skill or qualification names (for example "TypeScript", "stakeholder reporting"). Pick the closest roleId from: ${ROLES.map((role) => `${role.id} (${role.name})`).join(', ')}, or null if none fits. List up to 8 lower-case themes the employer cares about, such as "performance" or "leadership".`;
+List what the job requires and what it prefers as short plain-text skill or qualification names, with no markdown (for example "TypeScript", "stakeholder reporting"). Pick the closest roleId from: ${ROLES.map((role) => `${role.id} (${role.name})`).join(', ')}, or null if none fits. List up to 8 lower-case themes the employer cares about, such as "performance" or "leadership".`;
 }
 
 export function extractSystem(): string {
   return `You turn source material about one person (a CV, repository, profile or notes) into separate evidence entries for a resume library. ${DATA_RULE}
 
 Each entry is one self-contained statement of something the person did, built or achieved, using only facts in the source. Keep every number, name and date exactly as written. Do not add praise, guess at results, or merge unrelated facts. Skip boilerplate, contact details and anything that is not a fact about the person. Tag the tools they name as skills and the themes they show as topics.
+
+Write each title and claimText as plain text, with no markdown symbols (no **, #, bullets or links). Keep the wording and facts; only drop the formatting. Resumes use these lines, so they must read as plain text.
 
 A source of kind "github_profile" is the person's own introduction. Read all of it and turn every fact there about who they are, their role, their work and their skills into entries, ahead of anything else.`;
 }

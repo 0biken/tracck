@@ -3,6 +3,7 @@
 import { Check } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { EvidencePage, EvidenceShow, EvidenceView, SourceProvider } from '@tracck/shared'
+import { Markdown } from '@/components/markdown'
 import { ErrorNotice } from '@/components/sources/dialogs'
 import { Tag } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -218,7 +219,7 @@ export function EvidenceLibrary({ initial }: { initial: EvidencePage }) {
                       {item.source}
                       {item.date && ` · ${formatDate(item.date)}`}
                     </div>
-                    {item.text}
+                    <Markdown>{item.text}</Markdown>
                   </div>
                 ))}
               </div>
@@ -329,7 +330,9 @@ export function EvidenceLibrary({ initial }: { initial: EvidencePage }) {
               {metaOf(viewing) && ` · ${metaOf(viewing)}`}
             </div>
             <h2 className="t-claim m-0">{viewing.title}</h2>
-            <div className="border border-line bg-sunken p-4 font-mono text-[13px] leading-5">{viewing.original}</div>
+            <div className="border border-line bg-sunken p-4 text-[13px] leading-5">
+              <Markdown>{viewing.original}</Markdown>
+            </div>
             <p className="m-0 text-sm leading-5 text-ink-muted">
               This is the text Tracck read. Editing the wording changes how the entry reads in resumes, not this original.
             </p>
