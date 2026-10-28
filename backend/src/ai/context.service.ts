@@ -10,7 +10,7 @@ import type { Database } from '../db';
 import { EMBEDDING_DIMENSIONS, candidateEvidence, evidenceEmbeddings } from '../db/schema';
 import { AI_SETTINGS, DB, LLM_CLIENT } from '../tokens';
 import type { EvidenceCandidate } from './ai-engine';
-import type { AiSettings } from './ai.config';
+import { TEXT_LIMITS, type AiSettings } from './ai.config';
 import type { LlmClient } from './llm';
 
 export interface RetrieveRequest {
@@ -142,7 +142,7 @@ export class ContextService {
    */
   async retrieve(request: RetrieveRequest): Promise<EvidenceCandidate[]> {
     const limit = request.limit ?? this.settings.evidenceLimit;
-    const [queryVector] = await this.llm.embed({ texts: [request.query.slice(0, 6000)], kind: 'query', userId: request.userId });
+    const [queryVector] = await this.llm.embed({ texts: [request.query.slice(0, TEXT_LIMITS.embedQuery)], kind: 'query', userId: request.userId });
     const tags = [...new Set(request.tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
     const words = [...new Set(request.query.toLowerCase().match(/[a-z][a-z0-9+#.]{2,}/g) ?? [])].slice(0, 60);
     const tsQuery = words.map((word) => word.replace(/[^a-z0-9]/g, '')).filter(Boolean).join(' | ');

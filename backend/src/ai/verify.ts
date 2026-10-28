@@ -26,7 +26,9 @@ export type FindingKind =
   | 'unsupported_number'
   | 'unsupported_skill'
   | 'unknown_name'
-  | 'too_long';
+  | 'too_long'
+  | 'repetition'
+  | 'tone';
 
 export interface Finding {
   bullet: string;

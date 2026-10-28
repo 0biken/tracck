@@ -15,8 +15,8 @@ const asSource = (provider: string | null) => (provider ?? 'manual').toUpperCase
  * What counts as a project. Work experience, certifications and education can share a project key
  * with the file they came from, so they are kept out. GitHub items are always project work.
  */
-const PROJECT_ENTRY = sql`(e.evidence_type = 'project' or e.source_provider = 'github')`;
-const PROJECT_ENTRY_BARE = sql`(evidence_type = 'project' or source_provider = 'github')`;
+const PROJECT_ENTRY = sql`(e.evidence_type = 'project' or e.source_provider = 'github') and not (e.source_provider in ('cv', 'linkedin') and e.project_key is not distinct from e.source_where)`;
+const PROJECT_ENTRY_BARE = sql`(evidence_type = 'project' or source_provider = 'github') and not (source_provider in ('cv', 'linkedin') and project_key is not distinct from source_where)`;
 
 interface ProjectRow {
   key: string;
@@ -54,7 +54,7 @@ export class GraphService {
     const projectRows = rowsOf<ProjectRow>(
       await this.db.execute(sql`
         select e.project_key as key,
-               min(e.source_where) as name,
+               (array_agg(e.title order by e.valid_from desc nulls last, e.created_at desc))[1] as name,
                count(*)::int as count,
                min(e.valid_from)::text as first,
                max(e.valid_from)::text as last,

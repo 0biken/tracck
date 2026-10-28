@@ -24,7 +24,7 @@ import type { TemplateDefinition } from '../templates/template';
 import { getTemplate } from '../templates/registry';
 import type { AiEngine, DraftReview, EvidenceCandidate, ExtractedEvidence, GenerateInput, JobReading, ResumeDraft, SourceDocument } from './ai-engine';
 import { type ExampleSet, ExampleStore, renderExamples } from './examples';
-import type { AiSettings } from './ai.config';
+import { TEXT_LIMITS, type AiSettings } from './ai.config';
 import { isTokensExhausted, type LlmClient } from './llm';
 import { buildRevisionGraph } from './revision-graph';
 import { defaultLayout, headerDetails, layoutFrom, skillUses, traitsOf, type SkillUse } from './layout';
@@ -55,12 +55,15 @@ import {
   type Critique,
   type DraftOutput,
 } from './schemas';
+import { requirementGaps, styleFindings } from './style';
 import { supportedSkills, verifyBullets, type BulletDraft, type Finding, type PoolEntry } from './verify';
 
 const CHUNK_CHARS = 12_000;
 const MAX_ENTRIES_PER_DOCUMENT = 60;
 /** Critic problems of these kinds ask for a rewrite even when the verdict says pass. */
 const SERIOUS = new Set(['unsupported', 'role_rule']);
+/** Style problems the checks find exactly. A draft with any of them is revised, like a serious critic problem. */
+const STYLE = new Set(['repetition', 'tone']);
 
 /** Splits long text at paragraph breaks so no model call gets more than it can use well. Nothing is dropped. */
 function chunk(text: string): string[] {
@@ -107,6 +110,18 @@ function number(draft: DraftOutput): Numbered {
       })),
     })),
   };
+}
+
+/** Counts read from the CV itself, so they are exact and cost no model call. */
+function cvStats(text: string): { n: number; label: string }[] {
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line.length >= 25);
+  return [
+    { n: lines.filter((line) => /\d/.test(line)).length, label: 'lines with a figure' },
+    { n: lines.length, label: 'lines read' },
+  ];
 }
 
 const allBullets = (draft: Numbered) => draft.sections.flatMap((section) => section.groups.flatMap((group) => group.bullets));
@@ -174,28 +189,30 @@ export class GeminiEngine implements AiEngine {
     }
   }
 
+  /** The word list reads the job first. The model keeps those names, adds what the list missed, and gives the themes. */
   async parseJob(description: string): Promise<JobReading> {
+    const listed = await this.fallback.parseJob(description);
     try {
       const { data } = await this.llm.json({
         purpose: 'extract',
         model: this.settings.extract.model,
         system: jobSystem(),
-        prompt: `<job_description>\n${description.slice(0, 8000)}\n</job_description>`,
+        prompt: `<job_description>\n${description.slice(0, TEXT_LIMITS.job)}\n</job_description>\n<known_skills>${[...listed.required, ...listed.preferred].join(', ')}</known_skills>`,
         schema: jobReadingSchema,
         temperature: 0,
         maxOutputTokens: 1500,
       });
       return {
-        required: data.required,
-        preferred: data.preferred,
-        roleId: data.roleId,
+        required: [...new Set([...listed.required, ...data.required])],
+        preferred: [...new Set([...listed.preferred, ...data.preferred])],
+        roleId: data.roleId ?? listed.roleId,
         seniority: data.seniority,
         themes: data.themes.map((theme) => theme.toLowerCase()),
       };
     } catch (error) {
       if (isTokensExhausted(error)) throw error;
       this.logger.warn(`job reading failed, using the word list:${error instanceof Error ? error.message : error}`);
-      return this.fallback.parseJob(description);
+      return listed;
     }
   }
 
@@ -234,11 +251,11 @@ export class GeminiEngine implements AiEngine {
     const loop = buildRevisionGraph<DraftOutput, Numbered, Finding, Critique>(
       {
         check: async (numbered) => {
-          const findings = verifyBullets(allBullets(numbered), lookup);
-          const blocking = findings.filter((finding) => finding.severity === 'blocking');
+          const findings = [...verifyBullets(allBullets(numbered), lookup), ...styleFindings(allBullets(numbered))];
+          const mustFix = findings.filter((finding) => finding.severity === 'blocking' || STYLE.has(finding.kind));
           const critique = this.settings.maxRevisions > 0 ? await this.review(input, roleId, numbered, lookup, findings) : null;
           const serious = critique?.issues.filter((issue) => SERIOUS.has(issue.kind)) ?? [];
-          const passed = blocking.length === 0 && serious.length === 0 && (critique === null || critique.verdict === 'pass');
+          const passed = mustFix.length === 0 && serious.length === 0 && (critique === null || critique.verdict === 'pass');
           return { findings, critique, passed };
         },
         revise: async (numbered, findings, critique) => {
@@ -396,7 +413,7 @@ export class GeminiEngine implements AiEngine {
       revisions,
       unresolved,
       removedBullets: removed,
-      uncoveredRequirements: critique?.uncoveredRequirements ?? [],
+      uncoveredRequirements: requirementGaps(input.job.required, lookup, allBullets(draft)),
     };
 
     return {
@@ -419,7 +436,7 @@ export class GeminiEngine implements AiEngine {
       purpose: 'check',
       model: this.settings.critic.model,
       system: reviewSystem(input.roleId),
-      prompt: `<cv>\n${input.text.slice(0, 20_000)}\n</cv>`,
+      prompt: `<cv>\n${input.text.slice(0, TEXT_LIMITS.cv)}\n</cv>`,
       schema: cvReviewSchema,
       thinking: this.settings.critic.thinking,
       temperature: 0.2,
@@ -432,6 +449,6 @@ export class GeminiEngine implements AiEngine {
       ...(issue.quote && input.text.includes(issue.quote) ? { quote: issue.quote } : {}),
       ...(issue.fix ? { fix: issue.fix } : {}),
     }));
-    return { file: input.file, roleFamily: input.roleId, stats: data.stats, issues, engine: this.name };
+    return { file: input.file, roleFamily: input.roleId, stats: cvStats(input.text), issues, engine: this.name };
   }
 }

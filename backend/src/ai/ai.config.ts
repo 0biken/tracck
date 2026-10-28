@@ -28,3 +28,17 @@ export const AI_CONFIG: AiSettings = {
   maxRevisions: 2,
   evidenceLimit: 40,
 };
+
+/** Text limits shared by every prompt and query, so one job description means the same thing everywhere. */
+export const TEXT_LIMITS = {
+  /** A job description, in any model call. */
+  job: 8000,
+  /** Text embedded to search the evidence. */
+  embedQuery: 6000,
+  /** A CV read for review. */
+  cv: 20000,
+  /** The person's own instructions, in their words. */
+  instructions: 1000,
+  /** The emphasis the person asked for. */
+  focus: 500,
+} as const;

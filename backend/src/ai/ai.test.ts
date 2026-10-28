@@ -297,7 +297,7 @@ describe('GeminiEngine.generateResume', () => {
     const llm = new FakeLlm({ write: () => draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]), check: () => pass });
     await engineWith(llm).generateResume(input);
     const write = llm.calls[0];
-    expect(write.system).toContain('Hard rules');
+    expect(write.system).toContain('Rules:');
     expect(write.system).not.toContain('Ada Obi');
     expect(write.prompt).toContain('Ada Obi');
   });

@@ -78,7 +78,8 @@ export const draftSchema = z.object({
 });
 export type DraftOutput = z.infer<typeof draftSchema>;
 
-export const FINDING_KINDS = ['unsupported', 'irrelevant', 'weak', 'vague', 'tone', 'role_rule', 'repetition', 'missing_requirement'] as const;
+/** The problems only a reader can judge. Figures, skills, length, repetition and filler are checked in code. */
+export const CRITIC_KINDS = ['unsupported', 'irrelevant', 'weak', 'tone', 'role_rule'] as const;
 
 export const critiqueSchema = z.object({
   verdict: z.enum(['pass', 'revise']),
@@ -86,12 +87,11 @@ export const critiqueSchema = z.object({
   issues: z.array(
     z.object({
       bullet: z.string().nullable().describe('The bullet id, or null for a problem with the resume as a whole.'),
-      kind: z.enum(FINDING_KINDS),
+      kind: z.enum(CRITIC_KINDS),
       reason: z.string(),
       fix: z.string().describe('What the writer should do, in one sentence.'),
     }),
   ),
-  uncoveredRequirements: z.array(z.string()).describe('Required skills the evidence could support but the resume does not show.'),
 });
 export type Critique = z.infer<typeof critiqueSchema>;
 
@@ -105,7 +105,6 @@ export const layoutChoiceSchema = z.object({
 export type LayoutChoice = z.infer<typeof layoutChoiceSchema>;
 
 export const cvReviewSchema = z.object({
-  stats: z.array(z.object({ n: z.number(), label: z.string() })).max(4),
   issues: z
     .array(
       z.object({
