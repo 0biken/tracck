@@ -13,8 +13,8 @@ type Item =
   | { head: string }
   | { href: string; label: string; count?: string; match: (path: string) => boolean }
 
-function userItems(counts: NavCounts): Item[] {
-  return [
+function userItems(counts: NavCounts, isStaff?: boolean): Item[] {
+  const items: Item[] = [
     { href: '/dashboard', label: 'Home', match: (p) => p === '/dashboard' },
     {
       href: '/dashboard/resumes',
@@ -30,14 +30,39 @@ function userItems(counts: NavCounts): Item[] {
     { head: 'ACCOUNT' },
     { href: '/dashboard/settings', label: 'Settings and plan', match: (p) => p.startsWith('/dashboard/settings') },
   ]
+  if (isStaff) {
+    items.push(
+      { head: 'STAFF' },
+      { href: '/admin', label: 'Admin console', match: (p) => p.startsWith('/admin') },
+    )
+  }
+  return items
 }
 
-export function SidebarNav({ counts }: { counts: NavCounts }) {
+const adminItems: Item[] = [
+  { head: 'ADMIN CONSOLE' },
+  { href: '/admin', label: 'Overview', match: (p) => p === '/admin' },
+  { href: '/admin/users', label: 'Users', match: (p) => p.startsWith('/admin/users') },
+  { href: '/admin/activity', label: 'Activity and queues', match: (p) => p.startsWith('/admin/activity') },
+  { head: 'APP' },
+  { href: '/dashboard', label: 'Back to dashboard', match: () => false },
+]
+
+export function SidebarNav({
+  mode = 'user',
+  counts,
+  isStaff = false,
+}: {
+  mode?: 'user' | 'admin'
+  counts: NavCounts
+  isStaff?: boolean
+}) {
   const pathname = usePathname()
+  const items = mode === 'admin' ? adminItems : userItems(counts, isStaff)
 
   return (
-    <nav aria-label="App" className="flex flex-col gap-0.5">
-      {userItems(counts).map((item) => {
+    <nav aria-label={mode === 'admin' ? 'Admin console' : 'App'} className="flex flex-col gap-0.5">
+      {items.map((item) => {
         if ('head' in item) {
           return (
             <div key={item.head} className="px-2 pb-1.5 pt-[18px] font-mono text-[11px] tracking-[0.16em] text-ink-muted" aria-hidden="true">

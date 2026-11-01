@@ -16,6 +16,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
   return (
     <AppShell
       viewer={viewerFromMe(me)}
+      isStaff={me.staff}
       counts={{ resumes: summary.resumes, evidence: summary.entries, sources: summary.sourcesTotal }}
       plan={{
         name: planName,

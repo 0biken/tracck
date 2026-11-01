@@ -11,6 +11,6 @@ import { PrivacyService } from './privacy.service';
   imports: [AuthModule, BillingModule],
   controllers: [PrivacyController],
   providers: [PrivacyService, DataExportHandler, AccountDeletionHandler],
-  exports: [DataExportHandler, AccountDeletionHandler],
+  exports: [PrivacyService, DataExportHandler, AccountDeletionHandler],
 })
 export class PrivacyModule {}

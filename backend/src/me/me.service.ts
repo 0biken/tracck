@@ -15,6 +15,8 @@ import {
   type SummaryView,
   type UpdateMeRequest,
 } from '@tracck/shared';
+import { isStaff } from '../admin/staff.guard';
+import type { ApiEnv } from '../config/env';
 import { EntitlementsService, periodResetsOn } from '../core/entitlements.service';
 import type { Database } from '../db';
 import {
@@ -23,7 +25,7 @@ import {
   profiles,
   userPolicyConsents,
 } from '../db/schema';
-import { DB } from '../tokens';
+import { DB, ENV } from '../tokens';
 
 export const DEFAULT_PREFERENCES: Preferences = {
   notifications: { done: true, weekly: true, attention: true },
@@ -42,6 +44,7 @@ export class MeService {
   constructor(
     @Inject(DB) private readonly db: Database,
     @Inject(EntitlementsService) private readonly entitlements: EntitlementsService,
+    @Inject(ENV) private readonly env: ApiEnv,
   ) {}
 
   async view(userId: string, email: string | null): Promise<MeView> {
@@ -70,6 +73,7 @@ export class MeService {
       primaryRole: isRole(profile.primaryRole ?? '') ? (profile.primaryRole as RoleId) : (roles[0] ?? null),
       plan: profile.plan as PlanId,
       onboardingCompleted: profile.onboardingCompletedAt !== null,
+      staff: isStaff(this.env, userId, email),
       policyAccepted: POLICY_PURPOSES.every((purpose) => accepted.some((row) => row.purpose === purpose)),
       preferences: {
         notifications: { ...DEFAULT_PREFERENCES.notifications, ...stored.notifications },

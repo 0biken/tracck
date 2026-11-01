@@ -45,6 +45,10 @@ const schema = z.object({
   // Which models run each task is set in src/ai/ai.config.ts.
 
   GEMINI_API_KEY: optional(z.string().min(1)),
+  /** Comma-separated Supabase user IDs with access to the admin portal. */
+  STAFF_USER_IDS: optional(z.string().min(1)),
+  /** Comma-separated email addresses with access to the admin portal. */
+  STAFF_EMAILS: optional(z.string().min(1)),
 });
 
 export type ApiEnv = z.infer<typeof schema>;
