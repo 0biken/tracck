@@ -34,6 +34,7 @@ export interface MeView {
   primaryRole: RoleId | null;
   plan: PlanId;
   onboardingCompleted: boolean;
+  staff: boolean;
   policyAccepted: boolean;
   preferences: Preferences;
 }
@@ -473,3 +474,161 @@ export interface WaitlistRequest {
   message?: string;
 }
 
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+export type AdminUserStatus = 'active' | 'suspended' | 'onboarding';
+
+export interface AdminStatsView {
+  users: {
+    total: number;
+    onboarded: number;
+    pro: number;
+    suspended: number;
+    newLast7d: number;
+    newLast30d: number;
+  };
+  content: {
+    sourcesTotal: number;
+    sourcesByProvider: Record<SourceProvider, number>;
+    evidenceTotal: number;
+    resumesTotal: number;
+    resumesExported: number;
+  };
+  jobsLast24h: {
+    queued: number;
+    running: number;
+    succeeded: number;
+    failed: number;
+  };
+  aiLast30d: {
+    calls: number;
+    failedCalls: number;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostUsd: number;
+  };
+  queues: {
+    openDeletionRequests: number;
+    waitlistEntries: number;
+  };
+}
+
+export interface AdminUserSummaryView {
+  id: string;
+  email: string | null;
+  name: string | null;
+  primaryRole: RoleId | null;
+  plan: PlanId;
+  status: AdminUserStatus;
+  sourcesCount: number;
+  resumesCount: number;
+  createdAt: string;
+  lastSignInAt: string | null;
+  suspendedAt: string | null;
+}
+
+export interface AdminUserDetailView extends AdminUserSummaryView {
+  headline: string | null;
+  location: string | null;
+  phone: string | null;
+  roles: RoleId[];
+  onboardingCompleted: boolean;
+  policyAccepted: boolean;
+  staff: boolean;
+  usage: {
+    resumesThisMonth: number;
+    resumesLimit: number | null;
+    activeSources: number;
+    sourcesLimit: number | null;
+    periodResetsOn: string;
+    evidenceCount: number;
+  };
+  subscription: {
+    status: BillingView['status'];
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  };
+  sources: {
+    id: string;
+    provider: string;
+    handle: string | null;
+    status: string;
+    lastSyncAt: string | null;
+    lastErrorCode: string | null;
+    createdAt: string;
+  }[];
+  resumes: {
+    id: string;
+    title: string;
+    company: string | null;
+    roleId: string | null;
+    length: ResumeLength;
+    status: string;
+    engine: string;
+    createdAt: string;
+    lastExportedAt: string | null;
+  }[];
+  recentJobs: {
+    id: string;
+    jobType: string;
+    status: string;
+    step: string | null;
+    attemptCount: number;
+    errorCode: string | null;
+    safeErrorMessage: string | null;
+    createdAt: string;
+    completedAt: string | null;
+  }[];
+  payments: {
+    id: string;
+    provider: string;
+    reference: string;
+    amountMinor: number;
+    currency: string;
+    status: string;
+    paidAt: string | null;
+    createdAt: string;
+  }[];
+  auditEvents: AdminAuditEventView[];
+}
+
+export interface AdminUpdateUserRequest {
+  plan?: PlanId;
+  suspended?: boolean;
+  reason?: string;
+}
+
+export interface AdminAuditEventView {
+  id: string;
+  userId: string | null;
+  userEmail: string | null;
+  eventType: string;
+  subjectType: string | null;
+  subjectId: string | null;
+  actor: string | null;
+  ip: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AdminDeletionRequestView {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  status: 'requested' | 'in_progress' | 'completed' | 'failed';
+  requestedAt: string;
+  dueAt: string;
+  completedAt: string | null;
+}
+
+export interface AdminWaitlistEntryView {
+  id: string;
+  orgName: string;
+  contactName: string;
+  email: string;
+  orgType: 'university' | 'bootcamp' | 'job_platform' | 'other';
+  volume: string | null;
+  message: string | null;
+  createdAt: string;
+}

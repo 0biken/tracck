@@ -4,7 +4,16 @@
 // Supabase session). Paths follow docs/prd/03-architecture.md.
 
 import type {
+  AdminAuditEventView,
+  AdminDeletionRequestView,
+  AdminStatsView,
+  AdminUpdateUserRequest,
+  AdminUserDetailView,
+  AdminUserStatus,
+  AdminUserSummaryView,
+  AdminWaitlistEntryView,
   BillingView,
+  PlanId,
   CheckoutRequest,
   CheckoutResponse,
   CreateEvidenceRequest,
@@ -153,6 +162,30 @@ export function createApi(call: Transport) {
 
     waitlist: {
       join: (body: WaitlistRequest) => post<{ ok: true }>('/v1/waitlist', body),
+    },
+
+    admin: {
+      stats: () => get<AdminStatsView>('/v1/admin/stats'),
+      users: (
+        query: {
+          q?: string
+          plan?: PlanId
+          status?: AdminUserStatus
+          role?: RoleId
+          cursor?: string
+          limit?: number
+        } = {},
+      ) => get<Page<AdminUserSummaryView>>('/v1/admin/users', query),
+      user: (userId: string) => get<AdminUserDetailView>(`/v1/admin/users/${userId}`),
+      updateUser: (userId: string, body: AdminUpdateUserRequest) =>
+        patch<AdminUserDetailView>(`/v1/admin/users/${userId}`, body),
+      resetQuota: (userId: string) => post<AdminUserDetailView>(`/v1/admin/users/${userId}/reset-quota`),
+      deleteUser: (userId: string) =>
+        del<{ requestId: string; jobId: string; statusUrl: string; eventsUrl: string }>(`/v1/admin/users/${userId}`),
+      audit: (query: { userId?: string; eventType?: string; cursor?: string; limit?: number } = {}) =>
+        get<Page<AdminAuditEventView>>('/v1/admin/audit', query),
+      deletionRequests: () => get<AdminDeletionRequestView[]>('/v1/admin/deletion-requests'),
+      waitlist: () => get<AdminWaitlistEntryView[]>('/v1/admin/waitlist'),
     },
 
   }

@@ -89,6 +89,7 @@ export const profiles = pgTable(
     primaryRole: text('primary_role'),
     plan: text('plan', { enum: ['free', 'pro'] }).notNull().default('free'),
     deletedAt: tstz('deleted_at'),
+    suspendedAt: tstz('suspended_at'),
     onboardingCompletedAt: tstz('onboarding_completed_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

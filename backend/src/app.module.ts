@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
+import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
 import { BillingModule } from './billing/billing.module';
 import { ApiExceptionFilter } from './common/api-exception.filter';
@@ -29,6 +30,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     SourcesModule,
     BillingModule,
     WaitlistModule,
+    AdminModule,
   ],
   controllers: [HealthController, RolesController, TemplatesController],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
