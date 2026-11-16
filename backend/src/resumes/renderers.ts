@@ -8,12 +8,19 @@ import { headerContact } from './content';
 
 const MARGIN = 54;
 
-export function renderPdf(content: ResumeContent): Promise<Buffer> {
+export async function renderPdf(content: ResumeContent): Promise<Buffer> {
+  return (await renderPdfMeasured(content)).buffer;
+}
+
+/** Render and count actual pages using the same layout as PDF export. */
+export function renderPdfMeasured(content: ResumeContent): Promise<{ buffer: Buffer; pages: number }> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN }, info: { Title: `${content.header.name} resume`, Author: content.header.name } });
     const chunks: Buffer[] = [];
+    let pages = 1;
+    doc.on('pageAdded', () => { pages += 1; });
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('end', () => resolve({ buffer: Buffer.concat(chunks), pages }));
     doc.on('error', reject);
 
     doc.font('Helvetica-Bold').fontSize(20).text(content.header.name);

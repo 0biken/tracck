@@ -1,4 +1,4 @@
-import type { Bullet, MatchReport, ResumeContent, ResumeGroup } from '@tracck/shared';
+import { RESUME_LENGTH, type Bullet, type MatchReport, type ResumeContent, type ResumeGroup } from '@tracck/shared';
 import type { JobReading } from '../ai/ai-engine';
 
 export interface BulletLocation {
@@ -49,8 +49,6 @@ export function plainText(content: ResumeContent): string {
 /** The personal details printed under the name, on one line. */
 export const headerContact = (content: ResumeContent) => content.header.details.map((detail) => detail.value).join(' · ');
 
-const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
-const ONE_PAGE_WORDS = 520;
 
 /**
  * What the draft covers of the job, worked out from the draft itself so the report
@@ -61,6 +59,7 @@ export function buildMatch(input: {
   reading: Pick<JobReading, 'required' | 'preferred'>;
   engineScore: number | null;
   length: 'one_page' | 'full';
+  pdfPages: number | null;
 }): MatchReport {
   const { content, reading } = input;
   const bullets = [...bulletsOf(content)].map((location) => location.bullet);
@@ -95,7 +94,6 @@ export function buildMatch(input: {
   const claimsTraced = bullets.length ? Math.round((traced / bullets.length) * 100) : 100;
   const withFigure = bullets.filter((bullet) => /\d/.test(bullet.text)).length;
 
-  const words = wordCount(plainText(content));
   const coverage = required.total ? required.covered / required.total : 1;
   const preferredCoverage = preferred.total ? preferred.covered / preferred.total : 1;
   const heuristic = Math.round(coverage * 60 + preferredCoverage * 15 + (claimsTraced / 100) * 25);
@@ -112,7 +110,7 @@ export function buildMatch(input: {
     preferred,
     claimsTraced,
     measurable: { withFigure, total: bullets.length },
-    fitsOnePage: input.length === 'one_page' ? words <= ONE_PAGE_WORDS : null,
+    fitsOnePage: input.length === RESUME_LENGTH.onePage && input.pdfPages !== null ? input.pdfPages === 1 : null,
     requirements,
     suggestions,
   };

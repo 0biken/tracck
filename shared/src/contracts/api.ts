@@ -222,7 +222,8 @@ export interface CvReviewView {
 
 // ─── Resumes ─────────────────────────────────────────────────────────────────
 
-export type ResumeLength = 'one_page' | 'full';
+export const RESUME_LENGTH = { onePage: 'one_page', full: 'full' } as const;
+export type ResumeLength = (typeof RESUME_LENGTH)[keyof typeof RESUME_LENGTH];
 export type ResumeStatus = 'generating' | 'draft' | 'exported' | 'failed';
 
 export interface ResumeSummaryView {

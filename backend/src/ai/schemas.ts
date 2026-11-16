@@ -79,7 +79,8 @@ export const draftSchema = z.object({
 export type DraftOutput = z.infer<typeof draftSchema>;
 
 /** The problems only a reader can judge. Figures, skills, length, repetition and filler are checked in code. */
-export const CRITIC_KINDS = ['unsupported', 'irrelevant', 'weak', 'tone', 'role_rule'] as const;
+export const CRITIC_KIND = { unsupported: 'unsupported', roleRule: 'role_rule' } as const;
+export const CRITIC_KINDS = [CRITIC_KIND.unsupported, 'irrelevant', 'weak', 'tone', CRITIC_KIND.roleRule] as const;
 
 export const critiqueSchema = z.object({
   verdict: z.enum(['pass', 'revise']),

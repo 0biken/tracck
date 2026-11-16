@@ -223,6 +223,22 @@ describe('GeminiEngine.generateResume', () => {
     expect(llm.calls.map((c) => c.purpose)).toEqual(['write', 'check', 'write']);
   });
 
+  it('removes claims the final critic still finds unsupported after revisions', async () => {
+    const llm = new FakeLlm({
+      write: () => ({ ...draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]), summary: 'Led a global banking team.' }),
+      check: () => ({ verdict: 'revise', score: 30, issues: [
+        { bullet: 'b1', kind: 'unsupported', reason: 'The claimed ownership is unsupported.', fix: 'Remove the claim.' },
+        { bullet: null, kind: 'unsupported', reason: 'The summary is unsupported.', fix: 'Remove the claim.' },
+      ] }),
+    });
+    const draft = await engineWith(llm, { maxRevisions: 1 }).generateResume(input);
+    expect(draft.content.sections.some((section) => section.heading === 'Summary')).toBe(false);
+    expect(draft.content.sections.some((section) => section.heading === 'Projects')).toBe(false);
+    expect(draft.review?.removedBullets).toBe(1);
+    expect(llm.calls.filter((call) => call.purpose === 'check')[0].prompt).toContain('Led a global banking team.');
+    expect(llm.calls.filter((call) => call.purpose === 'write')[1].prompt).toContain('<draft>');
+  });
+
   it('lets the formatter choose layout ids, dropping any the resume does not have', async () => {
     const llm = new FakeLlm({
       write: () => draftWith([{ text: 'Built a billing API in TypeScript.', evidence: ['E1'] }]),

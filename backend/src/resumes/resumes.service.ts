@@ -5,6 +5,7 @@ import {
   ApiError,
   POLICY_PURPOSES,
   POLICY_TEXT_VERSION,
+  RESUME_LENGTH,
   ROLE_IDS,
   type CreateResumeRequest,
   type CreateResumeResponse,
@@ -32,6 +33,7 @@ import { DEFAULT_TEMPLATE, getTemplate } from '../templates/registry';
 import type { ObjectStorage } from '../storage/storage';
 import { AI_ENGINE, DB, STORAGE } from '../tokens';
 import { buildMatch, cloneContent, findBullet, groupAt, plainText } from './content';
+import { renderPdfMeasured } from './renderers';
 import type { StoredReading } from './generation.handler';
 
 const PAGE_SIZE = 30;
@@ -399,7 +401,8 @@ export class ResumesService {
     const content = cloneContent(current.content);
     edit(content);
     const reading = current.summary.reading ?? { required: [], preferred: [], roleId: null };
-    const match = buildMatch({ content, reading, engineScore: null, length: doc.length });
+    const pdfPages = doc.length === RESUME_LENGTH.onePage ? (await renderPdfMeasured(content)).pages : null;
+    const match = buildMatch({ content, reading, engineScore: null, length: doc.length, pdfPages });
     await this.saveVersion(resumeId, content, { ...current.summary, match }, 'user', current.number + 1);
     return this.detail(userId, resumeId);
   }

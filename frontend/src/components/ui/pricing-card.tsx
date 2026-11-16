@@ -21,6 +21,7 @@ export interface PricingTier {
   currency?: string
   highlighted?: boolean
   popular?: boolean
+  disabled?: boolean
 }
 
 interface PricingCardProps {
@@ -36,7 +37,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   const buttonContent = (
     <>
       {tier.cta}
-      <ArrowRight className="ml-2 h-4 w-4" />
+      {!tier.disabled && <ArrowRight className="ml-2 h-4 w-4" />}
     </>
   )
 
@@ -102,7 +103,8 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       </div>
 
       <Button
-        href={tier.href}
+        href={tier.disabled ? undefined : tier.href}
+        disabled={tier.disabled}
         variant={isHighlighted ? "secondary" : "outline"}
         className="w-full"
       >

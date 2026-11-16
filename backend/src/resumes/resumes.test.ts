@@ -246,8 +246,13 @@ describe('writing and reading a resume', () => {
       const key = [...ctx.storage.objects.keys()].find((k) => k.endsWith('.pdf') && k.includes(resumeId))!;
       expect(key).toContain(`users/${tolu}/resumes/${resumeId}/`);
       expect(ctx.storage.objects.get(key)!.body.subarray(0, 5).toString()).toBe('%PDF-');
-
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const pdf = await pdfjs.getDocument({ data: new Uint8Array(ctx.storage.objects.get(key)!.body), useSystemFonts: true, disableFontFace: true, verbosity: 0 }).promise;
       const detail = (await get(`/v1/resumes/${resumeId}`)).body;
+      expect(detail.match.fitsOnePage).toBe(pdf.numPages === 1);
+      const text = await (await pdf.getPage(1)).getTextContent();
+      expect(text.items.some((item) => 'str' in item && item.str.includes('Tolu'))).toBe(true);
+
       expect(detail.exports).toEqual({ pdf: true, docx: false });
       expect(detail.status).toBe('exported');
       expect((await get('/v1/resumes?status=exported')).body.items).toHaveLength(1);

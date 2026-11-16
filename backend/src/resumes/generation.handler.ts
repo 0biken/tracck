@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
-import { ApiError, JobError, ROLE_IDS, type PersonDetails, type RoleId } from '@tracck/shared';
+import { ApiError, JobError, RESUME_LENGTH, ROLE_IDS, type PersonDetails, type RoleId } from '@tracck/shared';
 import type { AiEngine, JobReading } from '../ai/ai-engine';
 import { EntitlementsService } from '../core/entitlements.service';
 import { JobDispatcher } from '../core/job-dispatcher.service';
@@ -11,6 +11,7 @@ import { generationRuns, resumeDocuments, resumeVersions, targetOpportunities } 
 import type { JobContext, JobHandler } from '../jobs/runner';
 import { AI_ENGINE, DB } from '../tokens';
 import { buildMatch, plainText } from './content';
+import { renderPdfMeasured } from './renderers';
 import { EvidenceSelector } from './evidence-selector';
 
 const rowsOf = <T>(result: unknown) => (result as { rows: T[] }).rows;
@@ -119,7 +120,8 @@ export class ResumeGenerationHandler {
 
     await ctx.setStep('validate', 85);
     const stored: StoredReading = { required: reading.required, preferred: reading.preferred, roleId };
-    const match = buildMatch({ content: draft.content, reading, engineScore: draft.review?.score ?? null, length: doc.length });
+    const pdfPages = doc.length === RESUME_LENGTH.onePage ? (await renderPdfMeasured(draft.content)).pages : null;
+    const match = buildMatch({ content: draft.content, reading, engineScore: draft.review?.score ?? null, length: doc.length, pdfPages });
 
     const versionId = await this.db.transaction(async (tx) => {
       const [{ next }] = rowsOf<{ next: number }>(

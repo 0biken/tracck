@@ -46,6 +46,7 @@ import {
   writerSystem,
 } from './prompts';
 import {
+  CRITIC_KIND,
   critiqueSchema,
   cvReviewSchema,
   draftSchema,
@@ -61,7 +62,7 @@ import { supportedSkills, verifyBullets, type BulletDraft, type Finding, type Po
 const CHUNK_CHARS = 12_000;
 const MAX_ENTRIES_PER_DOCUMENT = 60;
 /** Critic problems of these kinds ask for a rewrite even when the verdict says pass. */
-const SERIOUS = new Set(['unsupported', 'role_rule']);
+const SERIOUS = new Set<string>([CRITIC_KIND.unsupported, CRITIC_KIND.roleRule]);
 /** Style problems the checks find exactly. A draft with any of them is revised, like a serious critic problem. */
 const STYLE = new Set(['repetition', 'tone']);
 
@@ -94,6 +95,7 @@ function parseDate(value: string | null | undefined): Date | null {
 }
 
 interface Numbered {
+  summary: string;
   sections: { heading: string; groups: { title?: string; year?: string; bullets: (BulletDraft & { id: string })[] }[] }[];
 }
 
@@ -101,6 +103,7 @@ interface Numbered {
 function number(draft: DraftOutput): Numbered {
   let n = 0;
   return {
+    summary: draft.summary.trim(),
     sections: draft.sections.map((section) => ({
       heading: section.heading,
       groups: section.groups.map((group) => ({
@@ -259,7 +262,7 @@ export class GeminiEngine implements AiEngine {
           return { findings, critique, passed };
         },
         revise: async (numbered, findings, critique) => {
-          const raw = await write(basePrompt + reviseSuffix(renderDraft(numbered.sections), toIssues(findings, critique)));
+          const raw = await write(basePrompt + reviseSuffix(renderDraft(numbered.sections, numbered.summary), toIssues(findings, critique)));
           return { raw, draft: number(raw) };
         },
       },
@@ -314,7 +317,7 @@ export class GeminiEngine implements AiEngine {
     }
   }
 
-  /** The reviewing model sees only the entries the draft cites, which keeps this call small. */
+  /** The summary has no citations, so the critic needs the full evidence pool to check it. */
   private async review(
     input: GenerateInput,
     roleId: RoleId | null,
@@ -322,7 +325,7 @@ export class GeminiEngine implements AiEngine {
     lookup: Map<string, PoolEntry>,
     findings: Finding[],
   ): Promise<Critique> {
-    const refs = [...new Set(allBullets(draft).flatMap((bullet) => bullet.evidence))].filter((ref) => lookup.has(ref));
+    const refs = [...lookup.keys()];
     const { data } = await this.llm.json({
       purpose: 'check',
       model: this.settings.critic.model,
@@ -330,7 +333,7 @@ export class GeminiEngine implements AiEngine {
       prompt: criticPrompt({
         job: input.job,
         instructions: input.instructions,
-        draftText: renderDraft(draft.sections),
+        draftText: renderDraft(draft.sections, draft.summary),
         cited: refs.map((ref) => ({ ref, text: lookup.get(ref)!.text })),
         findings,
       }),
@@ -355,6 +358,9 @@ export class GeminiEngine implements AiEngine {
     revisions: number,
   ): ResumeDraft {
     const rejected = new Set(findings.filter((finding) => finding.severity === 'blocking').map((finding) => finding.bullet));
+    for (const issue of critique?.issues ?? []) {
+      if (issue.kind === CRITIC_KIND.unsupported && issue.bullet) rejected.add(issue.bullet);
+    }
     const byRef = new Map(pool.map(({ entry, ref }) => [ref, entry]));
     const limit = lengthLimit(input.length);
 
@@ -363,9 +369,10 @@ export class GeminiEngine implements AiEngine {
     let kept = 0;
     let removed = 0;
     let groupCount = 0;
+    const keptBullets: BulletDraft[] = [];
 
     const sections: ResumeSection[] = [];
-    const summary = raw.summary.trim();
+    const summary = critique?.issues.some((issue) => issue.kind === CRITIC_KIND.unsupported && issue.bullet === null) ? '' : raw.summary.trim();
     if (summary) sections.push({ id: 's-summary', heading: 'Summary', kind: 'text', text: summary });
 
     for (const section of draft.sections) {
@@ -387,6 +394,7 @@ export class GeminiEngine implements AiEngine {
             }
           }
           kept += 1;
+          keptBullets.push(bullet);
           bullets.push({
             id: bullet.id,
             text: bullet.text,
@@ -413,7 +421,7 @@ export class GeminiEngine implements AiEngine {
       revisions,
       unresolved,
       removedBullets: removed,
-      uncoveredRequirements: requirementGaps(input.job.required, lookup, allBullets(draft)),
+      uncoveredRequirements: requirementGaps(input.job.required, lookup, keptBullets),
     };
 
     return {
