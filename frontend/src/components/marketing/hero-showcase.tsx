@@ -28,7 +28,7 @@ export function HeroShowcase() {
   return (
     <div className={styles.showcase} role="img" aria-label="An example resume on the back wall of a grid room, surrounded by proof-of-work posts and projects">
       <GridScan
-        linesColor="#4d4757" scanColor="#3FA872" cells={2} depthColumns={2} depth={2}
+        linesColor="#4d4757" scanColor="#3FA872" cells={2} depthColumns={2} depth={1.5}
         scanDuration={3.3} scanDelay={1.6} clickEffect="ping" lineThickness={2.1}
         lineStyle="solid" depthFade={0.6} shading={0.7} reflection={0.35} points
         scanDirection="forward" scanWidth={1} trail={0.5} glow={0.7} parallax={1.3}

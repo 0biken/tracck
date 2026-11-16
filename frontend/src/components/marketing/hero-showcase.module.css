@@ -1,6 +1,6 @@
 .showcase {
   width: 100%;
-  height: clamp(410px, 58vw, 670px);
+  height: clamp(520px, 74vw, 840px);
   position: relative;
   overflow: hidden;
   border: 1px solid #3a372f;
@@ -11,5 +11,5 @@
 }
 
 @media (max-width: 640px) {
-  .showcase { height: 420px; }
+  .showcase { height: clamp(500px, 135vw, 620px); }
 }
