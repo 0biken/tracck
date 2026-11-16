@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import Link from 'next/link'
 import { Meter } from '@/components/ui/meter'
-import { buttonClass } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button'
 import { Eyebrow } from '@/components/page-header'
 import { HeroShowcase } from '@/components/marketing/hero-showcase'
 
@@ -66,12 +66,12 @@ export default function LandingPage() {
             resume where every line traces back to verified work you shipped.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/signup" className={buttonClass('primary', 'xl')}>
+            <Button href="/signup" variant="primary" size="xl">
               Build your proof of work
-            </Link>
-            <Link href="/#how" className={buttonClass('secondary', 'xl')}>
+            </Button>
+            <Button href="/#how" variant="secondary" size="xl">
               See how it works
-            </Link>
+            </Button>
           </div>
         </div>
 
@@ -191,9 +191,9 @@ export default function LandingPage() {
           <Link href="/signup" className={buttonClass('primary', 'xl')}>
             Build your proof of work
           </Link>
-          <Link href="/pricing" className={buttonClass('secondary', 'xl')}>
+          <Button href="/pricing" variant="secondary" size="xl">
             See pricing
-          </Link>
+          </Button>
         </div>
       </section>
     </main>

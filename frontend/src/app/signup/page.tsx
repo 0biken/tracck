@@ -4,7 +4,7 @@ import { GoogleButton, OrDivider } from '@/components/google-button'
 import { Logo } from '@/components/logo'
 import { SubmitButton } from '@/components/submit-button'
 import { Alert } from '@/components/ui/alert'
-import { buttonClass } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button'
 import { TextField } from '@/components/ui/field'
 import { authErrorMessage } from '@/lib/auth-errors'
 
@@ -30,9 +30,9 @@ export default async function SignupPage({
             <Alert tone="success" title="We sent you a confirmation link">
               Open the link in that email to confirm your address, then log in.
             </Alert>
-            <Link href="/login" className={buttonClass('secondary', 'lg', 'w-full')}>
+            <Button href="/login" variant="secondary" size="lg" className="w-full">
               Go to log in
-            </Link>
+            </Button>
           </div>
         </main>
       </div>

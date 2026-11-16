@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AccountMenu } from '@/components/marketing/account-menu'
 import { Logo } from '@/components/logo'
-import { buttonClass } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button'
 import type { Viewer } from '@/lib/viewer'
 
 const links = [
@@ -44,9 +44,9 @@ export function MarketingHeader({ viewer }: { viewer: Viewer | null }) {
             <AccountMenu viewer={viewer} />
           ) : (
             <>
-              <Link href="/login" className={buttonClass('secondary', 'md')}>
+              <Button href="/login" variant="secondary" size="md">
                 Log in
-              </Link>
+              </Button>
               <Link href="/signup" className={buttonClass('primary', 'md')}>
                 Get started
               </Link>

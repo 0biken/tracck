@@ -5,7 +5,7 @@ import { PageHeader, SectionHead } from '@/components/page-header'
 import { ResumeRows } from '@/components/resumes/resume-rows'
 import { StatGrid } from '@/components/stat-grid'
 import { SystemCheck } from '@/components/system-check'
-import { buttonClass } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button'
 import { serverApi } from '@/lib/api/server'
 import { formatCount, formatDate } from '@/lib/format'
 import { roleName } from '@/lib/resumes'
@@ -75,9 +75,9 @@ export default async function HomePage() {
                 : 'Connect GitHub, upload a CV or add what you have done. Resumes are tailored from this verified work.'}
             </span>
           </div>
-          <Link href="/dashboard/sources" className={buttonClass('secondary', 'md')}>
+          <Button href="/dashboard/sources" variant="secondary" size="md">
             {collecting.length > 0 ? 'See progress' : 'Connect a source'}
-          </Link>
+          </Button>
         </div>
       )}
 
@@ -154,9 +154,9 @@ export default async function HomePage() {
             <span className="text-[15px] leading-[22px] text-ink-muted">Suggested fixes to strengthen your bullet points.</span>
           </div>
           <div className="flex sm:justify-end">
-            <Link href="/dashboard/feedback" className={buttonClass('secondary', 'md')}>
+            <Button href="/dashboard/feedback" variant="secondary" size="md">
               {summary.cvWeaknesses === null ? 'Review my CV' : 'Read suggested fixes'}
-            </Link>
+            </Button>
           </div>
         </section>
       )}

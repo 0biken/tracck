@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
 import { Eyebrow } from '@/components/page-header'
-import { buttonClass } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button'
 
 export const metadata = { title: 'Page not found' }
 
@@ -22,9 +22,9 @@ export default function NotFound() {
             <Link href="/dashboard" className={buttonClass('primary', 'lg')}>
               Go to home
             </Link>
-            <Link href="/" className={buttonClass('secondary', 'lg')}>
+            <Button href="/" variant="secondary" size="lg">
               Back to Tracck
-            </Link>
+            </Button>
           </div>
         </div>
       </main>

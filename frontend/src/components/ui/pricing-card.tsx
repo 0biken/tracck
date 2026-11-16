@@ -62,7 +62,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         )}
       </h2>
 
-      <div className="relative h-12">
+      <div className="relative h-12" suppressHydrationWarning>
         {typeof price === "number" ? (
           <>
             <NumberFlow
@@ -101,22 +101,13 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         </ul>
       </div>
 
-      {tier.href ? (
-        <Button
-          asChild
-          variant={isHighlighted ? "secondary" : "default"}
-          className="w-full"
-        >
-          <Link href={tier.href}>{buttonContent}</Link>
-        </Button>
-      ) : (
-        <Button
-          variant={isHighlighted ? "secondary" : "default"}
-          className="w-full"
-        >
-          {buttonContent}
-        </Button>
-      )}
+      <Button
+        href={tier.href}
+        variant={isHighlighted ? "secondary" : "outline"}
+        className="w-full"
+      >
+        {buttonContent}
+      </Button>
     </Card>
   )
 }

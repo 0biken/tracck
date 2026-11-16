@@ -23,9 +23,9 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
             <Button size="lg" onClick={reset}>
               Try again
             </Button>
-            <Link href="/dashboard" className={buttonClass('secondary', 'lg')}>
+            <Button href="/dashboard" variant="secondary" size="lg">
               Go to home
-            </Link>
+            </Button>
           </div>
         </div>
       </main>

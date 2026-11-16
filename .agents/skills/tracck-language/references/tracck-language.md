@@ -1,4 +1,4 @@
-# Audience Research: Tracck Product Language
+# Tracck Language: Audience Strategy & Voice Reference
 
 **Date:** November 2026  
 **Market & Geography:** Nigeria (Lagos, Ibadan, Abuja, remote hubs) and Pan-African early-career tech ecosystem  

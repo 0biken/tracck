@@ -90,4 +90,4 @@ When editing or creating user-facing copy in Tracck:
 2. **Apply vocabulary rules:** Replace database jargon with craft terms (*projects*, *proof*, *bullets*).
 3. **Verify supportable facts:** Never promise what the tool hasn't parsed or built.
 4. **Test line length:** Check that headings and button labels remain within 1–2 lines.
-5. Refer to [references/audience-research.md](references/audience-research.md) for background evidence.
+5. Refer to [references/tracck-language.md](references/tracck-language.md) for background evidence.
