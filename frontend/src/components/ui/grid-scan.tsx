@@ -8,12 +8,13 @@ export type GridScanDirection = 'forward' | 'backward' | 'pingpong';
 
 export type GridScanClickEffect = 'ping' | 'scan' | 'none';
 
-export type GridScanWallImages = { left: readonly string[]; right: readonly string[] };
+export type GridScanWallImages = { left: readonly string[]; right: readonly string[]; ceiling: readonly string[]; floor: readonly string[] };
 
 export interface GridScanProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style'> {
   linesColor?: string;
   scanColor?: string;
   cells?: number;
+  depthColumns?: number;
   lineThickness?: number;
   lineStyle?: GridScanLineStyle;
   depth?: number;
@@ -39,6 +40,7 @@ export interface GridScanProps extends Omit<HTMLAttributes<HTMLDivElement>, 'sty
   lightMode?: boolean;
   dpr?: number;
   wallImages?: GridScanWallImages;
+  backImage?: string;
   style?: CSSProperties;
 }
 
@@ -46,6 +48,7 @@ type Settings = {
   linesColor: string;
   scanColor: string;
   cells: number;
+  depthColumns?: number;
   thickness: number;
   style: number;
   depth: number;
@@ -137,6 +140,8 @@ uniform float uPingAlpha[4];
 uniform vec4 uHover;
 uniform float uTime;
 uniform sampler2D uWallAtlas;
+uniform sampler2D uBackImage;
+uniform float uBackAspect;
 in vec2 vUv;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outGlow;
@@ -314,16 +319,16 @@ void main() {
     over(color, uScanColor, glowSpill * uShade * occlusion * 0.35);
   }
 
-  // The first three depth cells and top two rows on each side share one atlas.
-  if (face == 0) {
-    vec2 wallCell = vec2(h.z / uCell.z, (0.5 - h.y) / uCell.y);
+  if (face == 0 || face == 1) {
+    vec2 wallCell = vec2(h.z / uCell.z, face == 0 ? (0.5 - h.y) / uCell.y : (h.x + 0.5 * uAspect) / uCell.x);
     vec2 cellId = floor(wallCell);
     vec2 local = fract(wallCell);
-    if (cellId.x < 3.0 && cellId.y < 2.0 && all(greaterThan(local, vec2(0.07))) && all(lessThan(local, vec2(0.93)))) {
+    if (cellId.x < 2.0 && cellId.y < 2.0 && all(greaterThan(local, vec2(0.07))) && all(lessThan(local, vec2(0.93)))) {
       vec2 imageUv = (local - 0.07) / 0.86;
-      if (plane > 0.0) imageUv.x = 1.0 - imageUv.x;
-      float column = cellId.x + (plane > 0.0 ? 3.0 : 0.0);
-      vec2 atlasUv = vec2((column + imageUv.x) / 6.0, 1.0 - (cellId.y + imageUv.y) / 2.0);
+      if (face == 0 && plane > 0.0) imageUv.x = 1.0 - imageUv.x;
+      float surface = face == 0 ? (plane > 0.0 ? 1.0 : 0.0) : (plane > 0.0 ? 2.0 : 3.0);
+      float column = cellId.x + surface * 2.0;
+      vec2 atlasUv = vec2((column + imageUv.x) / 8.0, 1.0 - (cellId.y + imageUv.y) / 2.0);
       vec4 image = texture(uWallAtlas, atlasUv);
       over(color, image.rgb, image.a * l.reveal);
     }
@@ -353,6 +358,15 @@ void main() {
   vec3 near = h - uHover.xyz;
   float hover = exp(-dot(near, near) / 0.08) * uHover.w;
   paint(color, energy, l, 1.0, 1.0, hover);
+
+  if (face == 2) {
+    vec2 backUv = vec2(h.x / uAspect + 0.5, h.y + 0.5);
+    if (uAspect > uBackAspect) backUv.x = (backUv.x - 0.5) * uAspect / uBackAspect + 0.5;
+    else backUv.y = (backUv.y - 0.5) * uBackAspect / uAspect + 0.5;
+    vec4 back = texture(uBackImage, clamp(backUv, 0.0, 1.0));
+    if (back.a > 0.0 && (backUv.x < 0.0 || backUv.x > 1.0 || backUv.y < 0.0 || backUv.y > 1.0)) back.rgb = vec3(0.92, 0.94, 0.94);
+    over(color, back.rgb, back.a * l.reveal);
+  }
 
   if (uPoints > 0.5) {
     vec2 cell = face == 0 ? uCell.zy : (face == 1 ? uCell.xz : uCell.xy);
@@ -531,6 +545,7 @@ export const GridScan = ({
   linesColor,
   scanColor,
   cells = 3,
+  depthColumns,
   lineThickness = 2.1,
   lineStyle = 'solid',
   depth = 3,
@@ -556,6 +571,7 @@ export const GridScan = ({
   lightMode = false,
   dpr,
   wallImages,
+  backImage,
   className = '',
   style,
   children,
@@ -571,6 +587,7 @@ export const GridScan = ({
     linesColor: linesColor ?? (lightMode ? '#d4d4d8' : '#38352b'),
     scanColor: scanColor ?? (lightMode ? '#1F6F4A' : '#3FA872'),
     cells: clamp(cells, 2, 40),
+    depthColumns,
     thickness: clamp(lineThickness, 0.5, 4),
     style: STYLES[lineStyle] ?? 0,
     depth: clamp(depth, 0.5, 12),
@@ -630,20 +647,46 @@ export const GridScan = ({
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
     gl.generateMipmap(gl.TEXTURE_2D);
+    const backTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, backTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    gl.generateMipmap(gl.TEXTURE_2D);
     gl.activeTexture(gl.TEXTURE0);
     let disposed = false;
+    let backAspect = 1;
+    if (backImage) {
+      const image = new window.Image();
+      image.onload = () => {
+        if (disposed) return;
+        backAspect = image.width / image.height;
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, backTexture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        wake();
+      };
+      image.src = backImage;
+    }
     if (wallImages) {
-      const tile = 512;
+      const tile = 256;
       const atlas = document.createElement('canvas');
-      atlas.width = tile * 6;
+      atlas.width = tile * 8;
       atlas.height = tile * 2;
       const context = atlas.getContext('2d');
-      const images = [wallImages.left, wallImages.right];
-      images.forEach((sideImages, side) => sideImages.slice(0, 6).forEach((src, position) => {
+      const images = [wallImages.left, wallImages.right, wallImages.ceiling, wallImages.floor];
+      images.forEach((sideImages, side) => sideImages.slice(0, 4).forEach((src, position) => {
         const image = new window.Image();
         image.onload = () => {
           if (disposed || !context) return;
-          const column = side * 3 + Math.floor(position / 2);
+          const column = side * 2 + Math.floor(position / 2);
           const row = position % 2;
           const scale = Math.max(tile / image.width, tile / image.height);
           const width = image.width * scale;
@@ -708,9 +751,10 @@ export const GridScan = ({
       const s = settingsRef.current;
       const aspect = view.width / view.height;
       const cy = 1 / Math.round(s.cells);
-      const cx = aspect / Math.max(1, Math.round(aspect / cy));
+      const cx = aspect / (s.depthColumns ? Math.round(s.cells) : Math.max(1, Math.round(aspect / cy)));
       const roomDepth = Math.max(cy, Math.round(s.depth / cy) * cy);
-      return { aspect, cx, cy, roomDepth };
+      const cz = s.depthColumns ? roomDepth / Math.max(1, Math.round(s.depthColumns)) : cy;
+      return { aspect, cx, cy, cz, roomDepth };
     };
 
     const castRay = (u: number, v: number) => {
@@ -820,7 +864,7 @@ export const GridScan = ({
 
     const draw = () => {
       const s = settingsRef.current;
-      const { aspect, cx, cy, roomDepth } = roomSize();
+      const { aspect, cx, cy, cz, roomDepth } = roomSize();
       const lineRgb = parse(s.linesColor);
       const scanRgb = parse(s.scanColor);
       const coreRgb = s.lightMode ? scanRgb : scanRgb.map(c => c + (1 - c) * 0.65);
@@ -834,12 +878,16 @@ export const GridScan = ({
       gl.activeTexture(gl.TEXTURE2);
       gl.bindTexture(gl.TEXTURE_2D, wallTexture);
       gl.uniform1i(ru.uWallAtlas, 2);
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, backTexture);
+      gl.uniform1i(ru.uBackImage, 3);
+      gl.uniform1f(ru.uBackAspect, backAspect);
       gl.activeTexture(gl.TEXTURE0);
       gl.uniform1f(ru.uAspect, aspect);
       gl.uniform1f(ru.uPixel, 1 / canvas.height);
       gl.uniform3f(ru.uEye, eye.x, eye.y, -eye.f);
       gl.uniform1f(ru.uDepth, roomDepth);
-      gl.uniform3f(ru.uCell, cx, cy, cy);
+      gl.uniform3f(ru.uCell, cx, cy, cz);
       gl.uniform1f(ru.uThick, s.thickness * view.ratio * 0.5);
       gl.uniform1f(ru.uDot, 1.8 * view.ratio);
       gl.uniform1i(ru.uStyle, s.style);
@@ -1084,12 +1132,13 @@ export const GridScan = ({
       document.removeEventListener('visibilitychange', onVisibility);
       [scene, light, bloomA, bloomB].forEach(target => gl.deleteTexture(target.texture));
       gl.deleteTexture(wallTexture);
+      gl.deleteTexture(backTexture);
       [sceneBuffer, bloomBufferA, bloomBufferB].forEach(buffer => gl.deleteFramebuffer(buffer));
       gl.deleteVertexArray(vao);
       [room, down, blur, composite].forEach(item => gl.deleteProgram(item.program));
       if (!canvas.isConnected) gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [wallImages]);
+  }, [wallImages, backImage]);
 
   useEffect(() => {
     wakeRef.current?.();
