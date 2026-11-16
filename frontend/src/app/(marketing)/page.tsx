@@ -4,6 +4,7 @@ import { Meter } from '@/components/ui/meter'
 import { Button, buttonClass } from '@/components/ui/button'
 import { Eyebrow } from '@/components/page-header'
 import { HeroShowcase } from '@/components/marketing/hero-showcase'
+import { ProofBreakdown } from '@/components/marketing/proof-breakdown'
 
 const wrap = 'mx-auto w-full max-w-[1200px] px-5 sm:px-8'
 
@@ -57,9 +58,6 @@ export default function LandingPage() {
       {/* Hero */}
       <section className={`${wrap} flex flex-col items-center text-center gap-10 pb-16 pt-14 sm:pt-20`}>
         <div className="flex flex-col items-center gap-6 max-w-3xl">
-          <Eyebrow>
-            <span className="text-signal">Proof-first</span> · Resume engine for Nigerian tech talent
-          </Eyebrow>
           <h1 className="t-display m-0 text-balance">Your wins. Always ready.</h1>
           <p className="m-0 max-w-xl text-xl leading-[31px] text-ink-muted">
             Connect your sources once. Paste a job description to get a tailored ATS resume backed by verified proof.
@@ -78,15 +76,8 @@ export default function LandingPage() {
         <HeroShowcase />
       </section>
 
-      {/* Proof strip */}
-      <section className="border-y border-line bg-sunken" aria-label="What Tracck guarantees">
-        <div className={`${wrap} flex flex-wrap justify-between gap-x-10 gap-y-3 py-5 font-mono text-[13px]`}>
-          <span>100% OF BULLETS TRACED TO EVIDENCE</span>
-          <span>0 INVENTED METRICS</span>
-          <span>6 ROLE PROFILES</span>
-          <span>ONE PAGE OR FULL</span>
-        </div>
-      </section>
+      {/* Interactive Proof Breakdown */}
+      <ProofBreakdown />
 
       {/* How it works */}
       <section id="how" className={`${wrap} flex scroll-mt-4 flex-col gap-12 py-20 sm:py-24`}>

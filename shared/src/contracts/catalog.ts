@@ -94,8 +94,8 @@ export const PLAN_CARDS: Record<PlanCard['id'], PlanCard> = {
     eyebrow: 'Pro',
     name: 'Pro',
     price: '₦2,500',
-    blurb: 'For students, corpers, self-taught builders and working professionals.',
-    settingsBlurb: 'All sources, unlimited resumes, one page and full, DOCX, match report, evidence library.',
+    blurb: 'For active applicants and professionals.',
+    settingsBlurb: 'Unlimited sources, unlimited resumes, one page and full, DOCX, match report.',
     features: PAID_FEATURES,
   },
 };
