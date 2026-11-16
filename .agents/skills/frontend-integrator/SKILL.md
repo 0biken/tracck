@@ -10,7 +10,7 @@ biggest failure mode is guessing: assuming a field name, type, or endpoint shape
 it "looks right," then papering over the mismatch with `??`/`||`/optional chaining. That
 produces code that runs but silently drops or misreads data. This skill exists to prevent
 that — the backend's actual schema is the contract, and nothing gets wired against
-anything else. (This mirrors the project's CLAUDE.md rule: never guess object shapes —
+anything else. (This mirrors the project's AGENTS.md rule: never guess object shapes —
 verify against the source of truth.)
 
 ## Workflow
