@@ -10,45 +10,45 @@ const wrap = 'mx-auto w-full max-w-[1200px] px-5 sm:px-8'
 const steps = [
   {
     n: '01',
-    title: 'Build your Career Graph',
-    body: 'Connect your sources once. Tracck imports your full history in the background, cuts out noise, and organizes every accomplishment with dates and links. No loading screens to wait on.',
+    title: 'Sync your proof of work',
+    body: 'Connect your sources once. Tracck imports your work in the background with verified dates and links.',
   },
   {
     n: '02',
-    title: 'Paste a job, get a tailored resume',
-    body: "Choose one page or full and choose what to emphasize. Tracck selects your most relevant projects, drafts in your role's language, and verifies every bullet point.",
+    title: 'Paste a job description',
+    body: "Choose your target role and emphasis. Tracck selects matching projects and drafts verified bullet points.",
   },
   {
     n: '03',
-    title: 'Review, then export',
-    body: 'Open the draft next to its match report. See the evidence behind each bullet, edit anything, and export an ATS-safe PDF when you are ready.',
+    title: 'Review and export',
+    body: 'Inspect the evidence behind every bullet, fine-tune wording, and export an ATS-safe PDF.',
   },
 ]
 
 const problems = [
-  ['Wins are scattered across GitHub, X, LinkedIn and old CVs', 'Nobody compiles them, so the resume is out of date'],
-  ['One generic resume goes to every job', 'It misses the keywords each job asks for'],
-  ['Role conventions are unknown', 'Strong work in weak, unscannable language'],
-  ['Generic AI tools write from a prompt', 'Fiction that cannot be traced to anything real'],
+  ['Scattered wins across GitHub and CVs', 'Nobody compiles them, so resumes stay outdated'],
+  ['One generic resume for every job', 'Misses role-specific keywords ATS filters demand'],
+  ['Unfamiliar role conventions', 'Strong technical work hidden behind weak language'],
+  ['Generic AI chatbots', 'Hallucinates experience that cannot be verified'],
 ]
 
 const sources = [
-  ['GitHub', 'CONNECT', 'Repositories, releases and code activity. Your richest source.'],
-  ['CV or resume', 'UPLOAD', 'PDF or Word. Added to your proof of work, with feedback for your role.'],
-  ['Portfolio', 'PASTE LINK', 'Any public page you want included.'],
-  ['LinkedIn', 'UPLOAD EXPORT', 'Your data export ZIP, profile PDF or pasted text.'],
-  ['X', 'SOON', 'Connect or upload your archive, subject to access.'],
-  ['Behance and Figma', 'SOON', 'Paste project links for case studies.'],
-  ['Manual work', 'FORM', 'For work with no public trace. Tracck helps polish the wording.'],
+  ['GitHub', 'CONNECT', 'Repositories, releases, and commits. Your richest source.'],
+  ['CV or resume', 'UPLOAD', 'PDF or Word. Extracts verified experience with role feedback.'],
+  ['Portfolio', 'PASTE LINK', 'Any public webpage or case study.'],
+  ['LinkedIn', 'UPLOAD EXPORT', 'Data export ZIP, profile PDF, or pasted text.'],
+  ['X', 'SOON', 'Connect or upload your archive.'],
+  ['Behance and Figma', 'SOON', 'Project links and case studies.'],
+  ['Manual work', 'FORM', 'Add unlisted projects directly with guided wording.'],
 ]
 
 const differences = [
-  ['Evidence on every bullet', 'Open any line to see the source, date and original project. If a bullet needs a number you never stated, it is flagged "Confirm a number", never invented.'],
-  ['Match report with reasons', 'Which requirements you cover, which are missing from your evidence, and what you could add. Never a bare number.'],
-  ['Six role profiles', 'Developer, Dev Rel and Community, Social Media Manager, Virtual Assistant, UI/UX Designer, Data Analyst. Each with its own section order, verbs and scoring.'],
-  ['Write, check, improve', 'Tracck reviews against the job description and your role, fixes specific gaps, and verifies the bullet points.'],
-  ['One page or full', 'Length is checked on the finished layout, not guessed from a word count. Full never pads.'],
-  ['ATS-safe export', 'No tables, columns or text boxes. Standard headings and bullets. PDF now, DOCX on Pro.'],
+  ['Evidence on every bullet', 'Every bullet links to your source commit, repo, or document. Numbers are never invented.'],
+  ['Actionable match report', 'Clear breakdown of covered skills, missing requirements, and suggested fixes.'],
+  ['Six role profiles', 'Dedicated structures and vocabulary for Developers, DevRel, Designers, and Analysts.'],
+  ['Verified drafting', 'Drafts are verified against job requirements and your proof of work.'],
+  ['Layout-verified length', 'Strict one-page formatting checked against the rendered page, not estimated words.'],
+  ['ATS-safe export', 'Clean standard headings and bullets. PDF now, DOCX on Pro.'],
 ]
 
 export default function LandingPage() {
@@ -62,8 +62,7 @@ export default function LandingPage() {
           </Eyebrow>
           <h1 className="t-display m-0 text-balance">Your wins. Always ready.</h1>
           <p className="m-0 max-w-xl text-xl leading-[31px] text-ink-muted">
-            Connect GitHub, your old CV and your portfolio once. Paste a job description and Tracck writes a tailored
-            resume where every line traces back to verified work you shipped.
+            Connect your sources once. Paste a job description to get a tailored ATS resume backed by verified proof.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button href="/signup" variant="primary" size="xl">
@@ -113,8 +112,7 @@ export default function LandingPage() {
             <Eyebrow>The problem</Eyebrow>
             <h2 className="t-h2 m-0 text-balance">The work exists. The resume does not show it.</h2>
             <p className="m-0 text-lg leading-7 text-ink-muted">
-              Students, NYSC corpers and self-taught builders ship real work in public. Writing it down is a separate
-              skill, and every job wants different emphasis.
+              Builders ship real projects, but packaging wins into hiring language for every role takes time.
             </p>
           </div>
           <div className="border-t-2 border-ink">
@@ -140,7 +138,7 @@ export default function LandingPage() {
             <h2 className="t-h2 m-0 text-balance">Bring the work you already did.</h2>
           </div>
           <p className="m-0 max-w-105 text-base leading-6 text-ink-muted">
-            Every route is started by you. Tracck never scrapes a platform or reads your logged-in sessions.
+            Tracck connects directly to public work. No scraping or session snooping.
           </p>
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-px border border-line bg-line">

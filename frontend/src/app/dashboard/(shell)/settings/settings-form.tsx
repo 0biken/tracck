@@ -312,7 +312,7 @@ export function SettingsForm({
         </div>
       </Section>
 
-      <Section id="s-priv" title="Privacy and data" hint="Only the evidence relevant to a job is sent to the AI. Credentials never are.">
+      <Section id="s-priv" title="Privacy and data" hint="Only project details needed for drafting are sent to the AI.">
         <div className="flex flex-col">
           <div className={row}>
             <label htmlFor="retention">Uploaded CVs are kept for</label>

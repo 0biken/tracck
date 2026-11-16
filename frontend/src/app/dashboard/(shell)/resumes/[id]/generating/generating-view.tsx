@@ -86,7 +86,7 @@ function Live({ resume, eyebrow, jobId }: { resume: ResumeDetailView; eyebrow: s
   return (
     <>
       <Heading eyebrow={eyebrow} title={finished ? 'Your draft is ready' : 'Writing your resume'}>
-        You can stay or leave. This screen updates when the draft is ready, and it is saved under Resumes either way.
+        You can stay or leave. This screen updates automatically when ready.
       </Heading>
 
       <ol className="m-0 list-none border-t-2 border-ink p-0">
@@ -196,7 +196,7 @@ function Failure({ resumeId, eyebrow, message, needsEvidence }: { resumeId: stri
   return (
     <>
       <Heading eyebrow={eyebrow} title="Couldn't finish this draft">
-        Nothing was used from your plan for this attempt.
+        No credits were used for this attempt.
       </Heading>
       <div role="alert" className="flex items-start gap-3 border border-danger bg-danger-tint p-4">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-danger-ink" strokeWidth={2} aria-hidden="true" />
@@ -228,7 +228,7 @@ function Evidence({ resume }: { resume: ResumeDetailView }) {
       <>
         <Eyebrow>Evidence being used</Eyebrow>
         <p className="m-0 border-t border-line pt-4 text-[15px] leading-[22px] text-ink-muted">
-          The proof items this resume is tailored from show up here once the job has been read.
+          Matching projects will appear here once the job description is parsed.
         </p>
       </>
     )

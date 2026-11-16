@@ -18,13 +18,13 @@ const rowGrid = 'grid grid-cols-1 items-center gap-3 md:grid-cols-[minmax(0,1.4f
 
 /** What each kind of source can be added with. */
 const ADD: { provider: SourceProvider | 'manual'; name: string; body: string; action: string; kind?: AddKind }[] = [
-  { provider: 'github', name: 'GitHub', body: 'Public repositories and releases. Your richest source.', action: 'Connect GitHub', kind: 'github' },
-  { provider: 'cv', name: 'CV or resume', body: 'PDF or Word. Added to your proof of work, with feedback for your role.', action: 'Upload CV', kind: 'cv' },
-  { provider: 'linkedin', name: 'LinkedIn', body: 'Your data export ZIP or profile PDF.', action: 'Upload export', kind: 'linkedin-file' },
-  { provider: 'portfolio', name: 'Portfolio', body: 'Any public page you want included.', action: 'Add link', kind: 'portfolio' },
-  { provider: 'x', name: 'X', body: "Your posts from X's data archive. Only posts are read.", action: 'Upload archive', kind: 'x-archive' },
-  { provider: 'behance', name: 'Behance', body: 'Paste your project titles, descriptions and links.', action: 'Paste projects', kind: 'behance' },
-  { provider: 'manual', name: 'Manual work', body: 'For work with no public trace. You write it; Tracck keeps it as yours.', action: 'Add manually' },
+  { provider: 'github', name: 'GitHub', body: 'Public repositories, releases, and commits.', action: 'Connect GitHub', kind: 'github' },
+  { provider: 'cv', name: 'CV or resume', body: 'Upload PDF or Word to extract verified experience.', action: 'Upload CV', kind: 'cv' },
+  { provider: 'linkedin', name: 'LinkedIn', body: 'Data export ZIP or profile PDF.', action: 'Upload export', kind: 'linkedin-file' },
+  { provider: 'portfolio', name: 'Portfolio', body: 'Link to your public website or portfolio.', action: 'Add link', kind: 'portfolio' },
+  { provider: 'x', name: 'X', body: "Posts from your data archive.", action: 'Upload archive', kind: 'x-archive' },
+  { provider: 'behance', name: 'Behance', body: 'Project titles, descriptions, and case study links.', action: 'Paste projects', kind: 'behance' },
+  { provider: 'manual', name: 'Manual work', body: 'Add unlisted projects directly.', action: 'Add manually' },
 ]
 
 type Notice = { tone: 'ok' | 'error'; text: string }
@@ -174,9 +174,7 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                     {source.provider === 'github' ? 'Disconnect GitHub?' : `Remove ${source.name}?`}
                   </h2>
                   <p className="m-0 text-[15px] leading-[22px]">
-                    {source.provider === 'github'
-                      ? `Tracck stops syncing with GitHub. Choose what happens to the ${formatCount(source.entries)} projects it already imported.`
-                      : `Tracck stops using ${source.name}. Choose what happens to the ${formatCount(source.entries)} projects it already imported.`}
+                    Choose what happens to the {formatCount(source.entries)} imported {source.entries === 1 ? 'project' : 'projects'}.
                   </p>
                   <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-[22px]">
                     <input
@@ -187,9 +185,9 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                       className="mt-0.5 size-[18px] accent-ink"
                     />
                     <span>
-                      <strong>Keep the projects</strong>
+                      <strong>Keep projects</strong>
                       <br />
-                      <span className="text-ink-muted">They stay in your proof of work and can still be used in resumes.</span>
+                      <span className="text-ink-muted">Saved in your proof of work for future resumes.</span>
                     </span>
                   </label>
                   <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-[22px]">
@@ -201,11 +199,10 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                       className="mt-0.5 size-[18px] accent-ink"
                     />
                     <span>
-                      <strong>Delete everything from {source.name}</strong>
+                      <strong>Delete projects</strong>
                       <br />
                       <span className="text-ink-muted">
-                        Removes its entries, except ones you pinned or reworded. Existing resumes keep their text but lose
-                        the evidence link.
+                        Removes projects imported from this source, except ones you pinned or edited.
                       </span>
                     </span>
                   </label>

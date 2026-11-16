@@ -55,14 +55,12 @@ export default async function HomePage() {
             <div className="flex flex-col gap-0.5">
               <span className="font-bold text-signal">Your proof of work is ready.</span>
               <span className="text-[15px] leading-[22px]">
-                {formatCount(summary.entries)} {summary.entries === 1 ? 'project' : 'projects'} synced from {summary.sourcesReady} {summary.sourcesReady === 1 ? 'source' : 'sources'}.
-                {collecting.length > 0 &&
-                  ` ${collecting.map((source) => source.name).join(' and ')} ${collecting.length === 1 ? 'is' : 'are'} still syncing; Tracck will include ${collecting.length === 1 ? 'it' : 'them'} when ready.`}
+                {formatCount(summary.entries)} {summary.entries === 1 ? 'project' : 'projects'} synced from {summary.sourcesReady} {summary.sourcesReady === 1 ? 'source' : 'sources'}.{collecting.length > 0 ? ` ${collecting.length} syncing in background.` : ' Ready to tailor.'}
               </span>
             </div>
           </div>
           <Link href="/dashboard/graph" className="inline-flex min-h-11 items-center text-sm font-semibold">
-            Open the Career Graph
+            Open Career Graph
           </Link>
         </div>
       ) : (
@@ -71,8 +69,8 @@ export default async function HomePage() {
             <span className="font-bold">{collecting.length > 0 ? 'Your sources are syncing.' : 'Start your proof of work.'}</span>
             <span className="text-[15px] leading-[22px] text-ink-muted">
               {collecting.length > 0
-                ? 'This runs in the background. You can generate as soon as one source is ready.'
-                : 'Connect GitHub, upload a CV or add what you have done. Resumes are tailored from this verified work.'}
+                ? 'Syncing in background. Tailor as soon as one source is ready.'
+                : 'Connect GitHub or upload a CV to start tailoring resumes.'}
             </span>
           </div>
           <Button href="/dashboard/sources" variant="secondary" size="md">
@@ -130,10 +128,10 @@ export default async function HomePage() {
                 {summary.entriesSince.count} new {summary.entriesSince.count === 1 ? 'project' : 'projects'} since {formatDate(summary.entriesSince.date)}
               </span>
               <span className="text-[15px] leading-[22px] text-ink-muted">
-                Your draft for {stale.company || stale.title} can include {stale.newEntries === 1 ? 'it' : 'them'}.
+                {stale.company || stale.title} can include these new projects.
               </span>
               <Link href={`/dashboard/resumes/${stale.id}`} className="inline-flex min-h-8 items-center text-sm font-semibold">
-                Open that draft
+                Open draft
               </Link>
             </div>
           )}
@@ -148,10 +146,10 @@ export default async function HomePage() {
               {summary.cvWeaknesses === null
                 ? 'Get feedback on your uploaded CV'
                 : summary.cvWeaknesses === 0
-                  ? 'No high-impact fixes needed for this CV'
-                  : `Your uploaded CV has ${summary.cvWeaknesses} suggested ${summary.cvWeaknesses === 1 ? 'fix' : 'fixes'}`}
+                  ? 'No high-impact fixes needed'
+                  : `${summary.cvWeaknesses} suggested ${summary.cvWeaknesses === 1 ? 'fix' : 'fixes'} for your target role`}
             </h2>
-            <span className="text-[15px] leading-[22px] text-ink-muted">Suggested fixes to strengthen your bullet points.</span>
+            <span className="text-[15px] leading-[22px] text-ink-muted">Strengthen bullet points with role-specific phrasing.</span>
           </div>
           <div className="flex sm:justify-end">
             <Button href="/dashboard/feedback" variant="secondary" size="md">

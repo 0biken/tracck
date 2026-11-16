@@ -209,7 +209,7 @@ export function NewResumeForm({
             setRole(event.target.value as RoleId | '')
             setRoleTouched(true)
           }}
-          help="Detected from the job. Sets section order, wording and scoring."
+          help="Sets section order and role vocabulary."
         >
           <option value="">Let Tracck decide</option>
           {ROLES.map((item) => (
@@ -231,7 +231,7 @@ export function NewResumeForm({
           value={focus}
           onChange={(event) => setFocus(event.target.value)}
           maxLength={600}
-          help="Your focus takes priority when choosing what to include."
+          help="Prioritizes specific skills or projects."
         />
 
         <TextAreaField
@@ -245,7 +245,7 @@ export function NewResumeForm({
           value={instructions}
           onChange={(event) => setInstructions(event.target.value)}
           maxLength={1000}
-          help="In your own words. For example: lead with leadership, keep it to one page, no hobbies."
+          help="Specific directives: e.g. lead with leadership, keep to one page."
         />
 
         <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0">
@@ -359,7 +359,7 @@ export function NewResumeForm({
             <li>Drafting verified bullet points</li>
             <li>Checking every bullet against your proof of work</li>
           </ol>
-          <span className="text-[13px] leading-[19px] text-ink-muted">You can leave while it runs; we tell you when it is ready.</span>
+          <span className="text-[13px] leading-[19px] text-ink-muted">Runs in the background. We notify you when ready.</span>
         </section>
       </aside>
     </div>

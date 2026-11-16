@@ -28,8 +28,8 @@ export default async function CvFeedbackPage() {
           <h1 className="t-h2 m-0">CV feedback</h1>
           <p className="m-0 text-base leading-6 text-ink-muted">
             {hasCv
-              ? 'Review concrete suggested fixes to strengthen bullet points on your uploaded CV.'
-              : 'Upload a CV to see high-impact fixes and strengthen your bullet points.'}
+              ? 'Suggested fixes to strengthen your CV bullet points.'
+              : 'Upload a CV to see suggested fixes for your target role.'}
           </p>
         </div>
         {hasCv ? (
@@ -62,7 +62,7 @@ export default async function CvFeedbackPage() {
         <p className="m-0 text-base leading-6 text-ink-muted">
           {count === 0
             ? 'No high-impact fixes needed for this CV.'
-            : `${count === 1 ? '1 suggested fix' : `${count} suggested fixes`} for this role. Review suggestions below to strengthen your bullet points.`}
+            : `${count === 1 ? '1 suggested fix' : `${count} suggested fixes`} to strengthen your bullet points.`}
         </p>
       </div>
 

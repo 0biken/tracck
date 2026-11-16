@@ -45,8 +45,7 @@ export function CollectionStatus({ initial, email }: { initial: SourceView[]; em
   return (
     <>
       <p className="m-0 text-lg leading-7 text-ink-muted">
-        You don&apos;t have to wait here. We&apos;ll email {email || 'you'} when your first source is ready. You can generate
-        as soon as one source finishes.
+        We&apos;ll email {email || 'you'} when your sources finish syncing. You can start tailoring as soon as one is ready.
       </p>
 
       {error && (
@@ -109,8 +108,7 @@ export function CollectionStatus({ initial, email }: { initial: SourceView[]; em
         <div className="flex items-start gap-3 border border-signal bg-signal-tint px-5 py-4">
           <Check className="mt-0.5 size-5 shrink-0 text-signal" strokeWidth={2} aria-hidden="true" />
           <span className="text-[15px] leading-[22px]">
-            <strong className="text-signal">Your proof of work is ready.</strong> A source finished syncing. Tailor for a job now;
-            Tracck will include the remaining sources as they finish.
+            <strong className="text-signal">Your proof of work is ready.</strong> Tailor for a job now; remaining sources sync in the background.
           </span>
         </div>
       )}

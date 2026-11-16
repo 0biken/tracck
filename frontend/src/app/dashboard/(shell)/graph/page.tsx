@@ -30,8 +30,7 @@ export default async function CareerGraphPage() {
           </>
         }
       >
-        Everything Tracck imported from your sources, organized by project and skill. Each resume uses only the verified
-        achievements most relevant to that job.
+        Your verified work organized by project and skill. Tailored resumes pull the most relevant proof for each job.
       </PageHeader>
 
       {graph.entries === 0 ? (

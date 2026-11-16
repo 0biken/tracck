@@ -26,20 +26,20 @@ interface Row {
 }
 
 const ROWS: Row[] = [
-  { provider: 'github', name: 'GitHub', body: 'Public repositories and releases. Syncing starts as soon as you connect.', add: [{ label: 'Connect GitHub', kind: 'github' }], replace: { label: 'Change', kind: 'github' } },
-  { provider: 'cv', name: 'CV or resume', body: 'PDF or Word. We will also give you feedback on it.', add: [{ label: 'Upload CV', kind: 'cv' }], replace: { label: 'Replace', kind: 'cv' } },
+  { provider: 'github', name: 'GitHub', body: 'Public repositories, releases, and commits.', add: [{ label: 'Connect GitHub', kind: 'github' }], replace: { label: 'Change', kind: 'github' } },
+  { provider: 'cv', name: 'CV or resume', body: 'Upload PDF or Word to extract verified experience.', add: [{ label: 'Upload CV', kind: 'cv' }], replace: { label: 'Replace', kind: 'cv' } },
   {
     provider: 'linkedin',
     name: 'LinkedIn',
-    body: 'Upload your data export ZIP (Settings › Data privacy › Get a copy of your data), a profile PDF, or paste your profile text.',
+    body: 'Data export ZIP, profile PDF, or profile text.',
     add: [
       { label: 'Upload ZIP or PDF', kind: 'linkedin-file' },
       { label: 'Paste', kind: 'linkedin-paste' },
     ],
     replace: { label: 'Replace', kind: 'linkedin-file' },
   },
-  { provider: 'portfolio', name: 'Portfolio or personal site', body: 'A public page Tracck can read.', add: [{ label: 'Add link', kind: 'portfolio' }] },
-  { provider: 'x', name: 'X', body: "Your posts from X's data archive. Only posts are read.", add: [{ label: 'Upload archive', kind: 'x-archive' }] },
+  { provider: 'portfolio', name: 'Portfolio or personal site', body: 'Link to your public website or portfolio.', add: [{ label: 'Add link', kind: 'portfolio' }] },
+  { provider: 'x', name: 'X', body: "Posts from your data archive.", add: [{ label: 'Upload archive', kind: 'x-archive' }] },
 ]
 
 /** The sources step of setup: connect what you have, then agree and continue. */
@@ -130,7 +130,7 @@ export function OnboardingSources({
         <div className="flex flex-col gap-1">
           <span className="text-lg font-bold">Manual work</span>
           <span className="text-sm leading-[21px] text-ink-muted">
-            Little public presence? Describe your work and Tracck keeps it as yours.
+            Add unlisted projects directly.
           </span>
         </div>
         <Button variant="secondary" onClick={() => setManualOpen(true)}>
@@ -140,8 +140,7 @@ export function OnboardingSources({
 
       <div className="flex flex-col gap-4 pt-6">
         <p className="m-0 text-[13px] leading-[20px] text-ink-muted">
-          By continuing you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>, and that
-          only projects relevant to a job are sent to AI providers to tailor your resume.
+          By continuing you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.
         </p>
 
         {error !== null && <ErrorNotice error={error} />}

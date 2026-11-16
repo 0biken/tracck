@@ -40,15 +40,15 @@ const TRACCK_TIERS: PricingTier[] = [
 const faqs = [
   {
     q: 'What counts as a resume?',
-    a: 'One generation for one job description. Editing, rewriting a bullet and exporting the same resume again do not count.',
+    a: 'One job description generation. Edits, rewrites, and re-exports are free.',
   },
   {
     q: 'Can I pay with a Nigerian card or transfer?',
-    a: 'Yes, cards and transfers are supported through our local payment gateway.',
+    a: 'Yes. Cards, bank transfers, and USSD are supported via Paystack.',
   },
   {
     q: 'What happens to my data if I cancel?',
-    a: 'Your proof of work and resumes stay on the Free plan. You can delete any source, project or resume, or your whole account, at any time.',
+    a: 'Your projects and resumes stay on the Free tier. You can delete anything at any time.',
   },
 ]
 
