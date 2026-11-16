@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Meter } from '@/components/ui/meter'
 import { buttonClass } from '@/components/ui/button'
 import { Eyebrow } from '@/components/page-header'
+import { HeroShowcase } from '@/components/marketing/hero-showcase'
 
 const wrap = 'mx-auto w-full max-w-[1200px] px-5 sm:px-8'
 
@@ -54,17 +55,17 @@ export default function LandingPage() {
   return (
     <main>
       {/* Hero */}
-      <section className={`${wrap} grid grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] items-center gap-14 pb-16 pt-14 sm:pt-20`}>
-        <div className="flex flex-col gap-6">
+      <section className={`${wrap} flex flex-col items-center text-center gap-10 pb-16 pt-14 sm:pt-20`}>
+        <div className="flex flex-col items-center gap-6 max-w-3xl">
           <Eyebrow>
             <span className="text-signal">Proof-first</span> · Resume engine for Nigerian tech talent
           </Eyebrow>
           <h1 className="t-display m-0 text-balance">Your wins. Always ready.</h1>
-          <p className="m-0 max-w-130 text-xl leading-[31px]">
+          <p className="m-0 max-w-xl text-xl leading-[31px] text-ink-muted">
             Connect GitHub, your old CV and your portfolio once. Paste a job description and Tracck writes a tailored
             resume where every line traces back to verified work you shipped.
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <Link href="/signup" className={buttonClass('primary', 'xl')}>
               Build your proof of work
             </Link>
@@ -74,63 +75,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div
-          aria-label="Product preview"
-          className="grid grid-cols-1 border border-line-strong bg-sunken md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]"
-        >
-          <div className="flex flex-col gap-3.5 border-b border-line bg-canvas p-6 md:border-b-0 md:border-r">
-            <Eyebrow>Resume for Kora Payments</Eyebrow>
-            <div className="font-display text-[22px] font-bold leading-7">Tolu Adebayo</div>
-            <div className="font-mono text-xs text-ink-muted">Backend Engineer · Ibadan · github.com/toluadebayo</div>
-            <div className="h-0.5 bg-ink" />
-            <div className="text-[11px] font-bold tracking-[0.08em]">PROJECTS</div>
-            <div className="flex flex-col gap-2 border border-signal bg-signal-tint p-3">
-              <div className="text-sm leading-[21px]">
-                Built a NestJS subscription billing service handling card retries with BullMQ queues and Postgres.
-              </div>
-              <div className="flex items-center gap-1.5 font-mono text-[11px] text-signal">
-                <Check className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
-                GITHUB · lemni-billing · 2026.08.18
-              </div>
-            </div>
-            <div className="text-sm leading-[21px] text-ink-muted">
-              Designed consistent hashing ring in Go for cache sharding across nodes.
-            </div>
-            <div className="text-sm leading-[21px] text-ink-muted">
-              Led NACOS UI monthly sessions on system design for 120 members.
-            </div>
-            <div className="h-2.5 w-4/5 bg-sunken-2" />
-            <div className="h-2.5 w-2/3 bg-sunken-2" />
-          </div>
-          <div className="flex flex-col gap-4 p-6">
-            <Eyebrow>Match report</Eyebrow>
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono text-[44px] font-medium tracking-[-0.02em]">82</span>
-              <span className="font-mono text-[13px] text-ink-muted">/ 100 · Developer</span>
-            </div>
-            <div className="flex flex-col gap-2.5 text-[13px] leading-[18px]">
-              <div className="flex justify-between gap-2">
-                <span>Required skills covered</span>
-                <span className="font-mono">7 / 8</span>
-              </div>
-              <Meter value={87} label="Required skills covered, 7 of 8" />
-              <div className="flex justify-between gap-2">
-                <span>Bullets traced to evidence</span>
-                <span className="font-mono text-signal">100%</span>
-              </div>
-              <Meter value={100} tone="signal" label="Bullets traced to evidence, 100%" />
-              <div className="flex justify-between gap-2">
-                <span>Measurable outcomes</span>
-                <span className="font-mono">3 / 6</span>
-              </div>
-              <Meter value={50} label="Measurable outcomes, 3 of 6" />
-            </div>
-            <div className="flex flex-col gap-1.5 border-t border-line pt-3">
-              <div className="text-xs font-bold tracking-[0.08em]">MISSING FROM YOUR EVIDENCE</div>
-              <div className="text-[13px] leading-[18px] text-danger-ink">Kubernetes. Tracck will not claim it.</div>
-            </div>
-          </div>
-        </div>
+        {/* 3D GridScan Hero Showcase */}
+        <HeroShowcase />
       </section>
 
       {/* Proof strip */}
