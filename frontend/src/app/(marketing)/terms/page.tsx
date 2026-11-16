@@ -17,8 +17,8 @@ export default function TermsPage() {
           body: (
             <>
               <p className="m-0">
-                Tracck keeps a record of work you connect or upload, and writes resumes from that record for jobs you
-                choose. Every line it writes is meant to trace back to an entry in your record.
+                Tracck keeps your proof of work from sources you connect or upload, and tailors resumes from that work for jobs you
+                choose. Every line it drafts traces back to verified evidence.
               </p>
               <p className="m-0">
                 Tracck is a writing aid. It does not guarantee an interview, a job or a particular score from any
@@ -80,22 +80,11 @@ export default function TermsPage() {
               <ul>
                 <li>Prices are in naira and billed monthly. The current plans are on the <Link href="/pricing">pricing page</Link>.</li>
                 <li>Limits count resumes generated and sources connected. Editing, rewriting a bullet and exporting an existing resume do not count.</li>
-                <li>You can cancel at any time. Your record and resumes stay on the Free plan.</li>
+                <li>You can cancel at any time. Your proof of work and resumes stay on the Free plan.</li>
                 <li>Accepted payment methods: [PAYMENT METHODS TO CONFIRM].</li>
                 <li>Refunds: [REFUND POLICY TO CONFIRM].</li>
               </ul>
             </>
-          ),
-        },
-        {
-          id: 'organisations',
-          title: 'Organisations using the API',
-          body: (
-            <p className="m-0">
-              Organisations with API access can read a person&apos;s data only after that person consents, and only for
-              the permissions they grant. You can revoke access at any time in Settings. Organisations agree to separate
-              API terms: [API TERMS TO CONFIRM].
-            </p>
           ),
         },
         {
@@ -104,8 +93,7 @@ export default function TermsPage() {
           body: (
             <ul>
               <li>Do not try to break, overload or reverse-engineer the service.</li>
-              <li>Do not share an API key or use one you were not issued.</li>
-              <li>Do not use Tracck to write misleading claims about yourself or anyone else.</li>
+              <li>Do not use Tracck to write misleading statements about yourself or anyone else.</li>
             </ul>
           ),
         },

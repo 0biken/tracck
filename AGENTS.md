@@ -1,4 +1,4 @@
-1. Never guess object shapes/properties (e.g. defaulting with `??`/`||` to paper over uncertainty). Verify against the source of truth first — the backend/data layer or schema where the object is defined.
+1. Never guess object shapes/properties (e.g. defaulting with `??`/`||` to paper over uncertainty). Verify against the source of truth first: the backend/data layer or schema where the object is defined.
 
 2. I use pnpm, don't modify migration files directly, always use the script/helper the orm supports for running migration, don't run these migrations unless i said so explicitely
 
@@ -16,3 +16,5 @@
 11. Never push or switch to master unless i explicitely say so.
 
 12. Do not compare conditions against literal strings. Reuse an existing shared constant or enum; if none exists, declare the value once in an appropriate shared module and import it wherever needed. For example, compare `BASIC.ENVIRONMENT` with `ENVIRONMENTS.local` instead of `"local"`.
+
+13. Scope & current focus: The main feature being worked on is the resume generation and job-tailoring engine (tailored one-page ATS resumes from verified proof of work). Organisation and API integration features are deferred and not supported right now; do not link organisation or API waitlist pages or display API integration claims in the UI.

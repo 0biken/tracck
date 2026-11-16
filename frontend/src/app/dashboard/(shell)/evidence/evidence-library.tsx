@@ -35,7 +35,7 @@ const SOURCE_OPTIONS: { value: SourceProvider; label: string }[] = [
 
 const metaOf = (entry: EvidenceView) => [formatDate(entry.date), entry.where].filter(Boolean).join(' · ')
 
-/** Correct your record: pin, exclude, reword and merge. Every change is saved as you make it. */
+/** Review your proof of work: pin, exclude, reword and merge. Every change is saved as you make it. */
 export function EvidenceLibrary({ initial }: { initial: EvidencePage }) {
   const [page, setPage] = useState(initial)
   const [items, setItems] = useState(initial.items)
@@ -118,7 +118,7 @@ export function EvidenceLibrary({ initial }: { initial: EvidencePage }) {
     setBusy(id)
     try {
       await api.evidence.resolveDuplicate(id, { action })
-      setNotice(action === 'merge' ? 'Merged into one entry. Skills and sources of both are kept.' : 'Kept both entries.')
+      setNotice(action === 'merge' ? 'Merged into one item. Skills and sources of both are kept.' : 'Kept both items.')
       await load(filters)
     } catch (failure) {
       setError(failure)
@@ -154,7 +154,7 @@ export function EvidenceLibrary({ initial }: { initial: EvidencePage }) {
             type="search"
             value={filters.query}
             onChange={(event) => change({ ...filters, query: event.target.value }, 300)}
-            placeholder="Search entries"
+            placeholder="Search evidence"
             className="min-h-11 w-full rounded-sm border border-line-input bg-canvas px-3 text-[15px] placeholder:text-ink-muted/80 hover:border-ink"
           />
         </div>
@@ -196,7 +196,7 @@ export function EvidenceLibrary({ initial }: { initial: EvidencePage }) {
         </div>
       </aside>
 
-      <section aria-label="Entries" aria-busy={loading} className="flex min-w-0 flex-[999_1_480px] flex-col gap-3">
+      <section aria-label="Evidence" aria-busy={loading} className="flex min-w-0 flex-[999_1_480px] flex-col gap-3">
         {error !== null && <ErrorNotice error={error} />}
         {notice && (
           <div role="status" className="flex items-center gap-2.5 border border-signal bg-signal-tint px-4 py-3 text-sm">

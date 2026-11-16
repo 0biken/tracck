@@ -18,13 +18,6 @@ const columns = [
     ],
   },
   {
-    title: 'Organisations',
-    links: [
-      { href: '/#orgs', label: 'API' },
-      { href: '/waitlist', label: 'Waitlist' },
-    ],
-  },
-  {
     title: 'Trust',
     links: [
       { href: '/privacy', label: 'Privacy' },

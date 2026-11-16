@@ -48,7 +48,7 @@ export default async function SignupPage({
 
         <main className="flex flex-1 items-center justify-center py-12">
           <div className="flex w-full max-w-105 flex-col gap-4">
-            <h1 className="t-h2 m-0">Start your record</h1>
+            <h1 className="t-h2 m-0">Create your account</h1>
             <p className="m-0 mb-2 text-[17px] leading-[26px] text-ink-muted">
               Connect your work once. Generate a resume for every job.
             </p>
@@ -105,7 +105,7 @@ export default async function SignupPage({
         aria-label="What you get"
         className="flex flex-[1_1_440px] flex-col justify-center gap-7 bg-inverse px-5 py-14 text-on-inverse sm:px-14"
       >
-        <div className="t-eyebrow text-inverse-muted">ENTRY 042 — 2026.10.12</div>
+        <div className="t-eyebrow text-inverse-muted">PROJECT · 2026.10.12</div>
         <p className="m-0 max-w-130 font-display text-[clamp(32px,4vw,44px)] font-black leading-[1.14] tracking-[-0.03em]">
           Every line on your resume traces back to something you did.
         </p>
@@ -113,7 +113,7 @@ export default async function SignupPage({
           <span className="text-base leading-6">
             Built a NestJS subscription billing service that retries failed card charges through BullMQ queues.
           </span>
-          <span className="font-mono text-xs text-signal-on-inverse">GITHUB — lemni-billing — 2026.08.18</span>
+          <span className="font-mono text-xs text-signal-on-inverse">GITHUB · lemni-billing · 2026.08.18</span>
         </div>
       </aside>
     </div>

@@ -500,7 +500,7 @@ function MatchTab({ resume, flagged }: { resume: ResumeDetailView; flagged: numb
   return (
     <div className="flex flex-col gap-5 p-4 sm:p-6">
       <div className="flex items-baseline gap-2.5">
-        <span className="font-mono text-5xl leading-[52px]">{match.score ?? '—'}</span>
+        <span className="font-mono text-5xl leading-[52px]">{match.score ?? '-'}</span>
         <span className="font-mono text-[13px] text-ink-muted">/ 100{roleName(resume.role) && ` · ${roleName(resume.role).toUpperCase()} PROFILE`}</span>
       </div>
 
@@ -523,7 +523,7 @@ function MatchTab({ resume, flagged }: { resume: ResumeDetailView; flagged: numb
                   {requirement.covered ? 'COVERED' : 'MISSING'}
                 </span>
                 <span>
-                  {requirement.label} — {requirement.detail}
+                  {requirement.label}: {requirement.detail}
                 </span>
               </li>
             ))}

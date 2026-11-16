@@ -124,7 +124,7 @@ export function BackgroundWork({ initial }: { initial: JobListItem[] }) {
 
 function JobRow({ job }: { job: JobListItem }) {
   const status = STATUS_LABEL[job.status]
-  const step = job.step ? (STEP_LABEL[job.step] ?? job.step) : '—'
+  const step = job.step ? (STEP_LABEL[job.step] ?? job.step) : '-'
   const progress =
     SHOWS_PROGRESS.includes(job.status) && job.progressPercent !== null ? ` · ${job.progressPercent}%` : ''
 
@@ -142,9 +142,9 @@ function JobRow({ job }: { job: JobListItem }) {
         </Tag>
       </td>
       <td className={`${tdClass} text-[13px]`}>
-        {SHOWS_PROGRESS.includes(job.status) ? `${step}${progress}` : '—'}
+        {SHOWS_PROGRESS.includes(job.status) ? `${step}${progress}` : '-'}
       </td>
-      <td className={`${tdClass} font-mono text-[13px]`}>{job.startedAt ? formatStamp(job.startedAt) : '—'}</td>
+      <td className={`${tdClass} font-mono text-[13px]`}>{job.startedAt ? formatStamp(job.startedAt) : '-'}</td>
       <td className={`${tdClass} font-mono text-[13px]`}>{`${job.attempts} of ${job.maxAttempts}`}</td>
     </tr>
   )

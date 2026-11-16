@@ -28,8 +28,8 @@ export default async function CvFeedbackPage() {
           <h1 className="t-h2 m-0">CV feedback</h1>
           <p className="m-0 text-base leading-6 text-ink-muted">
             {hasCv
-              ? 'Tracck can read the CV you uploaded and tell you what weakens it. This is feedback only; it does not rewrite your file.'
-              : 'Upload a CV and Tracck will tell you what weakens it, with the line each point is about.'}
+              ? 'Review concrete suggested fixes to strengthen bullet points on your uploaded CV.'
+              : 'Upload a CV to see high-impact fixes and strengthen your bullet points.'}
           </p>
         </div>
         {hasCv ? (
@@ -61,8 +61,8 @@ export default async function CvFeedbackPage() {
         <h1 className="t-h2 m-0">CV feedback</h1>
         <p className="m-0 text-base leading-6 text-ink-muted">
           {count === 0
-            ? 'We found nothing that weakens this CV.'
-            : `${count === 1 ? 'One thing weakens' : `${count} things weaken`} this CV. This is feedback only. Tracck does not rewrite your file; your next generated resume already avoids ${count === 1 ? 'it' : 'these'}.`}
+            ? 'No high-impact fixes needed for this CV.'
+            : `${count === 1 ? '1 suggested fix' : `${count} suggested fixes`} for this role. Review suggestions below to strengthen your bullet points.`}
         </p>
       </div>
 
@@ -105,7 +105,7 @@ export default async function CvFeedbackPage() {
 
       <div className="flex flex-wrap items-start gap-3">
         <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md')}>
-          Generate a resume for a job
+          Tailor for a job
         </Link>
         <Link href="/dashboard/sources" className={buttonClass('secondary', 'md')}>
           Upload a newer CV

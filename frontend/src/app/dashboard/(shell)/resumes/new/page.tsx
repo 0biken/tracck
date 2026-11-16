@@ -16,7 +16,7 @@ export default async function NewResumePage() {
           New resume · Uses {summary.resumesThisMonth}
           {limit !== null ? ` of ${limit}` : ''} this month
         </Eyebrow>
-        <h1 className="t-h2 m-0 text-balance">Paste the job. Tracck finds your evidence.</h1>
+        <h1 className="t-h2 m-0 text-balance">Paste the job description. Tracck matches your proof of work.</h1>
       </div>
       <NewResumeForm
         plan={me.plan}

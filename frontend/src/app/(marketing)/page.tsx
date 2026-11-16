@@ -10,17 +10,17 @@ const steps = [
   {
     n: '01',
     title: 'Build your Career Graph',
-    body: 'Connect your sources once. Tracck collects your full history in the background, removes noise and keeps every accomplishment as a dated, linked entry. You never wait on a loading screen.',
+    body: 'Connect your sources once. Tracck imports your full history in the background, cuts out noise, and organizes every accomplishment with dates and links. No loading screens to wait on.',
   },
   {
     n: '02',
-    title: 'Paste a job, get a resume',
-    body: "Choose one page or full and say what to emphasise. Tracck finds your most relevant evidence, writes in your role's language, checks its own draft and improves it.",
+    title: 'Paste a job, get a tailored resume',
+    body: "Choose one page or full and choose what to emphasize. Tracck selects your most relevant projects, drafts in your role's language, and verifies every bullet point.",
   },
   {
     n: '03',
     title: 'Review, then export',
-    body: 'Open the draft next to its match report. See the evidence behind each bullet, edit anything, and export an ATS-safe PDF only when you are happy with it.',
+    body: 'Open the draft next to its match report. See the evidence behind each bullet, edit anything, and export an ATS-safe PDF when you are ready.',
   },
 ]
 
@@ -33,19 +33,19 @@ const problems = [
 
 const sources = [
   ['GitHub', 'CONNECT', 'Repositories, releases and code activity. Your richest source.'],
-  ['CV or resume', 'UPLOAD', 'PDF or Word. Added to your record, with feedback for your role.'],
+  ['CV or resume', 'UPLOAD', 'PDF or Word. Added to your proof of work, with feedback for your role.'],
   ['Portfolio', 'PASTE LINK', 'Any public page you want included.'],
   ['LinkedIn', 'UPLOAD EXPORT', 'Your data export ZIP, profile PDF or pasted text.'],
   ['X', 'SOON', 'Connect or upload your archive, subject to access.'],
   ['Behance and Figma', 'SOON', 'Paste project links for case studies.'],
-  ['Manual entry', 'FORM', 'For work with no public trace. Tracck helps with the wording.'],
+  ['Manual work', 'FORM', 'For work with no public trace. Tracck helps polish the wording.'],
 ]
 
 const differences = [
-  ['Evidence on every bullet', 'Open any line to see the source, date and original text. If a bullet needs a number you never stated, it is flagged "Confirm a number", never invented.'],
+  ['Evidence on every bullet', 'Open any line to see the source, date and original project. If a bullet needs a number you never stated, it is flagged "Confirm a number", never invented.'],
   ['Match report with reasons', 'Which requirements you cover, which are missing from your evidence, and what you could add. Never a bare number.'],
   ['Six role profiles', 'Developer, Dev Rel and Community, Social Media Manager, Virtual Assistant, UI/UX Designer, Data Analyst. Each with its own section order, verbs and scoring.'],
-  ['Write, check, improve', 'Tracck does not accept its first draft. It reviews against the job and your role, fixes specific problems and reviews again.'],
+  ['Write, check, improve', 'Tracck reviews against the job description and your role, fixes specific gaps, and verifies the bullet points.'],
   ['One page or full', 'Length is checked on the finished layout, not guessed from a word count. Full never pads.'],
   ['ATS-safe export', 'No tables, columns or text boxes. Standard headings and bullets. PDF now, DOCX on Pro.'],
 ]
@@ -57,16 +57,16 @@ export default function LandingPage() {
       <section className={`${wrap} grid grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] items-center gap-14 pb-16 pt-14 sm:pt-20`}>
         <div className="flex flex-col gap-6">
           <Eyebrow>
-            <span className="text-signal">Entry 001</span> — Resume engine for Nigerian tech talent
+            <span className="text-signal">Proof-first</span> · Resume engine for Nigerian tech talent
           </Eyebrow>
           <h1 className="t-display m-0 text-balance">Your wins. Always ready.</h1>
           <p className="m-0 max-w-130 text-xl leading-[31px]">
             Connect GitHub, your old CV and your portfolio once. Paste a job description and Tracck writes a tailored
-            resume where every line traces back to something you actually did.
+            resume where every line traces back to verified work you shipped.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/signup" className={buttonClass('primary', 'xl')}>
-              Build your record
+              Build your proof of work
             </Link>
             <Link href="/#how" className={buttonClass('secondary', 'xl')}>
               See how it works
@@ -90,7 +90,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-1.5 font-mono text-[11px] text-signal">
                 <Check className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
-                GITHUB — lemni-billing — 2026.08.18
+                GITHUB · lemni-billing · 2026.08.18
               </div>
             </div>
             <div className="text-sm leading-[21px] text-ink-muted">
@@ -115,10 +115,10 @@ export default function LandingPage() {
               </div>
               <Meter value={87} label="Required skills covered, 7 of 8" />
               <div className="flex justify-between gap-2">
-                <span>Claims traced to evidence</span>
+                <span>Bullets traced to evidence</span>
                 <span className="font-mono text-signal">100%</span>
               </div>
-              <Meter value={100} tone="signal" label="Claims traced to evidence, 100%" />
+              <Meter value={100} tone="signal" label="Bullets traced to evidence, 100%" />
               <div className="flex justify-between gap-2">
                 <span>Measurable outcomes</span>
                 <span className="font-mono">3 / 6</span>
@@ -136,8 +136,8 @@ export default function LandingPage() {
       {/* Proof strip */}
       <section className="border-y border-line bg-sunken" aria-label="What Tracck guarantees">
         <div className={`${wrap} flex flex-wrap justify-between gap-x-10 gap-y-3 py-5 font-mono text-[13px]`}>
-          <span>100% OF CLAIMS TRACED TO EVIDENCE</span>
-          <span>0 INVENTED NUMBERS</span>
+          <span>100% OF BULLETS TRACED TO EVIDENCE</span>
+          <span>0 INVENTED METRICS</span>
           <span>6 ROLE PROFILES</span>
           <span>ONE PAGE OR FULL</span>
         </div>
@@ -221,7 +221,7 @@ export default function LandingPage() {
         <div className={`${wrap} flex flex-col gap-10 py-20 sm:py-24`}>
           <div className="flex max-w-180 flex-col gap-4">
             <Eyebrow>What makes it different</Eyebrow>
-            <h2 className="t-h2 m-0 text-balance">Written for your role. Checked against your record.</h2>
+            <h2 className="t-h2 m-0 text-balance">Written for your role. Verified against your proof of work.</h2>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-8">
             {differences.map(([title, body]) => (
@@ -238,36 +238,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Organisations */}
-      <section id="orgs" className="scroll-mt-4 bg-inverse text-on-inverse">
-        <div className={`${wrap} grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] items-center gap-14 py-20 sm:py-24`}>
-          <div className="flex flex-col gap-5">
-            <Eyebrow className="!text-inverse-muted">For universities, bootcamps and job platforms</Eyebrow>
-            <h2 className="t-h1 m-0 text-balance">Verified resumes through one API.</h2>
-            <p className="m-0 text-lg leading-7 text-inverse-muted">
-              Each organisation gets its own scoped keys, limits and usage dashboard. You read a person&apos;s data only
-              after they consent.
-            </p>
-            <div>
-              <Link href="/waitlist" className={buttonClass('inverse', 'md')}>
-                Join the API waitlist
-              </Link>
-            </div>
-          </div>
-          <pre className="m-0 overflow-x-auto border border-inverse-line p-6 font-mono text-sm leading-6" aria-label="Example API request">
-            <span className="text-inverse-muted">POST /v1/resumes{'\n'}Authorization: Bearer trk_live_8f2a••••••••</span>
-            {'\n\n{ "user": "usr_31c9", "length": "one_page",\n  "job_description": "Backend Engineer..." }\n\n'}
-            <span className="text-signal-on-inverse">201 Created · consent: granted 2026.10.02</span>
-          </pre>
-        </div>
-      </section>
-
       {/* Closing call */}
       <section className={`${wrap} flex flex-col items-start gap-6 py-20 sm:py-24`}>
         <h2 className="t-h1 m-0 max-w-200 text-balance">Your next application deserves its own resume.</h2>
         <div className="flex flex-wrap gap-3">
           <Link href="/signup" className={buttonClass('primary', 'xl')}>
-            Build your record
+            Build your proof of work
           </Link>
           <Link href="/pricing" className={buttonClass('secondary', 'xl')}>
             See pricing

@@ -8,16 +8,16 @@ export default function DataDeletionPage() {
     <LegalPage
       eyebrow="Data deletion"
       title="Delete anything, any time."
-      lede="You choose how much to remove, from one entry to your whole account. This is what each choice does."
+      lede="You choose how much to remove, from one project to your whole account. This is what each choice does."
       current="/data-deletion"
       sections={[
         {
           id: 'entry',
-          title: 'One entry',
+          title: 'One project or achievement',
           body: (
             <p className="m-0">
-              In the Evidence library, <strong>Exclude</strong> stops an entry being used in any resume, and you can
-              include it again later. Excluded entries stay in your record until you delete the source they came from.
+              In the Evidence library, <strong>Exclude</strong> stops an item being used in any resume, and you can
+              include it again later. Excluded items stay in your proof of work until you delete the source they came from.
             </p>
           ),
         },
@@ -28,13 +28,13 @@ export default function DataDeletionPage() {
             <>
               <p className="m-0">
                 In <Link href="/dashboard/sources">Sources</Link>, disconnect a source and choose what happens to the
-                entries it produced:
+                work it produced:
               </p>
               <ul>
-                <li><strong>Keep the entries:</strong> they stay in your record and can still be used in resumes.</li>
-                <li><strong>Delete everything from that source:</strong> its entries are removed. Existing resumes keep their text but lose the evidence link.</li>
+                <li><strong>Keep the projects:</strong> they stay in your proof of work and can still be used in resumes.</li>
+                <li><strong>Delete everything from that source:</strong> its projects are removed. Existing resumes keep their text but lose the evidence link.</li>
               </ul>
-              <p className="m-0">Deleting an uploaded CV removes the file. Entries from it stay until you delete them.</p>
+              <p className="m-0">Deleting an uploaded CV removes the file. Extracted achievements stay until you delete them.</p>
             </>
           ),
         },
@@ -45,7 +45,7 @@ export default function DataDeletionPage() {
             <p className="m-0">
               Each resume is saved with its job description. Deleting a resume removes both, permanently. Under
               <strong> Settings › Privacy and data</strong> you can delete all your resumes at once. Your sources and
-              entries stay.
+              proof of work stay.
             </p>
           ),
         },
@@ -55,24 +55,14 @@ export default function DataDeletionPage() {
           body: (
             <>
               <p className="m-0">
-                <strong>Settings › Privacy and data › Delete account</strong> removes your sources, entries, resumes and
-                consents. It cannot be undone.
+                <strong>Settings › Privacy and data › Delete account</strong> removes your sources, projects and resumes.
+                It cannot be undone.
               </p>
               <p className="m-0">
                 We delete your data from live systems within [DELETION TIMELINE TO CONFIRM] and from backups within
                 [BACKUP TIMELINE TO CONFIRM].
               </p>
             </>
-          ),
-        },
-        {
-          id: 'organisations',
-          title: 'Access given to organisations',
-          body: (
-            <p className="m-0">
-              Revoking an organisation under <strong>Settings › Organisations with access</strong> stops it reading your
-              data straight away. Organisations must not keep copies beyond what you allowed.
-            </p>
           ),
         },
         {

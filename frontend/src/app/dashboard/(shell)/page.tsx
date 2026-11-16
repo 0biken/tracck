@@ -14,11 +14,11 @@ export const metadata = { title: 'Home' }
 
 const statusOf = (source: SourceView) =>
   source.state === 'ready'
-    ? `READY · ${formatCount(source.entries)} ${source.entries === 1 ? 'ENTRY' : 'ENTRIES'}`
+    ? `READY · ${formatCount(source.entries)} ${source.entries === 1 ? 'PROJECT' : 'PROJECTS'}`
     : source.state === 'collecting'
       ? source.progress?.total
-        ? `COLLECTING · ${source.progress.done} / ${source.progress.total} ITEMS`
-        : 'COLLECTING'
+        ? `SYNCING · ${source.progress.done} / ${source.progress.total} ITEMS`
+        : 'SYNCING'
       : 'PROBLEM'
 
 export default async function HomePage() {
@@ -43,7 +43,7 @@ export default async function HomePage() {
         title="Home"
         actions={
           <Link href="/dashboard/resumes/new" className={buttonClass('primary', 'md')}>
-            Paste a job description
+            Tailor for a job
           </Link>
         }
       />
@@ -53,11 +53,11 @@ export default async function HomePage() {
           <div className="flex items-start gap-3">
             <Check className="mt-0.5 size-5 shrink-0 text-signal" strokeWidth={2} aria-hidden="true" />
             <div className="flex flex-col gap-0.5">
-              <span className="font-bold text-signal">Your record is ready.</span>
+              <span className="font-bold text-signal">Your proof of work is ready.</span>
               <span className="text-[15px] leading-[22px]">
-                {formatCount(summary.entries)} entries from {summary.sourcesReady} {summary.sourcesReady === 1 ? 'source' : 'sources'}.
+                {formatCount(summary.entries)} {summary.entries === 1 ? 'project' : 'projects'} synced from {summary.sourcesReady} {summary.sourcesReady === 1 ? 'source' : 'sources'}.
                 {collecting.length > 0 &&
-                  ` ${collecting.map((source) => source.name).join(' and ')} ${collecting.length === 1 ? 'is' : 'are'} still being read; Tracck will use ${collecting.length === 1 ? 'it' : 'them'} when ${collecting.length === 1 ? 'it finishes' : 'they finish'}.`}
+                  ` ${collecting.map((source) => source.name).join(' and ')} ${collecting.length === 1 ? 'is' : 'are'} still syncing; Tracck will include ${collecting.length === 1 ? 'it' : 'them'} when ready.`}
               </span>
             </div>
           </div>
@@ -68,11 +68,11 @@ export default async function HomePage() {
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-4 border border-line-strong bg-sunken px-5 py-4">
           <div className="flex flex-col gap-0.5">
-            <span className="font-bold">{collecting.length > 0 ? 'Your sources are being read.' : 'Start your record.'}</span>
+            <span className="font-bold">{collecting.length > 0 ? 'Your sources are syncing.' : 'Start your proof of work.'}</span>
             <span className="text-[15px] leading-[22px] text-ink-muted">
               {collecting.length > 0
                 ? 'This runs in the background. You can generate as soon as one source is ready.'
-                : 'Connect GitHub, upload a CV or add what you have done. Resumes are written from this record.'}
+                : 'Connect GitHub, upload a CV or add what you have done. Resumes are tailored from this verified work.'}
             </span>
           </div>
           <Link href="/dashboard/sources" className={buttonClass('secondary', 'md')}>
@@ -82,14 +82,14 @@ export default async function HomePage() {
       )}
 
       <StatGrid
-        label="Your record at a glance"
+        label="Your work at a glance"
         stats={[
           {
-            label: 'Entries',
+            label: 'Projects',
             value: formatCount(summary.entries),
             note: summary.entriesSince ? `+${summary.entriesSince.count} since ${formatDate(summary.entriesSince.date)}` : 'Nothing new this week',
           },
-          { label: 'Sources ready', value: `${summary.sourcesReady} / ${summary.sourcesTotal}`, note: collecting.length ? `${collecting.length} collecting` : 'All read' },
+          { label: 'Sources ready', value: `${summary.sourcesReady} / ${summary.sourcesTotal}`, note: collecting.length ? `${collecting.length} syncing` : 'All synced' },
           {
             label: 'Resumes generated',
             value: summary.resumes,
@@ -106,7 +106,7 @@ export default async function HomePage() {
             <ResumeRows items={resumes.items} compact />
           ) : (
             <p className="m-0 border border-line p-6 text-[15px] text-ink-muted">
-              No resumes yet. <Link href="/dashboard/resumes/new">Paste a job description</Link> to write your first.
+              No resumes yet. <Link href="/dashboard/resumes/new">Tailor for a job</Link> to write your first.
             </p>
           )}
         </section>
@@ -127,10 +127,10 @@ export default async function HomePage() {
           {summary.entriesSince && stale && (
             <div className="flex flex-col gap-2 border border-line-strong bg-sunken p-4">
               <span className="font-bold">
-                {summary.entriesSince.count} new {summary.entriesSince.count === 1 ? 'entry' : 'entries'} since {formatDate(summary.entriesSince.date)}
+                {summary.entriesSince.count} new {summary.entriesSince.count === 1 ? 'project' : 'projects'} since {formatDate(summary.entriesSince.date)}
               </span>
               <span className="text-[15px] leading-[22px] text-ink-muted">
-                Your draft for {stale.company || stale.title} could use {stale.newEntries === 1 ? 'it' : 'them'}. Nothing is rewritten unless you ask.
+                Your draft for {stale.company || stale.title} can include {stale.newEntries === 1 ? 'it' : 'them'}.
               </span>
               <Link href={`/dashboard/resumes/${stale.id}`} className="inline-flex min-h-8 items-center text-sm font-semibold">
                 Open that draft
@@ -148,14 +148,14 @@ export default async function HomePage() {
               {summary.cvWeaknesses === null
                 ? 'Get feedback on your uploaded CV'
                 : summary.cvWeaknesses === 0
-                  ? 'Nothing weakens your uploaded CV'
-                  : `Your uploaded CV has ${summary.cvWeaknesses} ${summary.cvWeaknesses === 1 ? 'weakness' : 'weaknesses'}`}
+                  ? 'No high-impact fixes needed for this CV'
+                  : `Your uploaded CV has ${summary.cvWeaknesses} suggested ${summary.cvWeaknesses === 1 ? 'fix' : 'fixes'}`}
             </h2>
-            <span className="text-[15px] leading-[22px] text-ink-muted">Feedback only; nothing is rewritten.</span>
+            <span className="text-[15px] leading-[22px] text-ink-muted">Suggested fixes to strengthen your bullet points.</span>
           </div>
           <div className="flex sm:justify-end">
             <Link href="/dashboard/feedback" className={buttonClass('secondary', 'md')}>
-              {summary.cvWeaknesses === null ? 'Review my CV' : 'Read the feedback'}
+              {summary.cvWeaknesses === null ? 'Review my CV' : 'Read suggested fixes'}
             </Link>
           </div>
         </section>

@@ -8,8 +8,8 @@ import { LENGTH_LABEL, roleName } from '@/lib/resumes'
 export function StatusTag({ resume, long = false }: { resume: ResumeSummaryView; long?: boolean }) {
   if (resume.status === 'exported') return <Tag tone="signal">EXPORTED</Tag>
   if (resume.status === 'failed') return <Tag tone="danger">FAILED · RETRY</Tag>
-  if (resume.status === 'generating') return <Tag>WRITING…</Tag>
-  return <Tag>{long && resume.newEntries > 0 ? `DRAFT · ${resume.newEntries} NEW ${resume.newEntries === 1 ? 'ENTRY' : 'ENTRIES'}` : 'DRAFT'}</Tag>
+  if (resume.status === 'generating') return <Tag>WRITING...</Tag>
+  return <Tag>{long && resume.newEntries > 0 ? `DRAFT · ${resume.newEntries} NEW ${resume.newEntries === 1 ? 'PROJECT' : 'PROJECTS'}` : 'DRAFT'}</Tag>
 }
 
 function hrefFor(resume: ResumeSummaryView) {
@@ -59,9 +59,9 @@ export function ResumeRows({ items, compact = false }: { items: ResumeSummaryVie
                     {compact ? `${nameOf(resume).toUpperCase()} · ${formatDate(resume.createdAt)}` : resume.title}
                   </div>
                 </td>
-                {!compact && <td className={tdClass}>{roleName(resume.role) || '—'}</td>}
+                {!compact && <td className={tdClass}>{roleName(resume.role) || '-'}</td>}
                 <td className={tdClass}>{LENGTH_LABEL[resume.length]}</td>
-                <td className={`${tdClass} font-mono`}>{resume.score ?? '—'}</td>
+                <td className={`${tdClass} font-mono`}>{resume.score ?? '-'}</td>
                 {!compact && <td className={`${tdClass} font-mono text-[13px]`}>{formatDate(resume.createdAt)}</td>}
                 <td className={tdClass}>
                   <StatusTag resume={resume} long={!compact} />
@@ -89,7 +89,7 @@ export function ResumeRows({ items, compact = false }: { items: ResumeSummaryVie
                 </Link>
                 <div className="text-[13px] text-ink-muted">{resume.title}</div>
               </div>
-              <span className="font-mono text-lg">{resume.score ?? '—'}</span>
+              <span className="font-mono text-lg">{resume.score ?? '-'}</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-ink-muted">
               <StatusTag resume={resume} long />

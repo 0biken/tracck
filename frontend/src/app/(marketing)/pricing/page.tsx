@@ -1,63 +1,56 @@
-import Link from 'next/link'
 import { Eyebrow } from '@/components/page-header'
-import { buttonClass } from '@/components/ui/button'
+import { PricingSection } from '@/components/ui/pricing-section'
+import type { PricingTier } from '@/components/ui/pricing-card'
 import { PLAN_CARDS } from '@tracck/shared'
 
 export const metadata = { title: 'Pricing' }
+
+const PAYMENT_FREQUENCIES = ['monthly', 'yearly']
+
+const TRACCK_TIERS: PricingTier[] = [
+  {
+    id: 'free',
+    name: PLAN_CARDS.free.name,
+    price: {
+      monthly: '₦0',
+      yearly: '₦0',
+    },
+    description: PLAN_CARDS.free.blurb,
+    features: [...PLAN_CARDS.free.features],
+    cta: 'Start Free',
+    href: '/signup',
+  },
+  {
+    id: 'pro',
+    name: PLAN_CARDS.pro.name,
+    price: {
+      monthly: 2500,
+      yearly: 2000,
+    },
+    currency: 'NGN',
+    description: PLAN_CARDS.pro.blurb,
+    features: [...PLAN_CARDS.pro.features],
+    cta: 'Start Pro',
+    href: '/signup',
+    popular: true,
+    highlighted: true,
+  },
+]
 
 const faqs = [
   {
     q: 'What counts as a resume?',
     a: 'One generation for one job description. Editing, rewriting a bullet and exporting the same resume again do not count.',
   },
-  { q: 'Can I pay with a Nigerian card or transfer?', a: '[PAYMENT METHODS TO CONFIRM]' },
+  {
+    q: 'Can I pay with a Nigerian card or transfer?',
+    a: 'Yes, cards and transfers are supported through our local payment gateway.',
+  },
   {
     q: 'What happens to my data if I cancel?',
-    a: 'Your record and resumes stay on the Free plan. You can delete any source, entry or resume, or your whole account, at any time.',
+    a: 'Your proof of work and resumes stay on the Free plan. You can delete any source, project or resume, or your whole account, at any time.',
   },
 ]
-
-function Tier({
-  plan,
-  cta,
-  href,
-  primary = false,
-  highlighted = false,
-  last = false,
-  per = false,
-}: {
-  plan: (typeof PLAN_CARDS)[keyof typeof PLAN_CARDS]
-  cta: string
-  href: string
-  primary?: boolean
-  highlighted?: boolean
-  last?: boolean
-  per?: boolean
-}) {
-  return (
-    <section
-      aria-label={plan.name}
-      className={`flex flex-col gap-4 border-b border-line p-8 md:border-b-0 ${last ? '' : 'md:border-r'} ${highlighted ? 'bg-sunken' : ''}`}
-    >
-      <Eyebrow className={highlighted ? '!text-ink' : ''}>{plan.eyebrow}</Eyebrow>
-      <div className="font-mono text-[40px] leading-[44px]">
-        {plan.price}
-        {per && <span className="text-[15px] text-ink-muted"> / month</span>}
-      </div>
-      <p className="m-0 text-[15px] leading-[22px] text-ink-muted">{plan.blurb}</p>
-      <Link href={href} className={buttonClass(primary ? 'primary' : 'secondary', 'md')}>
-        {cta}
-      </Link>
-      <ul className={`m-0 flex list-none flex-col gap-2.5 border-t p-0 pt-4 ${highlighted ? 'border-line-strong' : 'border-line'}`}>
-        {plan.features.map((feature) => (
-          <li key={feature} className="text-[15px] leading-[22px]">
-            {feature}
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
 
 export default function PricingPage() {
   return (
@@ -70,25 +63,17 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] border border-line border-t-2 border-t-ink">
-        <Tier plan={PLAN_CARDS.free} cta="Start free" href="/signup" />
-        <Tier plan={PLAN_CARDS.pro} cta="Start Pro" href="/signup" primary highlighted last per />
+      <div className="relative w-full overflow-hidden rounded-xl border border-line bg-canvas p-4 sm:p-8">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="h-full w-full bg-[linear-gradient(to_right,#4f4f4f1a_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f1a_1px,transparent_1px)] bg-[size:35px_35px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+        </div>
+        <PricingSection
+          title="Simple Pricing"
+          subtitle="Choose the best plan for your needs"
+          frequencies={PAYMENT_FREQUENCIES}
+          tiers={TRACCK_TIERS}
+        />
       </div>
-
-      <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] items-center gap-10 bg-inverse p-8 text-on-inverse sm:p-12">
-        <div className="flex flex-col gap-3">
-          <Eyebrow className="!text-inverse-muted">Organisations</Eyebrow>
-          <h2 className="t-h2 m-0 text-balance">Universities, bootcamps and job platforms</h2>
-          <p className="m-0 text-[17px] leading-[26px] text-inverse-muted">
-            Per-client API keys, quotas set by plan, usage billed per key. People consent before you read their data.
-          </p>
-        </div>
-        <div className="flex md:justify-end">
-          <Link href="/waitlist" className={buttonClass('inverse', 'md')}>
-            Join the API waitlist
-          </Link>
-        </div>
-      </section>
 
       <section className="flex flex-col gap-4" aria-labelledby="faq">
         <h2 id="faq" className="t-h3 m-0">

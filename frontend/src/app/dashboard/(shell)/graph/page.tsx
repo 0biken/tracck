@@ -19,7 +19,7 @@ export default async function CareerGraphPage() {
   return (
     <>
       <PageHeader
-        eyebrow={`${formatCount(graph.entries)} entries · ${projectCount} projects · ${graph.skills.length} skills${graph.updatedAt ? ` · Updated ${formatDate(graph.updatedAt)}` : ''}`}
+        eyebrow={`${formatCount(graph.entries)} items · ${projectCount} projects · ${graph.skills.length} skills${graph.updatedAt ? ` · Updated ${formatDate(graph.updatedAt)}` : ''}`}
         title="Career Graph"
         actions={
           <>
@@ -30,23 +30,23 @@ export default async function CareerGraphPage() {
           </>
         }
       >
-        Everything Tracck learned from your sources, organised by project and skill. Each resume uses only the entries
-        ranked most relevant to that job.
+        Everything Tracck imported from your sources, organized by project and skill. Each resume uses only the verified
+        achievements most relevant to that job.
       </PageHeader>
 
       {graph.entries === 0 ? (
         <p className="m-0 border border-line p-6 text-[15px] text-ink-muted">
-          Your graph builds as sources finish collecting. <Link href="/dashboard/sources">Connect a source</Link> to start.
+          Your graph builds as sources sync. <Link href="/dashboard/sources">Connect a source</Link> to start.
         </p>
       ) : (
         <>
           <section aria-label="Activity by month" className="flex flex-col gap-2.5">
             <div className="t-eyebrow text-ink-muted">
-              Entries by month · {monthLabel(graph.months[0].month)} to {monthLabel(graph.months[graph.months.length - 1].month)}
+              Achievements by month · {monthLabel(graph.months[0].month)} to {monthLabel(graph.months[graph.months.length - 1].month)}
             </div>
             <figure
               className="m-0"
-              aria-label={`Bar chart of entries by month. Busiest month: ${monthLabel(busiest.month)}, ${busiest.count} entries.`}
+              aria-label={`Bar chart of achievements by month. Busiest month: ${monthLabel(busiest.month)}, ${busiest.count} achievements.`}
             >
               <div className="grid h-24 grid-cols-12 items-end gap-1.5 border-b border-ink" aria-hidden="true">
                 {graph.months.map((month) => (

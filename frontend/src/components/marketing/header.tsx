@@ -10,7 +10,6 @@ import type { Viewer } from '@/lib/viewer'
 const links = [
   { href: '/#how', label: 'How it works' },
   { href: '/#sources', label: 'Sources' },
-  { href: '/#orgs', label: 'For organisations' },
   { href: '/pricing', label: 'Pricing' },
 ]
 

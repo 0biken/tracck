@@ -26,7 +26,7 @@ interface Row {
 }
 
 const ROWS: Row[] = [
-  { provider: 'github', name: 'GitHub', body: 'Public repositories and releases. Collecting starts as soon as you connect.', add: [{ label: 'Connect GitHub', kind: 'github' }], replace: { label: 'Change', kind: 'github' } },
+  { provider: 'github', name: 'GitHub', body: 'Public repositories and releases. Syncing starts as soon as you connect.', add: [{ label: 'Connect GitHub', kind: 'github' }], replace: { label: 'Change', kind: 'github' } },
   { provider: 'cv', name: 'CV or resume', body: 'PDF or Word. We will also give you feedback on it.', add: [{ label: 'Upload CV', kind: 'cv' }], replace: { label: 'Replace', kind: 'cv' } },
   {
     provider: 'linkedin',
@@ -97,7 +97,7 @@ export function OnboardingSources({
                 <span className="text-lg font-bold">{row.name}</span>
                 {existing ? (
                   <Tag tone={existing.state === 'problem' ? 'danger' : 'signal'}>
-                    {existing.state === 'problem' ? 'PROBLEM' : existing.state === 'collecting' ? 'COLLECTING' : 'CONNECTED'}
+                    {existing.state === 'problem' ? 'PROBLEM' : existing.state === 'collecting' ? 'SYNCING' : 'CONNECTED'}
                   </Tag>
                 ) : (
                   row.tag && <Tag>{row.tag}</Tag>
@@ -128,7 +128,7 @@ export function OnboardingSources({
 
       <div className={rowClass}>
         <div className="flex flex-col gap-1">
-          <span className="text-lg font-bold">Manual entry</span>
+          <span className="text-lg font-bold">Manual work</span>
           <span className="text-sm leading-[21px] text-ink-muted">
             Little public presence? Describe your work and Tracck keeps it as yours.
           </span>
@@ -141,7 +141,7 @@ export function OnboardingSources({
       <div className="flex flex-col gap-4 pt-6">
         <p className="m-0 text-[13px] leading-[20px] text-ink-muted">
           By continuing you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>, and that
-          the entries relevant to a job are sent to AI providers to write your resume.
+          only projects relevant to a job are sent to AI providers to tailor your resume.
         </p>
 
         {error !== null && <ErrorNotice error={error} />}

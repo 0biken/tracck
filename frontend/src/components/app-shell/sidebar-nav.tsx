@@ -22,7 +22,7 @@ function userItems(counts: NavCounts): Item[] {
       count: String(counts.resumes),
       match: (p) => p.startsWith('/dashboard/resumes') && !p.startsWith('/dashboard/resumes/new'),
     },
-    { head: 'YOUR RECORD' },
+    { head: 'PROOF OF WORK' },
     { href: '/dashboard/graph', label: 'Career Graph', match: (p) => p.startsWith('/dashboard/graph') },
     { href: '/dashboard/evidence', label: 'Evidence library', count: String(counts.evidence), match: (p) => p.startsWith('/dashboard/evidence') },
     { href: '/dashboard/sources', label: 'Sources', count: String(counts.sources), match: (p) => p.startsWith('/dashboard/sources') },

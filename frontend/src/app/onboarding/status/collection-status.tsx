@@ -14,10 +14,10 @@ const rowBase =
   'grid grid-cols-1 items-center gap-2 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:gap-6 sm:py-[22px]'
 
 function detailOf(source: SourceView) {
-  if (source.state === 'ready') return `${formatCount(source.entries)} ${source.entries === 1 ? 'ENTRY' : 'ENTRIES'} KEPT`
+  if (source.state === 'ready') return `${formatCount(source.entries)} ${source.entries === 1 ? 'PROJECT' : 'PROJECTS'} KEPT`
   if (source.state === 'collecting') {
-    const entries = source.entries > 0 ? ` · ${formatCount(source.entries)} ENTRIES SO FAR` : ''
-    return source.progress ? `READING · ${source.progress.done}%${entries}` : `QUEUED${entries}`
+    const entries = source.entries > 0 ? ` · ${formatCount(source.entries)} PROJECTS SO FAR` : ''
+    return source.progress ? `SYNCING · ${source.progress.done}%${entries}` : `QUEUED${entries}`
   }
   return source.problem ?? 'SOMETHING WENT WRONG'
 }
@@ -67,7 +67,7 @@ export function CollectionStatus({ initial, email }: { initial: SourceView[]; em
 
         {sources.length === 0 && (
           <p className="m-0 border-b border-line py-6 text-[15px] text-ink-muted">
-            No sources yet. <Link href="/onboarding/sources">Add one</Link> to start your record.
+            No sources yet. <Link href="/onboarding/sources">Add one</Link> to build your proof of work.
           </p>
         )}
 
@@ -99,7 +99,7 @@ export function CollectionStatus({ initial, email }: { initial: SourceView[]; em
                 />
                 <span className={`font-mono text-xs ${ready ? '' : 'text-ink-muted'}`}>{detailOf(source)}</span>
               </div>
-              <span className={`font-mono text-[13px] ${ready ? 'text-signal' : ''}`}>{ready ? 'READY' : 'COLLECTING'}</span>
+              <span className={`font-mono text-[13px] ${ready ? 'text-signal' : ''}`}>{ready ? 'READY' : 'SYNCING'}</span>
             </div>
           )
         })}
@@ -109,8 +109,8 @@ export function CollectionStatus({ initial, email }: { initial: SourceView[]; em
         <div className="flex items-start gap-3 border border-signal bg-signal-tint px-5 py-4">
           <Check className="mt-0.5 size-5 shrink-0 text-signal" strokeWidth={2} aria-hidden="true" />
           <span className="text-[15px] leading-[22px]">
-            <strong className="text-signal">Your record is ready.</strong> A source finished. Paste a job description now;
-            Tracck will use the other sources when they finish.
+            <strong className="text-signal">Your proof of work is ready.</strong> A source finished syncing. Tailor for a job now;
+            Tracck will include the remaining sources as they finish.
           </span>
         </div>
       )}
@@ -121,7 +121,7 @@ export function CollectionStatus({ initial, email }: { initial: SourceView[]; em
           aria-disabled={!anyReady}
           className={`${buttonClass('primary', 'lg')} ${anyReady ? '' : 'pointer-events-none opacity-50'}`}
         >
-          Paste a job description
+          Tailor for a job
         </Link>
         <Link href="/dashboard" className={buttonClass('secondary', 'lg')}>
           Go to home

@@ -16,8 +16,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
           <Eyebrow>Something went wrong</Eyebrow>
           <h1 className="t-h1 m-0 text-balance">That did not load.</h1>
           <p className="m-0 text-lg leading-7 text-ink-muted">
-            It is on our side, not yours, and your record is safe. Try again, and if it keeps happening, tell us what you
-            were doing.
+            Your proof of work and resumes are safe. Try refreshing, or head back to your dashboard.
           </p>
           {error.digest && <p className="m-0 font-mono text-xs text-ink-muted">REFERENCE {error.digest}</p>}
           <div className="flex flex-wrap gap-3">

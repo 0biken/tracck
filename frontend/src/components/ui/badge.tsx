@@ -1,7 +1,10 @@
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import type { LucideIcon } from "lucide-react"
 
-export type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
+import { cn } from "@/lib/utils"
+
+export type Tone = "neutral" | "accent" | "success" | "warning" | "danger"
 
 const tones: Record<Tone, string> = {
   neutral: "border-line-input text-ink-muted",
@@ -9,28 +12,60 @@ const tones: Record<Tone, string> = {
   success: "border-signal text-signal",
   warning: "border-line-strong bg-sunken text-ink",
   danger: "border-danger bg-danger-tint text-danger-ink",
-};
+}
 
-/** Status is never color-only: every badge carries an icon and a text label. */
-export function Badge({
-  tone = "neutral",
-  icon: Icon,
-  spin = false,
-  children,
-}: {
-  tone?: Tone;
-  icon: LucideIcon;
-  spin?: boolean;
-  children: ReactNode;
-}) {
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+)
+
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {
+  tone?: Tone
+  icon?: LucideIcon
+  spin?: boolean
+}
+
+function Badge({ className, variant, tone, icon: Icon, spin = false, children, ...props }: BadgeProps) {
+  if (tone || Icon) {
+    return (
+      <span
+        className={cn(
+          "inline-flex h-6 items-center gap-1.5 rounded-sm border px-2 font-mono text-[11px] font-medium uppercase tracking-[0.06em] whitespace-nowrap",
+          tone ? tones[tone] : "",
+          className
+        )}
+        {...(props as React.HTMLAttributes<HTMLSpanElement>)}
+      >
+        {Icon && (
+          <Icon className={cn("size-3.5", spin && "animate-spin")} strokeWidth={1.75} aria-hidden="true" />
+        )}
+        {children}
+      </span>
+    )
+  }
+
   return (
-    <span
-      className={`inline-flex h-6 items-center gap-1.5 rounded-sm border px-2 font-mono text-[11px] font-medium uppercase tracking-[0.06em] whitespace-nowrap ${tones[tone]}`}
-    >
-      <Icon className={`size-3.5 ${spin ? "animate-spin" : ""}`} strokeWidth={1.75} aria-hidden="true" />
+    <div className={cn(badgeVariants({ variant }), className)} {...props}>
       {children}
-    </span>
-  );
+    </div>
+  )
 }
 
 const tagTones = {
@@ -38,23 +73,28 @@ const tagTones = {
   ink: "border-ink text-ink",
   signal: "border-signal text-signal",
   danger: "border-danger bg-danger-tint text-danger-ink",
-} as const;
+} as const
 
-/** A small mono label for a status or a skill. Use Badge when status must not rely on colour. */
 export function Tag({
   tone = "muted",
   children,
   className = "",
 }: {
-  tone?: keyof typeof tagTones;
-  children: ReactNode;
-  className?: string;
+  tone?: keyof typeof tagTones
+  children: React.ReactNode
+  className?: string
 }) {
   return (
     <span
-      className={`inline-block rounded-sm border px-1.5 py-[3px] font-mono text-xs whitespace-nowrap ${tagTones[tone]} ${className}`}
+      className={cn(
+        "inline-block rounded-sm border px-1.5 py-[3px] font-mono text-xs whitespace-nowrap",
+        tagTones[tone],
+        className
+      )}
     >
       {children}
     </span>
-  );
+  )
 }
+
+export { Badge, badgeVariants }

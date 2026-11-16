@@ -16,7 +16,7 @@ export default function NotFound() {
           <Eyebrow>Error 404</Eyebrow>
           <h1 className="t-h1 m-0 text-balance">We can&apos;t find that page.</h1>
           <p className="m-0 text-lg leading-7 text-ink-muted">
-            The link may be old, or the page may have moved. Nothing in your record is affected.
+            The link may be old, or the page may have moved. Your proof of work and resumes are safe.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/dashboard" className={buttonClass('primary', 'lg')}>

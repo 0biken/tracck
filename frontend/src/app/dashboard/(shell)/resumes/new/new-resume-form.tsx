@@ -293,17 +293,17 @@ export function NewResumeForm({
             return collecting ? (
               <label key={provider} className="flex min-h-8 items-center gap-3 text-[15px] text-ink-muted">
                 <input type="checkbox" disabled className="size-5 shrink-0" />
-                {source.name} <span className="font-mono text-xs">STILL COLLECTING</span>
+                {source.name} <span className="font-mono text-xs">SYNCING</span>
               </label>
             ) : (
               <CheckField key={provider} checked={chosen.has(provider)} onChange={(event) => toggle(provider, event.target.checked)} className="min-h-8 text-[15px]">
-                {label(provider)} <span className="font-mono text-xs text-ink-muted">{entries[provider]} ENTRIES</span>
+                {label(provider)} <span className="font-mono text-xs text-ink-muted">{entries[provider]} {entries[provider] === 1 ? 'PROJECT' : 'PROJECTS'}</span>
               </CheckField>
             )
           })}
           {manual && (
             <CheckField checked={chosen.has('manual')} onChange={(event) => toggle('manual', event.target.checked)} className="min-h-8 text-[15px]">
-              Manual entries <span className="font-mono text-xs text-ink-muted">{entries.manual} ENTRIES</span>
+              Manual work <span className="font-mono text-xs text-ink-muted">{entries.manual} {entries.manual === 1 ? 'PROJECT' : 'PROJECTS'}</span>
             </CheckField>
           )}
           {providers.length === 0 && !manual && (
@@ -344,7 +344,7 @@ export function NewResumeForm({
             </div>
           ) : (
             <p className="m-0 text-sm leading-5 text-ink-muted" aria-live="polite">
-              {reads ? 'Reading the job…' : 'Paste the job and the skills it asks for show up here.'}
+              {reads ? 'Reading the job...' : 'Paste the job and the skills it asks for show up here.'}
             </p>
           )}
         </section>
@@ -355,9 +355,9 @@ export function NewResumeForm({
           </Eyebrow>
           <ol className="m-0 flex list-decimal flex-col gap-2 pl-5 text-[15px] leading-[22px]">
             <li>Reading the job</li>
-            <li>Finding your evidence</li>
-            <li>Writing</li>
-            <li>Checking every claim against your entries</li>
+            <li>Matching your projects to the requirements</li>
+            <li>Drafting verified bullet points</li>
+            <li>Checking every bullet against your proof of work</li>
           </ol>
           <span className="text-[13px] leading-[19px] text-ink-muted">You can leave while it runs; we tell you when it is ready.</span>
         </section>

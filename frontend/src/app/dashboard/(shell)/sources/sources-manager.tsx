@@ -19,12 +19,12 @@ const rowGrid = 'grid grid-cols-1 items-center gap-3 md:grid-cols-[minmax(0,1.4f
 /** What each kind of source can be added with. */
 const ADD: { provider: SourceProvider | 'manual'; name: string; body: string; action: string; kind?: AddKind }[] = [
   { provider: 'github', name: 'GitHub', body: 'Public repositories and releases. Your richest source.', action: 'Connect GitHub', kind: 'github' },
-  { provider: 'cv', name: 'CV or resume', body: 'PDF or Word. Added to your record, with feedback for your role.', action: 'Upload CV', kind: 'cv' },
+  { provider: 'cv', name: 'CV or resume', body: 'PDF or Word. Added to your proof of work, with feedback for your role.', action: 'Upload CV', kind: 'cv' },
   { provider: 'linkedin', name: 'LinkedIn', body: 'Your data export ZIP or profile PDF.', action: 'Upload export', kind: 'linkedin-file' },
   { provider: 'portfolio', name: 'Portfolio', body: 'Any public page you want included.', action: 'Add link', kind: 'portfolio' },
   { provider: 'x', name: 'X', body: "Your posts from X's data archive. Only posts are read.", action: 'Upload archive', kind: 'x-archive' },
   { provider: 'behance', name: 'Behance', body: 'Paste your project titles, descriptions and links.', action: 'Paste projects', kind: 'behance' },
-  { provider: 'manual', name: 'Manual entry', body: 'For work with no public trace. You write it; Tracck keeps it as yours.', action: 'Add manually' },
+  { provider: 'manual', name: 'Manual work', body: 'For work with no public trace. You write it; Tracck keeps it as yours.', action: 'Add manually' },
 ]
 
 type Notice = { tone: 'ok' | 'error'; text: string }
@@ -65,8 +65,8 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
       source.id,
       () => api.sources.remove(source.id, keep),
       keep === 'delete'
-        ? `${source.name} removed, along with the entries it produced.`
-        : `${source.name} removed. Its entries stay in your record.`,
+        ? `${source.name} removed, along with the projects it added.`
+        : `${source.name} removed. Its projects stay in your proof of work.`,
     )
   }
 
@@ -113,8 +113,8 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                   <span
                     className={`font-mono text-[13px] uppercase ${source.state === 'ready' ? 'text-signal' : problem ? 'text-danger-ink' : ''}`}
                   >
-                    {source.state === 'ready' && `Ready · ${formatCount(source.entries)} ${source.entries === 1 ? 'entry' : 'entries'}`}
-                    {source.state === 'collecting' && 'Collecting'}
+                    {source.state === 'ready' && `Ready · ${formatCount(source.entries)} ${source.entries === 1 ? 'project' : 'projects'}`}
+                    {source.state === 'collecting' && 'Syncing'}
                     {problem && 'Problem'}
                   </span>
                   {source.progress && (
@@ -175,8 +175,8 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                   </h2>
                   <p className="m-0 text-[15px] leading-[22px]">
                     {source.provider === 'github'
-                      ? `Tracck stops collecting from GitHub. Choose what happens to the ${formatCount(source.entries)} entries it already learned.`
-                      : `Tracck stops using ${source.name}. Choose what happens to the ${formatCount(source.entries)} entries it already learned.`}
+                      ? `Tracck stops syncing with GitHub. Choose what happens to the ${formatCount(source.entries)} projects it already imported.`
+                      : `Tracck stops using ${source.name}. Choose what happens to the ${formatCount(source.entries)} projects it already imported.`}
                   </p>
                   <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-[22px]">
                     <input
@@ -187,9 +187,9 @@ export function SourcesManager({ initial, notice: initialNotice }: { initial: So
                       className="mt-0.5 size-[18px] accent-ink"
                     />
                     <span>
-                      <strong>Keep the entries</strong>
+                      <strong>Keep the projects</strong>
                       <br />
-                      <span className="text-ink-muted">They stay in your record and can still be used in resumes.</span>
+                      <span className="text-ink-muted">They stay in your proof of work and can still be used in resumes.</span>
                     </span>
                   </label>
                   <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-[22px]">

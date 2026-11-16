@@ -16,9 +16,9 @@ import { useJob } from '@/lib/use-job'
 
 /** The steps the writer goes through, in order. Each is done when the job has moved past it. */
 const STEPS: { step: JobStep; title: string; done: string }[] = [
-  { step: 'retrieve', title: 'Reading the job and finding your evidence', done: 'The entries that match this job were chosen' },
-  { step: 'draft', title: 'Writing', done: 'Every bullet is written from an entry of yours' },
-  { step: 'validate', title: 'Checking every claim against your entries', done: 'Each figure and tool traces to your evidence' },
+  { step: 'retrieve', title: 'Matching projects to the job requirements', done: 'Selected matching projects and achievements' },
+  { step: 'draft', title: 'Drafting verified bullet points', done: 'Drafted bullet points with your tools and metrics' },
+  { step: 'validate', title: 'Verifying bullet points against evidence', done: 'Verified bullet points against your proof of work' },
 ]
 
 /** Where a job stands: how many steps are complete and which one is running. */
@@ -77,7 +77,7 @@ function Live({ resume, eyebrow, jobId }: { resume: ResumeDetailView; eyebrow: s
       <Failure
         resumeId={resume.id}
         eyebrow={eyebrow}
-        message={job?.error?.message ?? 'We could not write this resume.'}
+        message={job?.error?.message ?? "Couldn't finish this draft. We were unable to match enough verified projects to this job description."}
         needsEvidence={job?.error?.code === 'NO_EVIDENCE'}
       />
     )
@@ -195,7 +195,7 @@ function Failure({ resumeId, eyebrow, message, needsEvidence }: { resumeId: stri
 
   return (
     <>
-      <Heading eyebrow={eyebrow} title="This resume could not be written">
+      <Heading eyebrow={eyebrow} title="Couldn't finish this draft">
         Nothing was used from your plan for this attempt.
       </Heading>
       <div role="alert" className="flex items-start gap-3 border border-danger bg-danger-tint p-4">
@@ -228,14 +228,14 @@ function Evidence({ resume }: { resume: ResumeDetailView }) {
       <>
         <Eyebrow>Evidence being used</Eyebrow>
         <p className="m-0 border-t border-line pt-4 text-[15px] leading-[22px] text-ink-muted">
-          The entries this resume is written from show up here once the job has been read.
+          The proof items this resume is tailored from show up here once the job has been read.
         </p>
       </>
     )
   }
   return (
     <>
-      <Eyebrow>Evidence used · {refs.length} entries</Eyebrow>
+      <Eyebrow>Evidence used · {refs.length} {refs.length === 1 ? 'project' : 'projects'}</Eyebrow>
       <div className="border-t border-line">
         {refs.slice(0, 6).map((item) => (
           <div key={item.id} className="flex flex-col gap-1 border-b border-line py-3.5">

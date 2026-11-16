@@ -343,7 +343,7 @@ export function SettingsForm({
             <span>
               <strong>Delete account</strong>
               <br />
-              <span className="text-[13px] text-ink-muted">Removes sources, entries, resumes and policy agreements. Cannot be undone.</span>
+              <span className="text-[13px] text-ink-muted">Removes sources, projects, resumes and account data. Cannot be undone.</span>
             </span>
             <Button variant="danger-solid" onClick={() => setConfirm('account')}>
               Delete account
