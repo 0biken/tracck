@@ -1,15 +1,34 @@
-"use client";
+"use client"
 
-import { motion } from "motion/react";
-import * as React from "react";
+import * as React from "react"
+import Link from "next/link"
+import { motion } from "framer-motion"
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
-const componentThemeClassName =
-  "[--ic-background:#ffffff] [--ic-foreground:#111111] [--ic-primary:#111111] [--ic-secondary:#646b75] [--ic-surface-border:#e9edf2] [--ic-border:#e3e7ec] [--ic-card:#ffffff] [--ic-card-foreground:#111111] [--ic-muted:#f5f7fa] [--ic-muted-foreground:#6d7480] [--ic-accent:#f3f5f8] [--color-accent:var(--ic-accent)] [--color-accent-foreground:var(--ic-accent-foreground)] [--ic-accent-foreground:#111111] [--ic-input:#e3e7ec] [--ic-ring:rgba(17,17,17,0.16)] [--ic-destructive:#dc2626] [--ic-paper:#fcfcfd] [--ic-popover-foreground:#111111] [--ic-brand:#0ea5e9] [--ic-brand-soft:#bae6fd] [--ic-shadow-soft:0_18px_38px_-24px_rgba(15,23,42,0.35)] [--ic-chart-1:oklch(0.52_0.19_254)] [--ic-chart-2:oklch(0.74_0.11_232)] [--ic-chart-3:oklch(0.42_0.16_262)] [--ic-chart-4:oklch(0.84_0.07_228)] [--ic-chart-5:oklch(0.62_0.14_240)] [--color-background:var(--ic-background)] [--color-foreground:var(--ic-foreground)] [--color-primary:var(--ic-primary)] [--color-secondary:var(--ic-secondary)] [--color-border:var(--ic-border)] [--color-card:var(--ic-card)] [--color-card-foreground:var(--ic-card-foreground)] [--color-muted:var(--ic-muted)] [--color-muted-foreground:var(--ic-muted-foreground)] [--color-accent:var(--ic-accent)] [--color-accent-foreground:var(--ic-accent-foreground)] [--color-input:var(--ic-input)] [--color-ring:var(--ic-ring)] [--color-destructive:var(--ic-destructive)] [--color-paper:var(--ic-paper)] [--color-popover-foreground:var(--ic-popover-foreground)] [--color-brand:var(--ic-brand)] [--color-brand-soft:var(--ic-brand-soft)] [--color-chart-1:var(--ic-chart-1)] [--color-chart-2:var(--ic-chart-2)] [--color-chart-3:var(--ic-chart-3)] [--color-chart-4:var(--ic-chart-4)] [--color-chart-5:var(--ic-chart-5)] dark:[--ic-background:#111111] dark:[--ic-foreground:#f6f3ec] dark:[--ic-primary:#f6f3ec] dark:[--ic-secondary:#cbc6bb] dark:[--ic-surface-border:#2a2a25] dark:[--ic-border:#2b2a25] dark:[--ic-card:#111111] dark:[--ic-card-foreground:#f6f3ec] dark:[--ic-muted:#171716] dark:[--ic-muted-foreground:#9a958a] dark:[--ic-accent:#1a1a18] [--color-accent:var(--ic-accent)] [--color-accent-foreground:var(--ic-accent-foreground)] dark:[--ic-accent-foreground:#f6f3ec] dark:[--ic-input:#2b2a25] dark:[--ic-ring:rgba(246,243,236,0.18)] dark:[--ic-destructive:#f87171] dark:[--ic-paper:#171716] dark:[--ic-popover-foreground:#f6f3ec] dark:[--ic-brand:#38bdf8] dark:[--ic-brand-soft:#0c4a6e] dark:[--ic-shadow-soft:0_20px_44px_-28px_rgba(0,0,0,0.6)] dark:[--ic-chart-1:oklch(0.68_0.17_250)] dark:[--ic-chart-2:oklch(0.82_0.09_225)] dark:[--ic-chart-3:oklch(0.58_0.15_260)] dark:[--ic-chart-4:oklch(0.75_0.12_235)] dark:[--ic-chart-5:oklch(0.88_0.06_220)]";
+const FILL_EASE = [0.16, 1, 0.3, 1] as const
 
-const FILL_DURATION = 0.5;
-const FILL_EASE = [0.16, 1, 0.3, 1] as const;
+function getCoverDiameter(width: number, height: number, x: number, y: number) {
+  return Math.ceil(
+    2 *
+      Math.max(
+        Math.hypot(x, y),
+        Math.hypot(width - x, y),
+        Math.hypot(x, height - y),
+        Math.hypot(width - x, height - y)
+      )
+  )
+}
+
+function assignRef<T>(ref: React.ForwardedRef<T>, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value)
+    return
+  }
+  if (ref) {
+    ref.current = value
+  }
+}
 
 type ButtonHTMLAttributesForMotion = Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -24,51 +43,13 @@ type ButtonHTMLAttributesForMotion = Omit<
   | "onDragOver"
   | "onDragStart"
   | "onDrop"
->;
-
-function getCoverDiameter(width: number, height: number, x: number, y: number) {
-  return Math.ceil(
-    2 *
-      Math.max(
-        Math.hypot(x, y),
-        Math.hypot(width - x, y),
-        Math.hypot(x, height - y),
-        Math.hypot(width - x, height - y)
-      )
-  );
-}
-
-function assignRef<T>(ref: React.ForwardedRef<T>, value: T | null) {
-  if (typeof ref === "function") {
-    ref(value);
-    return;
-  }
-
-  if (ref) {
-    ref.current = value;
-  }
-}
-
-function hasTextContent(node: React.ReactNode): boolean {
-  if (typeof node === "string" || typeof node === "number") {
-    return String(node).trim().length > 0;
-  }
-
-  if (Array.isArray(node)) {
-    return node.some(hasTextContent);
-  }
-
-  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
-    return hasTextContent(node.props.children);
-  }
-
-  return false;
-}
+>
 
 export type OriginButtonProps = ButtonHTMLAttributesForMotion & {
-  children?: React.ReactNode;
-  loading?: boolean;
-};
+  children?: React.ReactNode
+  loading?: boolean
+  href?: string
+}
 
 export const OriginButton = React.forwardRef<HTMLButtonElement, OriginButtonProps>(
   (
@@ -78,6 +59,7 @@ export const OriginButton = React.forwardRef<HTMLButtonElement, OriginButtonProp
       disabled = false,
       loading = false,
       type = "button",
+      href,
       onBlur,
       onClick,
       onFocus,
@@ -92,211 +74,188 @@ export const OriginButton = React.forwardRef<HTMLButtonElement, OriginButtonProp
     },
     ref
   ) => {
-    const buttonRef = React.useRef<HTMLButtonElement>(null);
-    const isDisabled = Boolean(disabled || loading);
-    const [hovered, setHovered] = React.useState(false);
-    const [isPressed, setIsPressed] = React.useState(false);
-    const [origin, setOrigin] = React.useState({ x: 0, y: 0 });
-    const [coverSize, setCoverSize] = React.useState(0);
-
-    const ariaLabel = props["aria-label"];
-    const ariaLabelledBy = props["aria-labelledby"];
-
-    React.useEffect(() => {
-      if (process.env.NODE_ENV === "production") {
-        return;
-      }
-
-      if (
-        hasTextContent(children) ||
-        ariaLabel?.trim() ||
-        ariaLabelledBy?.trim()
-      ) {
-        return;
-      }
-
-      console.warn(
-        "OriginButton: provide visible label text or aria-label / aria-labelledby so the control has an accessible name."
-      );
-    }, [ariaLabel, ariaLabelledBy, children]);
+    const buttonRef = React.useRef<HTMLElement | null>(null)
+    const isDisabled = Boolean(disabled || loading)
+    const [hovered, setHovered] = React.useState(false)
+    const [isPressed, setIsPressed] = React.useState(false)
+    const [origin, setOrigin] = React.useState({ x: 0, y: 0 })
+    const [coverSize, setCoverSize] = React.useState(0)
 
     const updateOrigin = React.useCallback((x: number, y: number) => {
-      const node = buttonRef.current;
-      if (!node) return;
+      const node = buttonRef.current
+      if (!node) return
 
-      const rect = node.getBoundingClientRect();
-      setOrigin({ x, y });
-      setCoverSize(getCoverDiameter(rect.width, rect.height, x, y));
-    }, []);
+      const rect = node.getBoundingClientRect()
+      setOrigin({ x, y })
+      setCoverSize(getCoverDiameter(rect.width, rect.height, x, y))
+    }, [])
 
     const updateOriginFromPointer = React.useCallback(
-      (event: React.PointerEvent<HTMLButtonElement>) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        updateOrigin(event.clientX - rect.left, event.clientY - rect.top);
+      (event: React.PointerEvent<HTMLElement>) => {
+        const rect = event.currentTarget.getBoundingClientRect()
+        updateOrigin(event.clientX - rect.left, event.clientY - rect.top)
       },
       [updateOrigin]
-    );
+    )
 
     const updateOriginFromCenter = React.useCallback(() => {
-      const node = buttonRef.current;
-      if (!node) return;
+      const node = buttonRef.current
+      if (!node) return
 
-      const rect = node.getBoundingClientRect();
-      updateOrigin(rect.width / 2, rect.height / 2);
-    }, [updateOrigin]);
+      const rect = node.getBoundingClientRect()
+      updateOrigin(rect.width / 2, rect.height / 2)
+    }, [updateOrigin])
 
-    const showFill = !isDisabled && (hovered || isPressed);
+    const showFill = !isDisabled && (hovered || isPressed)
 
-    React.useLayoutEffect(() => {
-      const node = buttonRef.current;
-      if (!(node && showFill)) return;
+    React.useEffect(() => {
+      const node = buttonRef.current
+      if (!(node && showFill)) return
 
       const measure = () => {
-        const rect = node.getBoundingClientRect();
-        setCoverSize(
-          getCoverDiameter(rect.width, rect.height, origin.x, origin.y)
-        );
-      };
-
-      measure();
-
-      const observer = new ResizeObserver(measure);
-      observer.observe(node);
-
-      const fonts = document.fonts;
-      if (fonts?.ready) {
-        fonts.ready.then(measure).catch(() => undefined);
+        const rect = node.getBoundingClientRect()
+        setCoverSize(getCoverDiameter(rect.width, rect.height, origin.x, origin.y))
       }
 
-      return () => observer.disconnect();
-    }, [showFill, origin.x, origin.y]);
+      measure()
+      const observer = new ResizeObserver(measure)
+      observer.observe(node)
 
-    const fillTransition = { duration: FILL_DURATION, ease: FILL_EASE };
+      return () => observer.disconnect()
+    }, [showFill, origin.x, origin.y])
 
     const setMergedRef = React.useCallback(
-      (node: HTMLButtonElement | null) => {
-        buttonRef.current = node;
-        assignRef(ref, node);
+      (node: HTMLElement | null) => {
+        buttonRef.current = node
+        assignRef(ref, node as HTMLButtonElement | null)
       },
       [ref]
-    );
+    )
+
+    const commonClasses = cn(
+      "relative inline-flex h-11 cursor-pointer touch-manipulation select-none items-center justify-center overflow-hidden rounded-md px-6 font-semibold text-sm tracking-[0.02em]",
+      "border border-line-input bg-white dark:bg-card text-ink",
+      "transition-[border-color,color] duration-200",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2",
+      "disabled:pointer-events-none disabled:opacity-50",
+      showFill && "border-signal text-ink",
+      className
+    )
+
+    const animatedSpan = (
+      <motion.span
+        animate={{ scale: showFill && coverSize > 0 ? 1 : 0 }}
+        aria-hidden="true"
+        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8ce2b2] dark:bg-[#1a5336]"
+        initial={false}
+        style={{
+          height: coverSize,
+          left: origin.x,
+          top: origin.y,
+          width: coverSize,
+        }}
+        transition={{ duration: showFill ? 0.45 : 0.3, ease: FILL_EASE }}
+      />
+    )
+
+    const content = (
+      <>
+        {animatedSpan}
+        <span className="relative z-10 inline-flex items-center justify-center gap-2">
+          {children}
+        </span>
+      </>
+    )
+
+    const eventHandlers = {
+      onBlur: (event: React.FocusEvent<any>) => {
+        onBlur?.(event)
+        setIsPressed(false)
+        if (!event.defaultPrevented) setHovered(false)
+      },
+      onClick,
+      onFocus: (event: React.FocusEvent<any>) => {
+        onFocus?.(event)
+        if (isDisabled || event.defaultPrevented) return
+        if (event.currentTarget.matches(":focus-visible")) {
+          updateOriginFromCenter()
+          setHovered(true)
+        }
+      },
+      onKeyDown: (event: React.KeyboardEvent<any>) => {
+        onKeyDown?.(event)
+        if (event.defaultPrevented || isDisabled || event.repeat || (event.key !== " " && event.key !== "Enter")) {
+          return
+        }
+        if (event.key === " ") event.preventDefault()
+        updateOriginFromCenter()
+        setIsPressed(true)
+        setHovered(true)
+      },
+      onKeyUp: (event: React.KeyboardEvent<any>) => {
+        onKeyUp?.(event)
+        if (event.key === " " || event.key === "Enter") {
+          setIsPressed(false)
+          if (!event.currentTarget.matches(":focus-visible")) setHovered(false)
+        }
+      },
+      onPointerCancel: (event: React.PointerEvent<any>) => {
+        onPointerCancel?.(event)
+        setIsPressed(false)
+      },
+      onPointerDown: (event: React.PointerEvent<any>) => {
+        onPointerDown?.(event)
+        if (event.defaultPrevented || isDisabled || event.button !== 0) return
+        updateOriginFromPointer(event)
+        setIsPressed(true)
+        setHovered(true)
+      },
+      onPointerEnter: (event: React.PointerEvent<any>) => {
+        onPointerEnter?.(event)
+        if (isDisabled || event.defaultPrevented) return
+        updateOriginFromPointer(event)
+        setHovered(true)
+      },
+      onPointerLeave: (event: React.PointerEvent<any>) => {
+        onPointerLeave?.(event)
+        setHovered(false)
+        setIsPressed(false)
+      },
+      onPointerUp: (event: React.PointerEvent<any>) => {
+        onPointerUp?.(event)
+        setIsPressed(false)
+      },
+    }
+
+    if (href && !isDisabled) {
+      return (
+        <motion.div whileTap={{ scale: 0.985 }} className="inline-flex">
+          <Link
+            href={href}
+            ref={setMergedRef as any}
+            className={commonClasses}
+            {...(eventHandlers as any)}
+          >
+            {content}
+          </Link>
+        </motion.div>
+      )
+    }
 
     return (
       <motion.button
         {...props}
-        aria-busy={loading || undefined}
-        className={cn(
-          componentThemeClassName,
-          "relative inline-flex h-12 cursor-pointer touch-manipulation select-none items-center justify-center overflow-hidden rounded-xl px-8 font-medium text-[15px] tracking-[-0.02em]",
-          "border-[0.5px] border-border bg-card text-card-foreground",
-          "dark:bg-muted dark:text-foreground",
-          "transition-[color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "disabled:pointer-events-none disabled:opacity-50",
-          showFill && "text-background dark:text-neutral-950",
-          className
-        )}
-        data-pressed={isPressed ? "true" : "false"}
-        disabled={isDisabled}
-        onBlur={(event) => {
-          onBlur?.(event);
-          setIsPressed(false);
-          if (!event.defaultPrevented) {
-            setHovered(false);
-          }
-        }}
-        onClick={onClick}
-        onFocus={(event) => {
-          onFocus?.(event);
-          if (isDisabled || event.defaultPrevented) return;
-          if (event.currentTarget.matches(":focus-visible")) {
-            updateOriginFromCenter();
-            setHovered(true);
-          }
-        }}
-        onKeyDown={(event) => {
-          onKeyDown?.(event);
-
-          if (
-            event.defaultPrevented ||
-            isDisabled ||
-            event.repeat ||
-            (event.key !== " " && event.key !== "Enter")
-          ) {
-            return;
-          }
-
-          if (event.key === " ") {
-            event.preventDefault();
-          }
-
-          updateOriginFromCenter();
-          setIsPressed(true);
-          setHovered(true);
-        }}
-        onKeyUp={(event) => {
-          onKeyUp?.(event);
-
-          if (event.key === " " || event.key === "Enter") {
-            setIsPressed(false);
-            if (!event.currentTarget.matches(":focus-visible")) {
-              setHovered(false);
-            }
-          }
-        }}
-        onPointerCancel={(event) => {
-          onPointerCancel?.(event);
-          setIsPressed(false);
-        }}
-        onPointerDown={(event) => {
-          onPointerDown?.(event);
-
-          if (event.defaultPrevented || isDisabled || event.button !== 0) {
-            return;
-          }
-
-          updateOriginFromPointer(event);
-          setIsPressed(true);
-          setHovered(true);
-        }}
-        onPointerEnter={(event) => {
-          onPointerEnter?.(event);
-          if (isDisabled || event.defaultPrevented) return;
-          updateOriginFromPointer(event);
-          setHovered(true);
-        }}
-        onPointerLeave={(event) => {
-          onPointerLeave?.(event);
-          setHovered(false);
-          setIsPressed(false);
-        }}
-        onPointerUp={(event) => {
-          onPointerUp?.(event);
-          setIsPressed(false);
-        }}
-        ref={setMergedRef}
+        ref={setMergedRef as any}
         type={type}
+        disabled={isDisabled}
+        aria-busy={loading || undefined}
+        className={commonClasses}
         whileTap={isDisabled ? undefined : { scale: 0.985 }}
+        {...eventHandlers}
       >
-        <motion.span
-          animate={{ scale: showFill && coverSize > 0 ? 1 : 0 }}
-          aria-hidden
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground dark:bg-neutral-50"
-          initial={false}
-          style={{
-            height: coverSize,
-            left: origin.x,
-            top: origin.y,
-            width: coverSize,
-          }}
-          transition={fillTransition}
-        />
-        <span className="relative z-10 inline-flex items-center justify-center gap-2">
-          {children}
-        </span>
+        {content}
       </motion.button>
-    );
+    )
   }
-);
-OriginButton.displayName = "OriginButton";
-export default OriginButton;
+)
+OriginButton.displayName = "OriginButton"

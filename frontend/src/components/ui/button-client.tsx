@@ -8,7 +8,6 @@ import { LoaderCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buttonVariants, type ButtonVariantsProps } from "./button-variants"
 
-const FILL_DURATION = 0.5
 const FILL_EASE = [0.16, 1, 0.3, 1] as const
 
 function getCoverDiameter(width: number, height: number, x: number, y: number) {
@@ -83,9 +82,21 @@ export const InteractiveButton = React.forwardRef<HTMLButtonElement, Interactive
     },
     ref
   ) => {
+    const isNoColorButton =
+      variant === "ghost" ||
+      (variant === "outline" && !className?.includes("bg-white") && !className?.includes("bg-canvas"))
     const isWhiteButton =
-      variant === "secondary" || variant === "outline" || variant === "inverse"
-    const hasEffect = effect !== undefined ? effect : isWhiteButton
+      variant === "secondary" ||
+      variant === "inverse" ||
+      className?.includes("bg-white") ||
+      className?.includes("bg-canvas") ||
+      (!isNoColorButton && variant === "outline")
+
+    const hasEffect = effect !== undefined ? effect : (isWhiteButton || isNoColorButton)
+
+    const overlayClass = isWhiteButton
+      ? "bg-[#8ce2b2] dark:bg-[#1a5336]"
+      : "bg-signal/20 dark:bg-signal/30"
 
     const buttonRef = React.useRef<HTMLElement | null>(null)
     const isDisabled = Boolean(disabled || loading)
@@ -207,7 +218,10 @@ export const InteractiveButton = React.forwardRef<HTMLButtonElement, Interactive
       <motion.span
         animate={{ scale: showFill && coverSize > 0 ? 1 : 0 }}
         aria-hidden="true"
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal-tint dark:bg-signal-tint/25 text-signal"
+        className={cn(
+          "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
+          overlayClass
+        )}
         initial={false}
         style={{
           height: coverSize,
@@ -215,7 +229,7 @@ export const InteractiveButton = React.forwardRef<HTMLButtonElement, Interactive
           top: origin.y,
           width: coverSize,
         }}
-        transition={{ duration: FILL_DURATION, ease: FILL_EASE }}
+        transition={{ duration: showFill ? 0.45 : 0.3, ease: FILL_EASE }}
       />
     ) : null
 
@@ -231,7 +245,7 @@ export const InteractiveButton = React.forwardRef<HTMLButtonElement, Interactive
 
     const finalClassName = cn(
       buttonVariants({ variant, size }),
-      showFill && "border-signal/50",
+      showFill && (isWhiteButton ? "border-signal text-ink" : "border-signal/70 text-ink"),
       className
     )
 

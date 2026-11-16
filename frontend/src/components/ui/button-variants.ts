@@ -9,18 +9,18 @@ export const buttonVariants = cva(
         default: "border border-ink bg-ink text-canvas hover:opacity-90",
         primary: "border border-ink bg-ink text-canvas hover:opacity-85",
         secondary:
-          "border border-line-input bg-canvas text-ink hover:border-signal/50",
+          "border border-line-input bg-white dark:bg-card text-ink hover:border-signal",
         outline:
-          "border border-line-input bg-canvas text-ink hover:border-signal/50",
+          "border border-line-input bg-transparent text-ink hover:border-signal",
         inverse:
-          "border border-on-inverse bg-canvas text-ink hover:border-signal/50",
+          "border border-on-inverse bg-white dark:bg-card text-ink hover:border-signal",
         destructive:
           "border border-danger bg-danger text-on-danger hover:opacity-90",
         danger:
           "border border-danger bg-transparent text-danger-ink hover:bg-danger-tint",
         "danger-solid":
           "border border-danger bg-danger text-on-danger hover:opacity-90",
-        ghost: "hover:bg-sunken text-ink",
+        ghost: "bg-transparent text-ink hover:bg-signal/10",
         link: "text-signal underline-offset-4 hover:underline",
       },
       size: {

@@ -8,6 +8,8 @@ export type GridScanDirection = 'forward' | 'backward' | 'pingpong';
 
 export type GridScanClickEffect = 'ping' | 'scan' | 'none';
 
+export type GridScanWallImages = { left: readonly string[]; right: readonly string[] };
+
 export interface GridScanProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style'> {
   linesColor?: string;
   scanColor?: string;
@@ -36,6 +38,7 @@ export interface GridScanProps extends Omit<HTMLAttributes<HTMLDivElement>, 'sty
   intro?: boolean;
   lightMode?: boolean;
   dpr?: number;
+  wallImages?: GridScanWallImages;
   style?: CSSProperties;
 }
 
@@ -133,6 +136,7 @@ uniform vec4 uPing[4];
 uniform float uPingAlpha[4];
 uniform vec4 uHover;
 uniform float uTime;
+uniform sampler2D uWallAtlas;
 in vec2 vUv;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outGlow;
@@ -308,6 +312,21 @@ void main() {
       over(color, vec3(1.0), lamp * tilt * occlusion * 0.11 * uShade * l.reveal * l.fade);
     }
     over(color, uScanColor, glowSpill * uShade * occlusion * 0.35);
+  }
+
+  // The first three depth cells and top two rows on each side share one atlas.
+  if (face == 0) {
+    vec2 wallCell = vec2(h.z / uCell.z, (0.5 - h.y) / uCell.y);
+    vec2 cellId = floor(wallCell);
+    vec2 local = fract(wallCell);
+    if (cellId.x < 3.0 && cellId.y < 2.0 && all(greaterThan(local, vec2(0.07))) && all(lessThan(local, vec2(0.93)))) {
+      vec2 imageUv = (local - 0.07) / 0.86;
+      if (plane > 0.0) imageUv.x = 1.0 - imageUv.x;
+      float column = cellId.x + (plane > 0.0 ? 3.0 : 0.0);
+      vec2 atlasUv = vec2((column + imageUv.x) / 6.0, 1.0 - (cellId.y + imageUv.y) / 2.0);
+      vec4 image = texture(uWallAtlas, atlasUv);
+      over(color, image.rgb, image.a * l.reveal);
+    }
   }
 
   if (face == 1 && plane < 0.0 && uReflect > 0.0) {
@@ -536,8 +555,10 @@ export const GridScan = ({
   intro = true,
   lightMode = false,
   dpr,
+  wallImages,
   className = '',
   style,
+  children,
   ...rest
 }: GridScanProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -600,6 +621,51 @@ export const GridScan = ({
     const sceneBuffer = gl.createFramebuffer();
     const bloomBufferA = gl.createFramebuffer();
     const bloomBufferB = gl.createFramebuffer();
+    const wallTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, wallTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.activeTexture(gl.TEXTURE0);
+    let disposed = false;
+    if (wallImages) {
+      const tile = 512;
+      const atlas = document.createElement('canvas');
+      atlas.width = tile * 6;
+      atlas.height = tile * 2;
+      const context = atlas.getContext('2d');
+      const images = [wallImages.left, wallImages.right];
+      images.forEach((sideImages, side) => sideImages.slice(0, 6).forEach((src, position) => {
+        const image = new window.Image();
+        image.onload = () => {
+          if (disposed || !context) return;
+          const column = side * 3 + Math.floor(position / 2);
+          const row = position % 2;
+          const scale = Math.max(tile / image.width, tile / image.height);
+          const width = image.width * scale;
+          const height = image.height * scale;
+          context.save();
+          context.beginPath();
+          context.rect(column * tile, row * tile, tile, tile);
+          context.clip();
+          context.drawImage(image, column * tile + (tile - width) / 2, row * tile + (tile - height) / 2, width, height);
+          context.restore();
+          gl.activeTexture(gl.TEXTURE2);
+          gl.bindTexture(gl.TEXTURE_2D, wallTexture);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
+          gl.generateMipmap(gl.TEXTURE_2D);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+          gl.activeTexture(gl.TEXTURE0);
+          wake();
+        };
+        image.src = src;
+      }));
+    }
 
     const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
     const colorCache = new Map<string, number[]>();
@@ -765,6 +831,10 @@ export const GridScan = ({
       gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.useProgram(room.program);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, wallTexture);
+      gl.uniform1i(ru.uWallAtlas, 2);
+      gl.activeTexture(gl.TEXTURE0);
       gl.uniform1f(ru.uAspect, aspect);
       gl.uniform1f(ru.uPixel, 1 / canvas.height);
       gl.uniform3f(ru.uEye, eye.x, eye.y, -eye.f);
@@ -999,6 +1069,7 @@ export const GridScan = ({
     wakeRef.current = wake;
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       window.clearTimeout(leaveTimer);
       wakeRef.current = null;
@@ -1012,12 +1083,13 @@ export const GridScan = ({
       document.documentElement.removeEventListener('pointerleave', onPointerLeave);
       document.removeEventListener('visibilitychange', onVisibility);
       [scene, light, bloomA, bloomB].forEach(target => gl.deleteTexture(target.texture));
+      gl.deleteTexture(wallTexture);
       [sceneBuffer, bloomBufferA, bloomBufferB].forEach(buffer => gl.deleteFramebuffer(buffer));
       gl.deleteVertexArray(vao);
       [room, down, blur, composite].forEach(item => gl.deleteProgram(item.program));
       if (!canvas.isConnected) gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, []);
+  }, [wallImages]);
 
   useEffect(() => {
     wakeRef.current?.();
@@ -1113,6 +1185,7 @@ export const GridScan = ({
       {...rest}
     >
       <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />
+      {children}
       {enableWebcam && (
         <div
           className={

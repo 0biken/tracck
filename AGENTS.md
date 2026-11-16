@@ -7,11 +7,11 @@
 3. Produce clean code, that is easy to maintain, high cohesion and low coupling between modules 
 4. When generating prompts for AI models, ensure it's concise & specific not verbose, even while intracting with me and making changes i like concise responses, except when i implcitely want to go indept. 
 5. You don't have to run tests for every code change, only when a major feature is implemented, fixes aren't major features and you can selectively run tests that applies.
-6. Use [tracck-language](.agents/skills/tracck-language/SKILL.md) with the humanizer skill when writing or editing user-facing copy, including frontend and emails, never use em dashes.
+6. Use [tracck-language](.agents/skills/tracck-language/SKILL.md) when writing or editing user-facing copy, including frontend and emails, never use em dashes.
 7. Use the `verify-app` skill when choosing, generating, or running tests.
 8. Prefer integration tests; avoid testing every function. Add unit tests only for complex isolated logic or specific regressions.
 9. When verification needs login, reuse a valid session first; otherwise read the required `admin` or `user` credentials from `playwrite/auth.json`. Never commit or print credentials. This file contains login credentials, not Playwright storage state.
-10. Use `debug-app` for debugging: read relevant code and recent logs, fix the root cause, then verify. Backend development logs are in `crypto-now-backend/logs/backend.dev.*.jsonl`; fix only clearly related incidental issues.
+10. Use `debug-app` for debugging: read relevant code and available backend development terminal output or logs, fix the root cause, then verify. Fix only clearly related incidental issues.
 
 11. Never push or switch to master unless i explicitely say so.
 
